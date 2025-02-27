@@ -2,6 +2,7 @@
 'use strict';
 
 const qerrorLogger = require('./lib/qerrorLogger');
+const logger = require('./lib/logger');
 
 /**
  * Error logger middleware that logs errors and provides AI-powered suggestions.
@@ -12,4 +13,10 @@ const qerrorLogger = require('./lib/qerrorLogger');
  * @param {Function} [next] - Express next function (optional)
  * @returns {Promise<void>}
  */
-module.exports = qerrorLogger;
+module.exports = {
+  qerrorLogger,
+  logger
+};
+
+// For backward compatibility and ease of use, also export qerrorLogger as the default export
+module.exports.default = qerrorLogger;
