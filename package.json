@@ -1,15 +1,28 @@
 {
-  "name": "nodejs",
+  "name": "qerrorLogger",
   "version": "1.0.0",
-  "description": "",
+  "description": "Error logger that prints error stack and AI advice to resolve error.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "error",
+    "logger",
+    "middleware",
+    "axios",
+    "openai",
+    "AI"
+  ],
+  "author": "Q",
   "license": "ISC",
   "dependencies": {
-    "@types/node": "^18.0.6"
-  }
+    "@types/node": "^18.0.6",
+    "axios": "^1.2.0",
+    "winston": "^3.13.0"
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "devDependencies": {}
 }
