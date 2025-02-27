@@ -1,7 +1,7 @@
 
 'use strict';
 
-const qerrorLog = require('./lib/qerrorLog');
+const qErrors = require('./lib/qErrors');
 const logger = require('./lib/logger');
 
 /**
@@ -14,9 +14,9 @@ const logger = require('./lib/logger');
  * @returns {Promise<void>}
  */
 module.exports = {
-  qerrorLog,
+  qErrors,
   logger
 };
 
-// For backward compatibility and ease of use, also export qerrorLogger as the default export
-module.exports.default = qerrorLog;
+// For backward compatibility and ease of use, also export qError as the default export
+module.exports.default = qErrors;
