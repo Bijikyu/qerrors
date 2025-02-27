@@ -20,22 +20,31 @@ npm install qerrorLogger
 
 ## Usage
 
-```
+```javascript
+// Import just qerrorLogger (default export):
 const qerrorLogger = require('qerrorLogger');
+
+// OR import both qerrorLogger and logger:
+const { qerrorLogger, logger } = require('qerrorLogger');
 
 // Example of using qerrorLogger as Express middleware:
 app.use((err, req, res, next) => {
 	qerrorLogger(err, 'RouteName', req, res, next);
 });
 
-// you can also put it in any catch block:
-function doFunction () {
+// Using qerrorLogger in any catch block:
+function doFunction() {
 	try {
 		//code
 	} catch (error) {
-		qerrorLogger(error, "do function", req, res, next); //req res and next are optional
+		qerrorLogger(error, "doFunction", req, res, next); //req res and next are optional
 	}
 }
+
+// Using the Winston logger directly:
+logger.info('Application started');
+logger.warn('Something might be wrong');
+logger.error('An error occurred', { errorDetails: error });
 ```
 
 
