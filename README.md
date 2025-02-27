@@ -1,4 +1,4 @@
-# My Error Logger
+# qerrorLog
 
 A middleware module to log errors and analyze them via an external AI API. 
 Error logger that prints error stack and AI advice in the actual logs
