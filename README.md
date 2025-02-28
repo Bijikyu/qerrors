@@ -1,4 +1,4 @@
-# qErrors
+# qerrors
 
 A middleware module to log errors and analyze them via an external AI API. 
 Error logger that prints error stack and AI advice in the actual logs
@@ -15,21 +15,21 @@ ISC
 ## Installation
 
 ```bash
-npm install qErrors
+npm install qerrors
 ```
 
 ## Usage
 
 ```javascript
 // Import just qErrors (default export):
-const qErrors = require('qErrors');
+const qerrors = require('qerrors');
 
 // OR import both qErrors and logger:
-const { qErrors, logger } = require('qErrors');
+const { qerrors, logger } = require('qerrors');
 
 // Example of using qErrors as Express middleware:
 app.use((err, req, res, next) => {
-	qErrors(err, 'RouteName', req, res, next);
+	qerrors(err, 'RouteName', req, res, next);
 });
 
 // Using qErrors in any catch block:
@@ -37,7 +37,7 @@ function doFunction() {
 	try {
 		//code
 	} catch (error) {
-		qErrors(error, "doFunction", req, res, next); //req res and next are optional
+		qerrors(error, "doFunction", req, res, next); //req res and next are optional
 	}
 }
 
