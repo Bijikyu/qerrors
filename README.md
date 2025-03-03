@@ -21,23 +21,40 @@ npm install qerrors
 ## Usage
 
 ```javascript
-// Import just qErrors (default export):
-const qerrors = require('qerrors');
-
+// Import just qerrors:
+const {qerrors} = require('qerrors');
 // OR import both qErrors and logger:
 const { qerrors, logger } = require('qerrors');
 
-// Example of using qErrors as Express middleware:
+// Example of using qerrors as Express middleware:
 app.use((err, req, res, next) => {
 	qerrors(err, 'RouteName', req, res, next);
 });
 
-// Using qErrors in any catch block:
-function doFunction() {
+// Using qerrors in any catch block:
+function doFunction(req, res, next) {
 	try {
 		//code
 	} catch (error) {
 		qerrors(error, "doFunction", req, res, next); //req res and next are optional
+	}
+}
+
+// Example for javascript that is not express related (node / service code / biz logic)
+function doFunction(param) {
+	try {
+		//code
+	} catch (error) {
+		qerrors(error, "doFunction", param);
+	}
+}
+
+// ... or if multiple params:
+function doFunction(param1, param2) {
+	try {
+		//code
+	} catch (error) {
+		qerrors(error, "doFunction", {param1, param2}); 
 	}
 }
 
