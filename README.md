@@ -6,7 +6,7 @@ to resolve errors.
 
 ## Environment Variables
 
-You will need to set OPENAI_TOKEN in your environment.
+You will need to set OMNICHAT_TOKEN in your environment, get your key at [OmniChat](https://omnichat.use-api.com).
 
 ## License
 
