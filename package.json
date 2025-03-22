@@ -1,6 +1,6 @@
 {
   "name": "qerrors",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "A middleware module to log errors and analyze them via an external AI API. Error logger that prints error stack and AI advice in the actual logs to resolve errors.",
   "main": "index.js",
   "scripts": {
