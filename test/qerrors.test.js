@@ -57,6 +57,25 @@ test('qerrors does nothing when headers already sent', async () => {
   assert.equal(nextCalled, false);
 });
 
+test('qerrors handles absence of req res and next', async () => {
+  let logged;
+  logger.error = (err) => { logged = err; };
+  qerrors.analyzeError = async () => {};
+  const err = new Error('boom');
+  await qerrors(err);
+  assert.ok(err.uniqueErrorName);
+  assert.equal(logged.context, 'unknown context');
+});
+
+test('qerrors calls next without res', async () => {
+  logger.error = () => {};
+  qerrors.analyzeError = async () => {};
+  const err = new Error('boom');
+  let nextArg;
+  await qerrors(err, 'ctx', undefined, undefined, (e) => { nextArg = e; });
+  assert.equal(nextArg, err);
+});
+
 test('qerrors exits if no error provided', async () => {
   let warned = false;
   const origWarn = console.warn;
