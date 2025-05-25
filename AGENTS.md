@@ -1,0 +1,2 @@
+No part of the qerrors module should itself call qerrors.
+Unlike other code, the code in qerrors does not need to log the start of the function that it is running, and it also doesn't need to log that it has finished running.
