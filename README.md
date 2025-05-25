@@ -23,7 +23,7 @@ npm install qerrors
 ```javascript
 // Import just qerrors:
 const {qerrors} = require('qerrors');
-// OR import both qErrors and logger:
+// OR import both qerrors and logger: //(changed qErrors to qerrors for casing consistency)
 const { qerrors, logger } = require('qerrors');
 
 // Example of using qerrors as Express middleware:
