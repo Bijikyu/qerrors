@@ -32,6 +32,15 @@ test('analyzeError returns advice from api', async () => {
   assert.deepEqual(result, { data: 'adv' });
 });
 
+test('analyzeError handles non-object advice as null', async () => {
+  process.env.OPENAI_TOKEN = 't';
+  axios.post = async () => ({ data: { choices: [{ message: { content: 'adv' } }] } });
+  const err = new Error('test2');
+  err.uniqueErrorName = 'NOOBJ';
+  const result = await analyzeError(err, 'ctx');
+  assert.equal(result, null);
+});
+
 test.after(() => {
   axios.post = originalPost;
 });
