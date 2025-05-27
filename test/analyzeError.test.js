@@ -2,13 +2,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const axios = require('axios');
+const stubMethod = require('./utils/stubMethod'); //(import stubMethod util)
 const qerrorsModule = require('../lib/qerrors');
 const { analyzeError } = qerrorsModule;
 
-function stubAxiosPost(fn) { //(create swapper for axios.post)
-  const orig = axios.post; //(capture original)
-  axios.post = fn; //(apply stub)
-  return () => { axios.post = orig; }; //(return restore)
+function stubAxiosPost(fn) { //(wrap stubMethod for axios.post)
+  return stubMethod(axios, 'post', fn); //(delegate to stubMethod)
 }
 
 function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
