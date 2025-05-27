@@ -5,7 +5,27 @@ const axios = require('axios');
 const qerrorsModule = require('../lib/qerrors');
 const { analyzeError } = qerrorsModule;
 
-const originalPost = axios.post;
+function stubAxiosPost(fn) { //(create swapper for axios.post)
+  const orig = axios.post; //(capture original)
+  axios.post = fn; //(apply stub)
+  return () => { axios.post = orig; }; //(return restore)
+}
+
+function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
+  const orig = process.env.OPENAI_TOKEN; //(capture existing value)
+  if (token === undefined) { //(check if token unset)
+    delete process.env.OPENAI_TOKEN; //(remove from env)
+  } else {
+    process.env.OPENAI_TOKEN = token; //(assign token)
+  }
+  return () => { //(return restore)
+    if (orig === undefined) { //(restore by delete)
+      delete process.env.OPENAI_TOKEN; //(delete if absent before)
+    } else {
+      process.env.OPENAI_TOKEN = orig; //(otherwise restore value)
+    }
+  };
+}
 
 test('analyzeError handles AxiosError gracefully', async () => {
   const err = new Error('axios fail');
@@ -16,31 +36,42 @@ test('analyzeError handles AxiosError gracefully', async () => {
 });
 
 test('analyzeError returns null without token', async () => {
-  delete process.env.OPENAI_TOKEN;
-  const err = new Error('no token');
-  err.uniqueErrorName = 'NOTOKEN';
-  const result = await analyzeError(err, 'ctx');
-  assert.equal(result, null);
+  const restoreToken = withOpenAIToken(undefined); //(unset OPENAI_TOKEN)
+  try {
+    const err = new Error('no token');
+    err.uniqueErrorName = 'NOTOKEN';
+    const result = await analyzeError(err, 'ctx');
+    assert.equal(result, null);
+  } finally {
+    restoreToken(); //(restore original token)
+  }
 });
 
 test('analyzeError returns advice from api', async () => {
-  process.env.OPENAI_TOKEN = 't';
-  axios.post = async () => ({ data: { choices: [{ message: { content: { data: 'adv' } } }] } });
-  const err = new Error('test');
-  err.uniqueErrorName = 'OK';
-  const result = await analyzeError(err, 'ctx');
-  assert.deepEqual(result, { data: 'adv' });
+  const restoreToken = withOpenAIToken('t'); //(set OPENAI_TOKEN)
+  const restorePost = stubAxiosPost(async () => ({ data: { choices: [{ message: { content: { data: 'adv' } } }] } })); //(stub axios.post)
+  try {
+    const err = new Error('test');
+    err.uniqueErrorName = 'OK';
+    const result = await analyzeError(err, 'ctx');
+    assert.deepEqual(result, { data: 'adv' });
+  } finally {
+    restorePost(); //(restore axios.post)
+    restoreToken(); //(restore token)
+  }
 });
 
 test('analyzeError handles non-object advice as null', async () => {
-  process.env.OPENAI_TOKEN = 't';
-  axios.post = async () => ({ data: { choices: [{ message: { content: 'adv' } }] } });
-  const err = new Error('test2');
-  err.uniqueErrorName = 'NOOBJ';
-  const result = await analyzeError(err, 'ctx');
-  assert.equal(result, null);
+  const restoreToken = withOpenAIToken('t'); //(set OPENAI_TOKEN)
+  const restorePost = stubAxiosPost(async () => ({ data: { choices: [{ message: { content: 'adv' } }] } })); //(stub axios.post)
+  try {
+    const err = new Error('test2');
+    err.uniqueErrorName = 'NOOBJ';
+    const result = await analyzeError(err, 'ctx');
+    assert.equal(result, null);
+  } finally {
+    restorePost(); //(restore axios.post)
+    restoreToken(); //(restore token)
+  }
 });
 
-test.after(() => {
-  axios.post = originalPost;
-});
