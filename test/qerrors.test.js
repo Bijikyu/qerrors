@@ -4,7 +4,17 @@ const assert = require('node:assert/strict');
 const qerrors = require('../lib/qerrors');
 const logger = require('../lib/logger');
 
-const origLoggerError = logger.error;
+function stubLogger(mock) { //helper to stub logger.error and return restore function
+  const orig = logger.error; //store original method for later restore
+  logger.error = mock; //replace logger.error with provided mock
+  return () => { logger.error = orig; }; //return restore function
+}
+
+function stubAnalyzeError(mock) { //helper to stub analyzeError and return restore
+  const orig = qerrors.analyzeError; //store original function
+  qerrors.analyzeError = mock; //replace analyzeError with mock
+  return () => { qerrors.analyzeError = orig; }; //return restore function
+}
 
 function createRes() {
   return {
@@ -19,14 +29,19 @@ function createRes() {
 
 test('qerrors logs and responds with json then calls next', async () => {
   let logged;
-  logger.error = (err) => { logged = err; };
-  qerrors.analyzeError = async () => 'adv';
+  const restoreLogger = stubLogger((err) => { logged = err; }); //stub logger.error for test
+  const restoreAnalyze = stubAnalyzeError(async () => 'adv'); //stub analyzeError for test
   const res = createRes();
   const req = { headers: {} };
   const err = new Error('boom');
   let nextArg;
   const next = (e) => { nextArg = e; };
-  await qerrors(err, 'ctx', req, res, next);
+  try {
+    await qerrors(err, 'ctx', req, res, next);
+  } finally {
+    restoreLogger(); //restore logger.error after test
+    restoreAnalyze(); //restore analyzeError after test
+  }
   assert.ok(err.uniqueErrorName);
   assert.equal(res.statusCode, 500);
   assert.deepEqual(res.payload.error.uniqueErrorName, err.uniqueErrorName);
@@ -35,56 +50,80 @@ test('qerrors logs and responds with json then calls next', async () => {
 });
 
 test('qerrors sends html when accept header requests it', async () => {
-  logger.error = () => {};
-  qerrors.analyzeError = async () => {};
+  const restoreLogger = stubLogger(() => {}); //stub logger.error for test
+  const restoreAnalyze = stubAnalyzeError(async () => {}); //stub analyzeError for test
   const res = createRes();
   const req = { headers: { accept: 'text/html' } };
   const err = new Error('boom');
-  await qerrors(err, 'ctx', req, res);
+  try {
+    await qerrors(err, 'ctx', req, res);
+  } finally {
+    restoreLogger(); //restore logger.error after test
+    restoreAnalyze(); //restore analyzeError after test
+  }
   assert.equal(res.statusCode, 500);
   assert.ok(typeof res.payload === 'string');
 });
 
 test('qerrors does nothing when headers already sent', async () => {
-  logger.error = () => {};
-  qerrors.analyzeError = async () => {};
+  const restoreLogger = stubLogger(() => {}); //stub logger.error for test
+  const restoreAnalyze = stubAnalyzeError(async () => {}); //stub analyzeError for test
   const res = createRes();
   res.headersSent = true;
   const err = new Error('boom');
   let nextCalled = false;
-  await qerrors(err, 'ctx', {}, res, () => { nextCalled = true; });
+  try {
+    await qerrors(err, 'ctx', {}, res, () => { nextCalled = true; });
+  } finally {
+    restoreLogger(); //restore logger.error after test
+    restoreAnalyze(); //restore analyzeError after test
+  }
   assert.equal(res.statusCode, null);
   assert.equal(nextCalled, false);
 });
 
 test('qerrors handles absence of req res and next', async () => {
   let logged;
-  logger.error = (err) => { logged = err; };
-  qerrors.analyzeError = async () => {};
+  const restoreLogger = stubLogger((err) => { logged = err; }); //stub logger.error for test
+  const restoreAnalyze = stubAnalyzeError(async () => {}); //stub analyzeError for test
   const err = new Error('boom');
-  await qerrors(err);
+  try {
+    await qerrors(err);
+  } finally {
+    restoreLogger(); //restore logger.error after test
+    restoreAnalyze(); //restore analyzeError after test
+  }
   assert.ok(err.uniqueErrorName);
   assert.equal(logged.context, 'unknown context');
 });
 
 test('qerrors calls next without res', async () => {
-  logger.error = () => {};
-  qerrors.analyzeError = async () => {};
+  const restoreLogger = stubLogger(() => {}); //stub logger.error for test
+  const restoreAnalyze = stubAnalyzeError(async () => {}); //stub analyzeError for test
   const err = new Error('boom');
   let nextArg;
-  await qerrors(err, 'ctx', undefined, undefined, (e) => { nextArg = e; });
+  try {
+    await qerrors(err, 'ctx', undefined, undefined, (e) => { nextArg = e; });
+  } finally {
+    restoreLogger(); //restore logger.error after test
+    restoreAnalyze(); //restore analyzeError after test
+  }
   assert.equal(nextArg, err);
 });
 
 test('qerrors exits if no error provided', async () => {
+  const restoreLogger = stubLogger(() => {}); //stub logger.error for test
+  const restoreAnalyze = stubAnalyzeError(async () => {}); //stub analyzeError for test
   let warned = false;
   const origWarn = console.warn;
   console.warn = () => { warned = true; };
-  await qerrors(null, 'ctx');
-  assert.equal(warned, true);
-  console.warn = origWarn;
+  try {
+    await qerrors(null, 'ctx');
+    assert.equal(warned, true);
+  } finally {
+    console.warn = origWarn; //restore console.warn after test
+    restoreLogger(); //restore logger.error after test
+    restoreAnalyze(); //restore analyzeError after test
+  }
 });
 
-test.after(() => {
-  logger.error = origLoggerError;
-});
