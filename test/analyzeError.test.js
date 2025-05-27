@@ -2,14 +2,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const axios = require('axios');
+const stubMethod = require('./utils/stubMethod'); //(import stubMethod for stubbing axios.post)
 const qerrorsModule = require('../lib/qerrors');
 const { analyzeError } = qerrorsModule;
 
-function stubAxiosPost(fn) { //(create swapper for axios.post)
-  const orig = axios.post; //(capture original)
-  axios.post = fn; //(apply stub)
-  return () => { axios.post = orig; }; //(return restore)
-}
 
 function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
   const orig = process.env.OPENAI_TOKEN; //(capture existing value)
@@ -49,7 +45,7 @@ test('analyzeError returns null without token', async () => {
 
 test('analyzeError returns advice from api', async () => {
   const restoreToken = withOpenAIToken('t'); //(set OPENAI_TOKEN)
-  const restorePost = stubAxiosPost(async () => ({ data: { choices: [{ message: { content: { data: 'adv' } } }] } })); //(stub axios.post)
+  const restorePost = stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content: { data: 'adv' } } }] } })); //(stub axios.post)
   try {
     const err = new Error('test');
     err.uniqueErrorName = 'OK';
@@ -63,7 +59,7 @@ test('analyzeError returns advice from api', async () => {
 
 test('analyzeError handles non-object advice as null', async () => {
   const restoreToken = withOpenAIToken('t'); //(set OPENAI_TOKEN)
-  const restorePost = stubAxiosPost(async () => ({ data: { choices: [{ message: { content: 'adv' } }] } })); //(stub axios.post)
+  const restorePost = stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content: 'adv' } }] } })); //(stub axios.post)
   try {
     const err = new Error('test2');
     err.uniqueErrorName = 'NOOBJ';
