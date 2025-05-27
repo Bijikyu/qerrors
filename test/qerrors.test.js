@@ -3,17 +3,14 @@ const assert = require('node:assert/strict');
 
 const qerrors = require('../lib/qerrors');
 const logger = require('../lib/logger');
+const stubMethod = require('./utils/stubMethod'); //import generic stubbing helper
 
 function stubLogger(mock) { //helper to stub logger.error and return restore function
-  const orig = logger.error; //store original method for later restore
-  logger.error = mock; //replace logger.error with provided mock
-  return () => { logger.error = orig; }; //return restore function
+  return stubMethod(logger, 'error', mock); //use stubMethod to replace logger.error
 }
 
 function stubAnalyzeError(mock) { //helper to stub analyzeError and return restore
-  const orig = qerrors.analyzeError; //store original function
-  qerrors.analyzeError = mock; //replace analyzeError with mock
-  return () => { qerrors.analyzeError = orig; }; //return restore function
+  return stubMethod(qerrors, 'analyzeError', mock); //use stubMethod to replace analyzeError
 }
 
 function createRes() {
