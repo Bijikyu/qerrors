@@ -3,18 +3,8 @@ const assert = require('node:assert/strict');
 
 const qerrors = require('../lib/qerrors');
 const logger = require('../lib/logger');
+const stubMethod = require('./utils/stubMethod'); //import shared stubbing helper
 
-function stubLogger(mock) { //helper to stub logger.error and return restore function
-  const orig = logger.error; //store original method for later restore
-  logger.error = mock; //replace logger.error with provided mock
-  return () => { logger.error = orig; }; //return restore function
-}
-
-function stubAnalyzeError(mock) { //helper to stub analyzeError and return restore
-  const orig = qerrors.analyzeError; //store original function
-  qerrors.analyzeError = mock; //replace analyzeError with mock
-  return () => { qerrors.analyzeError = orig; }; //return restore function
-}
 
 function createRes() {
   return {
@@ -29,8 +19,8 @@ function createRes() {
 
 test('qerrors logs and responds with json then calls next', async () => {
   let logged;
-  const restoreLogger = stubLogger((err) => { logged = err; }); //stub logger.error for test
-  const restoreAnalyze = stubAnalyzeError(async () => 'adv'); //stub analyzeError for test
+  const restoreLogger = stubMethod(logger, 'error', (err) => { logged = err; }); //use stubMethod for logger
+  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => 'adv'); //use stubMethod for analyzeError
   const res = createRes();
   const req = { headers: {} };
   const err = new Error('boom');
@@ -50,8 +40,8 @@ test('qerrors logs and responds with json then calls next', async () => {
 });
 
 test('qerrors sends html when accept header requests it', async () => {
-  const restoreLogger = stubLogger(() => {}); //stub logger.error for test
-  const restoreAnalyze = stubAnalyzeError(async () => {}); //stub analyzeError for test
+  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger
+  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError
   const res = createRes();
   const req = { headers: { accept: 'text/html' } };
   const err = new Error('boom');
@@ -66,8 +56,8 @@ test('qerrors sends html when accept header requests it', async () => {
 });
 
 test('qerrors does nothing when headers already sent', async () => {
-  const restoreLogger = stubLogger(() => {}); //stub logger.error for test
-  const restoreAnalyze = stubAnalyzeError(async () => {}); //stub analyzeError for test
+  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger
+  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError
   const res = createRes();
   res.headersSent = true;
   const err = new Error('boom');
@@ -84,8 +74,8 @@ test('qerrors does nothing when headers already sent', async () => {
 
 test('qerrors handles absence of req res and next', async () => {
   let logged;
-  const restoreLogger = stubLogger((err) => { logged = err; }); //stub logger.error for test
-  const restoreAnalyze = stubAnalyzeError(async () => {}); //stub analyzeError for test
+  const restoreLogger = stubMethod(logger, 'error', (err) => { logged = err; }); //use stubMethod for logger
+  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError
   const err = new Error('boom');
   try {
     await qerrors(err);
@@ -98,8 +88,8 @@ test('qerrors handles absence of req res and next', async () => {
 });
 
 test('qerrors calls next without res', async () => {
-  const restoreLogger = stubLogger(() => {}); //stub logger.error for test
-  const restoreAnalyze = stubAnalyzeError(async () => {}); //stub analyzeError for test
+  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger
+  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError
   const err = new Error('boom');
   let nextArg;
   try {
@@ -112,8 +102,8 @@ test('qerrors calls next without res', async () => {
 });
 
 test('qerrors exits if no error provided', async () => {
-  const restoreLogger = stubLogger(() => {}); //stub logger.error for test
-  const restoreAnalyze = stubAnalyzeError(async () => {}); //stub analyzeError for test
+  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger
+  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError
   let warned = false;
   const origWarn = console.warn;
   console.warn = () => { warned = true; };
