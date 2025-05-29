@@ -6,31 +6,6 @@ const logger = require('../lib/logger');
 const stubMethod = require('./utils/stubMethod'); //import shared stubbing helper
 
 
-/**
- * Comprehensive test suite for the main qerrors function.
- * 
- * This test suite covers the primary error logging and analysis workflow,
- * including Express.js middleware functionality, HTTP response handling,
- * and integration with the logging and AI analysis subsystems.
- * 
- * Rationale: The qerrors function serves as both an Express middleware
- * and a standalone error handler, requiring testing of multiple usage
- * patterns and integration points. The function orchestrates several
- * complex behaviors:
- * 
- * 1. Error object validation and enrichment with unique identifiers
- * 2. Context-aware logging with structured data
- * 3. Asynchronous AI analysis integration
- * 4. HTTP response handling with content negotiation
- * 5. Express middleware chain continuation
- * 
- * Testing strategy focuses on:
- * - Verifying proper error object handling and validation
- * - Testing Express request/response integration
- * - Ensuring logging calls are made with correct structure
- * - Validating AI analysis is triggered appropriately
- * - Testing both JSON and HTML response generation
- */
 function createRes() {
   return {
     headersSent: false,
@@ -141,3 +116,4 @@ test('qerrors exits if no error provided', async () => {
     restoreAnalyze(); //restore analyzeError after test
   }
 });
+
