@@ -20,27 +20,27 @@
 module.exports = {
   // Factory function that returns a logger with no-op methods
   // Maintains winston logger interface while preventing actual logging
-  createLogger: () => ({ 
-    error: () => {}, // No-op error logging
-    warn: () => {},  // No-op warning logging
-    info: () => {}   // No-op info logging
+  createLogger: () => ({
+    error: () => {}, // No-op error logging used only during testing //(clarified no-op usage for testing)
+    warn: () => {},  // No-op warning logging used only during testing //(clarified no-op usage for testing)
+    info: () => {}   // No-op info logging used only during testing //(clarified no-op usage for testing)
   }),
   
   // Format object with all formatting functions as no-ops
   // Prevents errors when logger configuration attempts to use these formatters
   format: {
-    combine: () => {},    // No-op format combiner
-    timestamp: () => {},  // No-op timestamp formatter
-    errors: () => {},     // No-op error formatter
-    splat: () => {},      // No-op string interpolation formatter
-    json: () => {},       // No-op JSON formatter
-    printf: () => {}      // No-op printf-style formatter
+    combine: () => {},    // No-op format combiner used only during testing //(clarified no-op usage for testing)
+    timestamp: () => {},  // No-op timestamp formatter used only during testing //(clarified no-op usage for testing)
+    errors: () => {},     // No-op error formatter used only during testing //(clarified no-op usage for testing)
+    splat: () => {},      // No-op string interpolation formatter used only during testing //(clarified no-op usage for testing)
+    json: () => {},       // No-op JSON formatter used only during testing //(clarified no-op usage for testing)
+    printf: () => {}      // No-op printf-style formatter used only during testing //(clarified no-op usage for testing)
   },
   
   // Transport constructors as no-op functions
   // Prevents file system operations and console output during testing
   transports: {
-    File: function(){},     // No-op file transport constructor
-    Console: function(){}   // No-op console transport constructor
+    File: function(){},     // No-op file transport constructor used only during testing //(clarified no-op usage for testing)
+    Console: function(){}   // No-op console transport constructor used only during testing //(clarified no-op usage for testing)
   }
 };
