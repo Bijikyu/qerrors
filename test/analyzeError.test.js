@@ -1,10 +1,10 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
+const test = require('node:test'); //node builtin test runner
+const assert = require('node:assert/strict'); //strict assertions for reliability
 
-const axios = require('axios');
+const axios = require('axios'); //real axios replaced by stub during tests
 const stubMethod = require('./utils/stubMethod'); //(use stubMethod to stub axios.post so tests run without network)
-const qerrorsModule = require('../lib/qerrors');
-const { analyzeError } = qerrorsModule;
+const qerrorsModule = require('../lib/qerrors'); //import module under test
+const { analyzeError } = qerrorsModule; //extract analyzeError for direct calls
 
 
 function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)

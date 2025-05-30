@@ -1,5 +1,5 @@
 
-'use strict';
+'use strict'; //enforce strict parsing and error handling across module
 
 /**
  * Main entry point for the qerrors package - an intelligent error handling middleware
@@ -15,8 +15,8 @@
  * - Uses strict mode to catch common JavaScript pitfalls early
  */
 
-const qerrors = require('./lib/qerrors');
-const logger = require('./lib/logger');
+const qerrors = require('./lib/qerrors'); //load primary error handler implementation
+const logger = require('./lib/logger'); //load configured winston logger used by qerrors
 
 /**
  * Error logger middleware that logs errors and provides AI-powered suggestions.
@@ -31,8 +31,8 @@ const logger = require('./lib/logger');
 // Primary export object - allows destructuring imports like { qerrors, logger }
 // This pattern provides clear, explicit imports while keeping related functionality grouped
 module.exports = { //exposes logger with qerrors so consumers use the same configured logger
-  qerrors,
-  logger
+  qerrors, //main error handling function users interact with
+  logger //winston logger instance for consistent logging
 };
 
 // Default export for backward compatibility and convenience
