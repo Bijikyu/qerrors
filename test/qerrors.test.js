@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 
 const qerrors = require('../lib/qerrors');
 const logger = require('../lib/logger');
-const stubMethod = require('./utils/stubMethod'); //import shared stubbing helper
+const stubMethod = require('./utils/stubMethod'); //(use stubMethod to replace logger and analyzer to isolate external deps)
 
 
 function createRes() {
@@ -17,10 +17,11 @@ function createRes() {
   };
 }
 
+// Scenario: standard JSON error handling and next() invocation
 test('qerrors logs and responds with json then calls next', async () => {
   let logged;
-  const restoreLogger = stubMethod(logger, 'error', (err) => { logged = err; }); //use stubMethod for logger
-  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => 'adv'); //use stubMethod for analyzeError
+  const restoreLogger = stubMethod(logger, 'error', (err) => { logged = err; }); //use stubMethod for logger to avoid real logging
+  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => 'adv'); //use stubMethod for analyzeError to avoid API calls
   const res = createRes();
   const req = { headers: {} };
   const err = new Error('boom');
@@ -39,9 +40,10 @@ test('qerrors logs and responds with json then calls next', async () => {
   assert.equal(nextArg, err);
 });
 
+// Scenario: send HTML when browser requests it
 test('qerrors sends html when accept header requests it', async () => {
-  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger
-  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError
+  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger to avoid real logging
+  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError to avoid API calls
   const res = createRes();
   const req = { headers: { accept: 'text/html' } };
   const err = new Error('boom');
@@ -55,9 +57,10 @@ test('qerrors sends html when accept header requests it', async () => {
   assert.ok(typeof res.payload === 'string');
 });
 
+// Scenario: skip response when headers already sent
 test('qerrors does nothing when headers already sent', async () => {
-  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger
-  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError
+  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger to avoid real logging
+  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError to avoid API calls
   const res = createRes();
   res.headersSent = true;
   const err = new Error('boom');
@@ -72,10 +75,11 @@ test('qerrors does nothing when headers already sent', async () => {
   assert.equal(nextCalled, false);
 });
 
+// Scenario: operate without Express objects
 test('qerrors handles absence of req res and next', async () => {
   let logged;
-  const restoreLogger = stubMethod(logger, 'error', (err) => { logged = err; }); //use stubMethod for logger
-  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError
+  const restoreLogger = stubMethod(logger, 'error', (err) => { logged = err; }); //use stubMethod for logger to avoid real logging
+  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError to avoid API calls
   const err = new Error('boom');
   try {
     await qerrors(err);
@@ -87,9 +91,10 @@ test('qerrors handles absence of req res and next', async () => {
   assert.equal(logged.context, 'unknown context');
 });
 
+// Scenario: still call next when res is undefined
 test('qerrors calls next without res', async () => {
-  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger
-  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError
+  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger to avoid real logging
+  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError to avoid API calls
   const err = new Error('boom');
   let nextArg;
   try {
@@ -101,9 +106,10 @@ test('qerrors calls next without res', async () => {
   assert.equal(nextArg, err);
 });
 
+// Scenario: warn and exit when called without an error
 test('qerrors exits if no error provided', async () => {
-  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger
-  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError
+  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger to avoid real logging
+  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError to avoid API calls
   let warned = false;
   const origWarn = console.warn;
   console.warn = () => { warned = true; };
