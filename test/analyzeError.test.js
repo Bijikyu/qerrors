@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const axios = require('axios');
-const stubMethod = require('./utils/stubMethod'); //(import stubMethod for stubbing axios.post)
+const stubMethod = require('./utils/stubMethod'); //(use stubMethod to stub axios.post so tests run without network)
 const qerrorsModule = require('../lib/qerrors');
 const { analyzeError } = qerrorsModule;
 
@@ -20,9 +20,10 @@ function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
     } else {
       process.env.OPENAI_TOKEN = orig; //(otherwise restore value)
     }
-  };
+};
 }
 
+// Scenario: skip analyzing Axios errors to prevent infinite loops
 test('analyzeError handles AxiosError gracefully', async () => {
   const err = new Error('axios fail');
   err.name = 'AxiosError';
@@ -31,6 +32,7 @@ test('analyzeError handles AxiosError gracefully', async () => {
   assert.equal(result, null); //(expect null when axios error is skipped)
 });
 
+// Scenario: return null when API token is missing
 test('analyzeError returns null without token', async () => {
   const restoreToken = withOpenAIToken(undefined); //(unset OPENAI_TOKEN)
   try {
@@ -43,9 +45,10 @@ test('analyzeError returns null without token', async () => {
   }
 });
 
+// Scenario: provide advice object when API call succeeds
 test('analyzeError returns advice from api', async () => {
   const restoreToken = withOpenAIToken('t'); //(set OPENAI_TOKEN)
-  const restorePost = stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content: { data: 'adv' } } }] } })); //(stub axios.post)
+  const restorePost = stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content: { data: 'adv' } } }] } })); //(stub axios.post to avoid real network)
   try {
     const err = new Error('test');
     err.uniqueErrorName = 'OK';
@@ -57,9 +60,10 @@ test('analyzeError returns advice from api', async () => {
   }
 });
 
+// Scenario: treat string advice as invalid and return null
 test('analyzeError handles non-object advice as null', async () => {
   const restoreToken = withOpenAIToken('t'); //(set OPENAI_TOKEN)
-  const restorePost = stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content: 'adv' } }] } })); //(stub axios.post)
+  const restorePost = stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content: 'adv' } }] } })); //(stub axios.post to avoid real network)
   try {
     const err = new Error('test2');
     err.uniqueErrorName = 'NOOBJ';
