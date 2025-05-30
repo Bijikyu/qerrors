@@ -28,7 +28,7 @@ test('analyzeError handles AxiosError gracefully', async () => {
   err.name = 'AxiosError';
   err.uniqueErrorName = 'AXERR';
   const result = await analyzeError(err, 'ctx');
-  assert.equal(result, undefined);
+  assert.equal(result, null); //(expect null when axios error is skipped)
 });
 
 test('analyzeError returns null without token', async () => {
