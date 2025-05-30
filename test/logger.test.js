@@ -1,7 +1,7 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
+const test = require('node:test'); //node test runner
+const assert = require('node:assert/strict'); //strict assertion helpers
 
-const logger = require('../lib/logger');
+const logger = require('../lib/logger'); //logger instance under test
 
 // Scenario: verify logger exposes basic Winston-style methods
 test('logger exposes standard logging methods', () => {
