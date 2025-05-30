@@ -30,7 +30,7 @@ const logger = require('./lib/logger');
 
 // Primary export object - allows destructuring imports like { qerrors, logger }
 // This pattern provides clear, explicit imports while keeping related functionality grouped
-module.exports = {
+module.exports = { //exposes logger with qerrors so consumers use the same configured logger
   qerrors,
   logger
 };
