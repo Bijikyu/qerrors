@@ -1,3 +1,4 @@
+Instructions in AGENTS.md take precedence.
 No part of the qerrors module should itself call qerrors on an error in qerros as that 
 would cause an infinite loop. 
 Unlike other code, the code in qerrors does not need to log the start of the function 
