@@ -17,6 +17,6 @@
 
 // Minimal axios stub that prevents real HTTP requests
 // Returns empty object wrapped in Promise to match axios API contract
-module.exports = { 
-  post: async () => ({}) // Async function returning empty response object
+module.exports = {
+  post: async () => ({}) // Async function returning empty response object; no-op for tests //(clarified no-op usage for testing)
 };
