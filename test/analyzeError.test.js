@@ -48,7 +48,7 @@ test('analyzeError returns null without token', async () => {
 // Scenario: provide advice object when API call succeeds
 test('analyzeError returns advice from api', async () => {
   const restoreToken = withOpenAIToken('t'); //(set OPENAI_TOKEN)
-  const restorePost = stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content: { data: 'adv' } } }] } })); //(stub axios.post to avoid real network)
+  const restorePost = stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content: '{"data":"adv"}' } }] } })); //(stub axios.post to avoid real network and mimic JSON string)
   try {
     const err = new Error('test');
     err.uniqueErrorName = 'OK';
@@ -63,7 +63,7 @@ test('analyzeError returns advice from api', async () => {
 // Scenario: treat string advice as invalid and return null
 test('analyzeError handles non-object advice as null', async () => {
   const restoreToken = withOpenAIToken('t'); //(set OPENAI_TOKEN)
-  const restorePost = stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content: 'adv' } }] } })); //(stub axios.post to avoid real network)
+  const restorePost = stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content: 'adv' } }] } })); //(stub axios.post to avoid real network with invalid JSON)
   try {
     const err = new Error('test2');
     err.uniqueErrorName = 'NOOBJ';
