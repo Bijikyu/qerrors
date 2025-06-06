@@ -7,6 +7,7 @@ to resolve errors.
 ## Environment Variables
 
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com).
+You can optionally set `QERRORS_CACHE_LIMIT` to adjust how many advice entries are cached; the default is 50.
 
 ## License
 
