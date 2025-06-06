@@ -62,6 +62,7 @@ function doFunction(param1, param2) {
 logger.info('Application started');
 logger.warn('Something might be wrong');
 logger.error('An error occurred', { errorDetails: error });
+// Logs rotate daily automatically using winston-daily-rotate-file
 ```
 
 ## Testing
