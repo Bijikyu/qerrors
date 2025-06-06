@@ -63,6 +63,38 @@ test('qerrors sends html when accept header requests it', async () => {
   assert.ok(typeof res.payload === 'string');
 });
 
+// Scenario: use statusCode from error object in json response
+test('qerrors honors error.statusCode in json', async () => {
+  const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
+  const res = createRes(); //mock response for json
+  const req = { headers: {} }; //no html accept header
+  const err = new Error('not found'); //error with custom status
+  err.statusCode = 404; //status code to verify
+  try {
+    await qerrors(err, 'ctx', req, res); //invoke handler with status
+  } finally {
+    restore(); //restore stubs after test
+  }
+  assert.equal(res.statusCode, 404); //expect custom code set in response
+  assert.equal(res.payload.error.statusCode, 404); //json includes status code
+});
+
+// Scenario: use statusCode from error object in html response
+test('qerrors honors error.statusCode in html', async () => {
+  const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
+  const res = createRes(); //mock response for html
+  const req = { headers: { accept: 'text/html' } }; //html accept header
+  const err = new Error('not found'); //error with custom status
+  err.statusCode = 404; //status code to verify
+  try {
+    await qerrors(err, 'ctx', req, res); //invoke handler with status and html
+  } finally {
+    restore(); //restore stubs after test
+  }
+  assert.equal(res.statusCode, 404); //expect custom code set in response
+  assert.ok(res.payload.includes('Error: 404')); //html output reflects code
+});
+
 // Scenario: skip response when headers already sent
 test('qerrors does nothing when headers already sent', async () => {
   const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
