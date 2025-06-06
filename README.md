@@ -7,6 +7,11 @@ to resolve errors.
 ## Environment Variables
 
 
+You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //env variable for OpenAI access
+Set QERRORS_CONCURRENCY to adjust how many analyses run simultaneously; //new variable controlling concurrency
+if not set the default limit is 5. //explain fallback value
+
+
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //(mention required token)
 The retry behaviour can be tuned with QERRORS_RETRY_ATTEMPTS and QERRORS_RETRY_BASE_MS which default to 2 and 100 respectively. //(document retry env vars)
 
@@ -17,6 +22,7 @@ Additional options control the logger's file rotation:
 
 * `QERRORS_LOG_MAXSIZE` - max log file size in bytes before rotation (default `1048576`)
 * `QERRORS_LOG_MAXFILES` - number of rotated files to keep (default `5`)
+
 
 
 ## License
