@@ -2,6 +2,7 @@
 const test = require('node:test'); //node builtin test runner
 const assert = require('node:assert/strict'); //strict assertions for reliability
 const qtests = require('qtests'); //qtests stubbing utilities
+const crypto = require('crypto'); //node crypto for hashing count
 
 const qerrorsModule = require('../lib/qerrors'); //import module under test
 const { analyzeError } = qerrorsModule; //extract analyzeError for direct calls
@@ -115,5 +116,30 @@ test('analyzeError returns cached advice on repeat call', async () => {
     assert.equal(secondCalled, false); //(axios should not run second time)
   } finally {
     restoreToken(); //(restore environment)
+  }
+});
+
+// Scenario: reuse provided qerrorsKey without rehashing
+test('analyzeError reuses error.qerrorsKey when present', async () => {
+  const restoreToken = withOpenAIToken('reuse-token'); //(set token for test)
+  const capture = {}; //(capture axios parameters)
+  const restoreAxios = stubAxiosPost('{"info":"first"}', capture); //(stub axios)
+  let hashCount = 0; //(track calls to crypto.createHash)
+  const origHash = crypto.createHash; //(store original function)
+  const restoreHash = qtests.stubMethod(crypto, 'createHash', (...args) => { hashCount++; return origHash(...args); });
+  try {
+    const err = new Error('reuse error');
+    err.stack = 'stack';
+    err.uniqueErrorName = 'REUSEKEY';
+    err.qerrorsKey = 'preset';
+    const first = await analyzeError(err, 'ctx');
+    assert.equal(first.info, 'first');
+    assert.equal(hashCount, 0); //(ensure hashing not called)
+    const again = await analyzeError(err, 'ctx');
+    assert.equal(again.info, 'first');
+  } finally {
+    restoreHash(); //(restore crypto.createHash)
+    restoreToken(); //(restore token)
+    restoreAxios(); //(restore axios)
   }
 });
