@@ -117,3 +117,35 @@ test('analyzeError returns cached advice on repeat call', async () => {
     restoreToken(); //(restore environment)
   }
 });
+
+// Scenario: queue limits concurrent analyzeError executions
+test('analyzeError queues excess calls', async () => {
+  const restoreToken = withOpenAIToken('queue-token'); //(set token for analysis)
+  const startOrder = []; //(record order axios calls start)
+  let running = 0; //(track concurrent requests)
+  let maxRunning = 0; //(track max concurrency)
+  const restoreAxios = qtests.stubMethod(axios, 'post', async (url, body) => {
+    const id = body.messages[0].content.includes('ctx1') ? 1 : body.messages[0].content.includes('ctx2') ? 2 : 3; //(derive id from context)
+    startOrder.push(id); //(save start sequence)
+    running++; //(increment running count)
+    if (running > maxRunning) { maxRunning = running; } //(update max)
+    await new Promise((r) => setTimeout(r, 50)); //(delay to simulate network)
+    running--; //(decrement after delay)
+    return { data: { choices: [{ message: { content: '{}' } }] } }; //(return dummy advice)
+  });
+  try {
+    const e1 = new Error('e1'); e1.uniqueErrorName = 'Q1'; //(first error)
+    const e2 = new Error('e2'); e2.uniqueErrorName = 'Q2'; //(second error)
+    const e3 = new Error('e3'); e3.uniqueErrorName = 'Q3'; //(third error)
+    await Promise.all([
+      analyzeError(e1, 'ctx1'),
+      analyzeError(e2, 'ctx2'),
+      analyzeError(e3, 'ctx3')
+    ]); //(run three analyses in parallel)
+  } finally {
+    restoreToken(); //(restore environment)
+    restoreAxios(); //(restore axios stub)
+  }
+  assert.deepEqual(startOrder, [1, 2, 3]); //(ensure queued order preserved)
+  assert.ok(maxRunning <= 2); //(concurrency never exceeded limit)
+});
