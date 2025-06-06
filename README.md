@@ -66,9 +66,8 @@ logger.error('An error occurred', { errorDetails: error });
 
 ## Testing
 
-Running `npm test` uses Node's `-r` option to require `setup.js` before the
-test files execute. This setup modifies Node's module path so that modules in
-the `stubs` directory replace real ones. As a result, network requests and file
-operations are stubbed out, allowing the test suite to run entirely offline.
+Running `npm test` starts Node's built-in test runner using the `--test` flag.
+The included tests rely on the `qtests` library to stub network requests, so the
+suite can run entirely offline.
 
 
