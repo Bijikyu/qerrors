@@ -17,11 +17,19 @@ function createRes() { //construct minimal Express-like response mock
   };
 }
 
+function stubDeps(loggerFn, analyzeFn) { //create combined stub utility for tests
+  const restoreLogger = stubMethod(logger, 'error', loggerFn); //stub logger.error with provided function
+  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', analyzeFn); //stub analyzeError with provided function
+  return () => { //return unified restore
+    restoreLogger(); //restore logger.error after each test
+    restoreAnalyze(); //restore analyzeError after each test
+  };
+}
+
 // Scenario: standard JSON error handling and next() invocation
 test('qerrors logs and responds with json then calls next', async () => {
   let logged; //capture logger output for assertions
-  const restoreLogger = stubMethod(logger, 'error', (err) => { logged = err; }); //use stubMethod for logger to avoid real logging
-  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => 'adv'); //use stubMethod for analyzeError to avoid API calls
+  const restore = stubDeps((err) => { logged = err; }, async () => 'adv'); //stub logger and analyze with helper
   const res = createRes(); //mock response object
   const req = { headers: {} }; //minimal request object
   const err = new Error('boom'); //sample error to handle
@@ -30,8 +38,7 @@ test('qerrors logs and responds with json then calls next', async () => {
   try {
     await qerrors(err, 'ctx', req, res, next);
   } finally {
-    restoreLogger(); //restore logger.error after test
-    restoreAnalyze(); //restore analyzeError after test
+    restore(); //restore all stubs after test
   }
   assert.ok(err.uniqueErrorName);
   assert.equal(res.statusCode, 500);
@@ -42,16 +49,14 @@ test('qerrors logs and responds with json then calls next', async () => {
 
 // Scenario: send HTML when browser requests it
 test('qerrors sends html when accept header requests it', async () => {
-  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger to avoid real logging
-  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError to avoid API calls
+  const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
   const res = createRes(); //mock response object to capture html
   const req = { headers: { accept: 'text/html' } }; //request asking for html
   const err = new Error('boom'); //sample error to send
   try {
     await qerrors(err, 'ctx', req, res);
   } finally {
-    restoreLogger(); //restore logger.error after test
-    restoreAnalyze(); //restore analyzeError after test
+    restore(); //restore all stubs after test
   }
   assert.equal(res.statusCode, 500);
   assert.ok(typeof res.payload === 'string');
@@ -59,8 +64,7 @@ test('qerrors sends html when accept header requests it', async () => {
 
 // Scenario: skip response when headers already sent
 test('qerrors does nothing when headers already sent', async () => {
-  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger to avoid real logging
-  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError to avoid API calls
+  const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
   const res = createRes(); //mock response object with headers already sent
   res.headersSent = true; //simulate Express sending headers prior
   const err = new Error('boom'); //error to pass into handler
@@ -68,8 +72,7 @@ test('qerrors does nothing when headers already sent', async () => {
   try {
     await qerrors(err, 'ctx', {}, res, () => { nextCalled = true; });
   } finally {
-    restoreLogger(); //restore logger.error after test
-    restoreAnalyze(); //restore analyzeError after test
+    restore(); //restore all stubs after test
   }
   assert.equal(res.statusCode, null);
   assert.equal(nextCalled, false);
@@ -78,14 +81,12 @@ test('qerrors does nothing when headers already sent', async () => {
 // Scenario: operate without Express objects
 test('qerrors handles absence of req res and next', async () => {
   let logged; //capture logger output
-  const restoreLogger = stubMethod(logger, 'error', (err) => { logged = err; }); //use stubMethod for logger to avoid real logging
-  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError to avoid API calls
+  const restore = stubDeps((err) => { logged = err; }, async () => {}); //stub logger and analyze with helper
   const err = new Error('boom'); //error for generic usage
   try {
     await qerrors(err);
   } finally {
-    restoreLogger(); //restore logger.error after test
-    restoreAnalyze(); //restore analyzeError after test
+    restore(); //restore all stubs after test
   }
   assert.ok(err.uniqueErrorName);
   assert.equal(logged.context, 'unknown context');
@@ -93,23 +94,20 @@ test('qerrors handles absence of req res and next', async () => {
 
 // Scenario: still call next when res is undefined
 test('qerrors calls next without res', async () => {
-  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger to avoid real logging
-  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError to avoid API calls
+  const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
   const err = new Error('boom'); //error when res missing
   let nextArg; //captured arg for next()
   try {
     await qerrors(err, 'ctx', undefined, undefined, (e) => { nextArg = e; });
   } finally {
-    restoreLogger(); //restore logger.error after test
-    restoreAnalyze(); //restore analyzeError after test
+    restore(); //restore all stubs after test
   }
   assert.equal(nextArg, err);
 });
 
 // Scenario: warn and exit when called without an error
 test('qerrors exits if no error provided', async () => {
-  const restoreLogger = stubMethod(logger, 'error', () => {}); //use stubMethod for logger to avoid real logging
-  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', async () => {}); //use stubMethod for analyzeError to avoid API calls
+  const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
   let warned = false; //track if warn was called
   const origWarn = console.warn; //preserve original warn
   console.warn = () => { warned = true; }; //override to detect call
@@ -118,8 +116,7 @@ test('qerrors exits if no error provided', async () => {
     assert.equal(warned, true);
   } finally {
     console.warn = origWarn; //restore console.warn after test
-    restoreLogger(); //restore logger.error after test
-    restoreAnalyze(); //restore analyzeError after test
+    restore(); //restore all stubs after test
   }
 });
 
