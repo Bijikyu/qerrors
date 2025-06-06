@@ -24,7 +24,7 @@ test('qerrors integration logs error and analyzes context', async () => {
   logger.error = (...args) => { logArg = args[0]; return origLog.apply(logger, args); }; //wrap logger.error to capture call //(wrap to spy while preserving)
   let analyzeCtx; //capture analyzeError context
   const origAnalyze = qerrors.analyzeError; //store original function
-  qerrors.analyzeError = async (err, ctx) => { analyzeCtx = ctx; return origAnalyze(err, ctx); }; //wrap analyzeError to capture call //(wrap to spy while preserving)
+  qerrors.analyzeError = async (err, ctx) => { analyzeCtx = ctx; return await origAnalyze.call(this, err, ctx); }; //wrap analyzeError to capture call //(wrap to spy while preserving)
   process.env.OPENAI_TOKEN = 'tkn'; //set token for analyzeError to run
   const res = createRes(); //create mock res
   const err = new Error('boom'); //sample error
