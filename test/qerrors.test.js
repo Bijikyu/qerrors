@@ -1,9 +1,10 @@
+
 const test = require('node:test'); //node test runner
 const assert = require('node:assert/strict'); //strict assertion helpers
+const { stub } = require('qtests'); //qtests stubbing utilities
 
 const qerrors = require('../lib/qerrors'); //module under test
 const logger = require('../lib/logger'); //winston logger stubbed during tests
-const stubMethod = require('./utils/stubMethod'); //(use stubMethod to replace logger and analyzer to isolate external deps)
 
 
 function createRes() { //construct minimal Express-like response mock
@@ -18,8 +19,8 @@ function createRes() { //construct minimal Express-like response mock
 }
 
 function stubDeps(loggerFn, analyzeFn) { //create combined stub utility for tests
-  const restoreLogger = stubMethod(logger, 'error', loggerFn); //stub logger.error with provided function
-  const restoreAnalyze = stubMethod(qerrors, 'analyzeError', analyzeFn); //stub analyzeError with provided function
+  const restoreLogger = stub(logger, 'error', loggerFn); //stub logger.error with provided function
+  const restoreAnalyze = stub(qerrors, 'analyzeError', analyzeFn); //stub analyzeError with provided function
   return () => { //return unified restore
     restoreLogger(); //restore logger.error after each test
     restoreAnalyze(); //restore analyzeError after each test
@@ -109,14 +110,12 @@ test('qerrors calls next without res', async () => {
 test('qerrors exits if no error provided', async () => {
   const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
   let warned = false; //track if warn was called
-  const origWarn = console.warn; //preserve original warn
-  console.warn = () => { warned = true; }; //override to detect call
+  const restoreWarn = stub(console, 'warn', () => { warned = true; }); //use qtests to stub console.warn
   try {
     await qerrors(null, 'ctx');
     assert.equal(warned, true);
   } finally {
-    console.warn = origWarn; //restore console.warn after test
+    restoreWarn(); //restore console.warn after test
     restore(); //restore all stubs after test
   }
 });
-

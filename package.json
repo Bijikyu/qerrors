@@ -4,7 +4,7 @@
   "description": "A middleware module to log errors and analyze them via an external AI API. Error logger that prints error stack and AI advice in the actual logs to resolve errors.",
   "main": "index.js",
   "scripts": {
-    "test": "node -r ./setup.js --test"
+    "test": "node --test"
   },
   "keywords": [
     "error",

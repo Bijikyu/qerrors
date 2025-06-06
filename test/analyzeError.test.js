@@ -1,8 +1,9 @@
+
 const test = require('node:test'); //node builtin test runner
 const assert = require('node:assert/strict'); //strict assertions for reliability
+const { stub } = require('qtests'); //qtests stubbing utilities
 
-const axios = require('axios'); //real axios replaced by stub during tests
-const stubMethod = require('./utils/stubMethod'); //(use stubMethod to stub axios.post so tests run without network)
+const axios = require('axios'); //axios module for stubbing
 const qerrorsModule = require('../lib/qerrors'); //import module under test
 const { analyzeError } = qerrorsModule; //extract analyzeError for direct calls
 
@@ -20,11 +21,11 @@ function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
     } else {
       process.env.OPENAI_TOKEN = orig; //(otherwise restore value)
     }
-};
+  };
 }
 
 function stubAxiosPost(content) { //(stub axios.post for consistent responses)
-  return stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content } }] } })); //return restore from stubMethod
+  return stub(axios, 'post', async () => ({ data: { choices: [{ message: { content } }] } })); //use qtests stub
 }
 
 // Scenario: skip analyzing Axios errors to prevent infinite loops
@@ -49,33 +50,33 @@ test('analyzeError returns null without token', async () => {
   }
 });
 
-// Scenario: provide advice object when API call succeeds
-test('analyzeError returns advice from api', async () => {
-  const restoreToken = withOpenAIToken('t'); //(set OPENAI_TOKEN)
-  const restorePost = stubAxiosPost('{"data":"adv"}'); //(use stubAxiosPost for json advice)
+// Scenario: handle successful API response with JSON content
+test('analyzeError processes JSON response from API', async () => {
+  const restoreToken = withOpenAIToken('test-token'); //(set valid token)
+  const restoreAxios = stubAxiosPost('{"advice": "test advice"}'); //(stub axios with JSON response)
   try {
-    const err = new Error('test');
-    err.uniqueErrorName = 'OK';
-    const result = await analyzeError(err, 'ctx');
-    assert.deepEqual(result, { data: 'adv' });
+    const err = new Error('test error');
+    err.uniqueErrorName = 'TESTERR';
+    const result = await analyzeError(err, 'test context');
+    assert.ok(result);
+    assert.equal(result.advice, 'test advice');
   } finally {
-    restorePost(); //(restore axios.post)
-    restoreToken(); //(restore token)
+    restoreToken(); //(restore original token)
+    restoreAxios(); //(restore axios)
   }
 });
 
-// Scenario: treat string advice as invalid and return null
-test('analyzeError handles non-object advice as null', async () => {
-  const restoreToken = withOpenAIToken('t'); //(set OPENAI_TOKEN)
-  const restorePost = stubAxiosPost('adv'); //(use stubAxiosPost to return invalid content)
+// Scenario: handle API response parsing errors gracefully
+test('analyzeError handles JSON parse errors', async () => {
+  const restoreToken = withOpenAIToken('test-token'); //(set valid token)
+  const restoreAxios = stubAxiosPost('invalid json'); //(stub axios with invalid JSON)
   try {
-    const err = new Error('test2');
-    err.uniqueErrorName = 'NOOBJ';
-    const result = await analyzeError(err, 'ctx');
-    assert.equal(result, null);
+    const err = new Error('test error');
+    err.uniqueErrorName = 'PARSEERR';
+    const result = await analyzeError(err, 'test context');
+    assert.equal(result, null); //(expect null when JSON parsing fails)
   } finally {
-    restorePost(); //(restore axios.post)
-    restoreToken(); //(restore token)
+    restoreToken(); //(restore original token)
+    restoreAxios(); //(restore axios)
   }
 });
-
