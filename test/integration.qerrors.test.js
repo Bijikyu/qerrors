@@ -18,7 +18,7 @@ function createRes() { //minimal express like response mock
 }
 
 test('qerrors integration logs error and analyzes context', async () => {
-  const restoreAxios = qtests.stubMethod(axiosInstance, 'post', async () => ({ data: { choices: [{ message: { content: '{"ok":true}' } }] } })); //stub axiosInstance.post
+  const restoreAxios = qtests.stubMethod(axiosInstance, 'post', async () => ({ data: { choices: [{ message: { content: { ok: true } } }] } })); //stub axiosInstance.post with object content
   let logArg; //capture logger.error argument
   const origLog = logger.error; //store original function
   logger.error = (...args) => { logArg = args[0]; return origLog.apply(logger, args); }; //wrap logger.error to capture call //(wrap to spy while preserving)
