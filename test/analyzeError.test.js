@@ -25,6 +25,17 @@ function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
   };
 }
 
+function withRetryEnv(retry, base) { //(temporarily set retry env vars)
+  const origRetry = process.env.QERRORS_RETRY_ATTEMPTS; //(store original attempts)
+  const origBase = process.env.QERRORS_RETRY_BASE_MS; //(store original delay)
+  if (retry === undefined) { delete process.env.QERRORS_RETRY_ATTEMPTS; } else { process.env.QERRORS_RETRY_ATTEMPTS = String(retry); } //(apply retry)
+  if (base === undefined) { delete process.env.QERRORS_RETRY_BASE_MS; } else { process.env.QERRORS_RETRY_BASE_MS = String(base); } //(apply delay)
+  return () => { //(restore both variables)
+    if (origRetry === undefined) { delete process.env.QERRORS_RETRY_ATTEMPTS; } else { process.env.QERRORS_RETRY_ATTEMPTS = origRetry; }
+    if (origBase === undefined) { delete process.env.QERRORS_RETRY_BASE_MS; } else { process.env.QERRORS_RETRY_BASE_MS = origBase; }
+  };
+}
+
 function stubAxiosPost(content, capture) { //(capture axiosInstance.post args and stub response)
   return qtests.stubMethod(axiosInstance, 'post', async (url, body) => { //(store url and body for assertions)
     capture.url = url; //(save called url)
@@ -123,7 +134,7 @@ test('analyzeError returns cached advice on repeat call', async () => {
 test('analyzeError reuses error.qerrorsKey when present', async () => {
   const restoreToken = withOpenAIToken('reuse-token'); //(set token for test)
   const capture = {}; //(capture axios parameters)
-  const restoreAxios = stubAxiosPost('{"info":"first"}', capture); //(stub axios)
+  const restoreAxios = stubAxiosPost({ info: 'first' }, capture); //(stub axios with object)
   let hashCount = 0; //(track calls to crypto.createHash)
   const origHash = crypto.createHash; //(store original function)
   const restoreHash = qtests.stubMethod(crypto, 'createHash', (...args) => { hashCount++; return origHash(...args); });
@@ -141,5 +152,27 @@ test('analyzeError reuses error.qerrorsKey when present', async () => {
     restoreHash(); //(restore crypto.createHash)
     restoreToken(); //(restore token)
     restoreAxios(); //(restore axios)
+  }
+});
+
+test('analyzeError retries failed axios calls', async () => {
+  const restoreToken = withOpenAIToken('retry-token'); //(set token for test)
+  const restoreEnv = withRetryEnv(2, 1); //(set small retry delay for speed)
+  let callCount = 0; //(track number of axios posts)
+  const restoreAxios = qtests.stubMethod(axiosInstance, 'post', async () => { //(stub post to fail then succeed)
+    callCount++; //(increment counter)
+    if (callCount < 3) { throw new Error('fail'); } //(fail first two)
+    return { data: { choices: [{ message: { content: { ok: true } } }] } }; //(success after retries)
+  });
+  try {
+    const err = new Error('retry');
+    err.uniqueErrorName = 'RETRYERR';
+    const res = await analyzeError(err, 'ctx');
+    assert.equal(res.ok, true); //(ensure success after retry)
+    assert.equal(callCount, 3); //(called initial + 2 retries)
+  } finally {
+    restoreAxios(); //(restore axios)
+    restoreEnv(); //(restore env vars)
+    restoreToken(); //(restore token)
   }
 });
