@@ -63,6 +63,22 @@ test('qerrors sends html when accept header requests it', async () => {
   assert.ok(typeof res.payload === 'string');
 });
 
+// Scenario: sanitize html output to avoid injection
+test('qerrors escapes html content', async () => {
+  const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
+  const res = createRes(); //mock response object
+  const req = { headers: { accept: 'text/html' } }; //requesting html
+  const err = new Error('<script>boom</script>'); //error message containing html
+  err.stack = '<script>stack</script>'; //custom stack with html
+  try {
+    await qerrors(err, 'ctx', req, res);
+  } finally {
+    restore(); //restore stubs after test
+  }
+  assert.ok(!res.payload.includes('<script>')); //ensure raw tag removed
+  assert.ok(res.payload.includes('&lt;script&gt;')); //escaped content present
+});
+
 // Scenario: use statusCode from error object in json response
 test('qerrors honors error.statusCode in json', async () => {
   const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
