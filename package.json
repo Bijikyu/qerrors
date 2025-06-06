@@ -19,7 +19,8 @@
   "dependencies": {
     "axios": "^1.9.0",
     "qtests": "^1.0.0",
-    "winston": "^3.13.0"
+    "winston": "^3.13.0",
+    "p-limit": "^4.0.0"
   },
   "directories": {
     "lib": "lib"

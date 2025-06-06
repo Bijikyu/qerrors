@@ -6,6 +6,7 @@ to resolve errors.
 
 ## Environment Variables
 
+
 qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. Only `OPENAI_TOKEN` must be provided manually to enable AI analysis.
 
 * `OPENAI_TOKEN` &ndash; your OpenAI API key.
@@ -16,6 +17,26 @@ qerrors reads several environment variables to tune its behavior. A small config
 * `QERRORS_LOG_MAXSIZE` &ndash; logger rotation size in bytes (default `1048576`).
 * `QERRORS_LOG_MAXFILES` &ndash; number of rotated log files (default `5`).
 * `QERRORS_VERBOSE` &ndash; enable console logging (`true` by default).
+
+
+You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //env variable for OpenAI access
+Set QERRORS_CONCURRENCY to adjust how many analyses run simultaneously; //new variable controlling concurrency
+if not set the default limit is 5. //explain fallback value
+
+
+You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //(mention required token)
+The retry behaviour can be tuned with QERRORS_RETRY_ATTEMPTS and QERRORS_RETRY_BASE_MS which default to 2 and 100 respectively. //(document retry env vars)
+
+You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com).
+You can optionally set `QERRORS_CACHE_LIMIT` to adjust how many advice entries are cached; the default is 50.
+
+Additional options control the logger's file rotation:
+
+* `QERRORS_LOG_MAXSIZE` - max log file size in bytes before rotation (default `1048576`)
+* `QERRORS_LOG_MAXFILES` - number of rotated files to keep (default `5`)
+
+
+
 
 ## License
 
