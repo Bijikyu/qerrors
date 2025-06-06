@@ -3,9 +3,9 @@ const test = require('node:test'); //node builtin test runner
 const assert = require('node:assert/strict'); //strict assertions for reliability
 const qtests = require('qtests'); //qtests stubbing utilities
 
-const axios = require('axios'); //axios module for stubbing
 const qerrorsModule = require('../lib/qerrors'); //import module under test
 const { analyzeError } = qerrorsModule; //extract analyzeError for direct calls
+const { axiosInstance } = qerrorsModule; //instance used inside analyzeError
 
 
 function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
@@ -24,8 +24,8 @@ function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
   };
 }
 
-function stubAxiosPost(content, capture) { //(capture axios.post args and stub response)
-  return qtests.stubMethod(axios, 'post', async (url, body) => { //(store url and body for assertions)
+function stubAxiosPost(content, capture) { //(capture axiosInstance.post args and stub response)
+  return qtests.stubMethod(axiosInstance, 'post', async (url, body) => { //(store url and body for assertions)
     capture.url = url; //(save called url)
     capture.body = body; //(save called body)
     return { data: { choices: [{ message: { content } }] } }; //(return predictable api response)
@@ -105,7 +105,7 @@ test('analyzeError returns cached advice on repeat call', async () => {
     assert.equal(first.advice, 'cached');
     restoreAxios(); //(remove first stub)
     let secondCalled = false; //(track second axios call)
-    const restoreAxios2 = qtests.stubMethod(axios, 'post', async () => { secondCalled = true; return {}; });
+    const restoreAxios2 = qtests.stubMethod(axiosInstance, 'post', async () => { secondCalled = true; return {}; });
     const err2 = new Error('cache me');
     err2.stack = 'stack';
     err2.uniqueErrorName = 'CACHE2';

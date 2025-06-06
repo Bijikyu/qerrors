@@ -1,9 +1,9 @@
 const test = require('node:test'); //node test runner
 const assert = require('node:assert/strict'); //strict assertions
 const qtests = require('qtests'); //stubbing utilities
-const axios = require('axios'); //axios for stubbed network call
 
 const qerrors = require('../lib/qerrors'); //module under test
+const { axiosInstance } = qerrors; //axios instance used by qerrors
 const logger = require('../lib/logger'); //logger instance
 
 function createRes() { //minimal express like response mock
@@ -18,7 +18,7 @@ function createRes() { //minimal express like response mock
 }
 
 test('qerrors integration logs error and analyzes context', async () => {
-  const restoreAxios = qtests.stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content: '{"ok":true}' } }] } })); //stub axios.post
+  const restoreAxios = qtests.stubMethod(axiosInstance, 'post', async () => ({ data: { choices: [{ message: { content: '{"ok":true}' } }] } })); //stub axiosInstance.post
   let logArg; //capture logger.error argument
   const origLog = logger.error; //store original function
   logger.error = (...args) => { logArg = args[0]; return origLog.apply(logger, args); }; //wrap logger.error to capture call //(wrap to spy while preserving)
