@@ -6,7 +6,16 @@ to resolve errors.
 
 ## Environment Variables
 
-You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com).
+qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. Only `OPENAI_TOKEN` must be provided manually to enable AI analysis.
+
+* `OPENAI_TOKEN` &ndash; your OpenAI API key.
+* `QERRORS_CONCURRENCY` &ndash; maximum concurrent analyses (default `5`).
+* `QERRORS_CACHE_LIMIT` &ndash; size of the advice cache (default `50`).
+* `QERRORS_RETRIES` &ndash; attempts when calling OpenAI (default `3`).
+* `QERRORS_RETRY_DELAY_MS` &ndash; base delay in ms for retries (default `500`).
+* `QERRORS_LOG_MAXSIZE` &ndash; logger rotation size in bytes (default `1048576`).
+* `QERRORS_LOG_MAXFILES` &ndash; number of rotated log files (default `5`).
+* `QERRORS_VERBOSE` &ndash; enable console logging (`true` by default).
 
 ## License
 
