@@ -28,7 +28,7 @@ function stubAxiosPost(content, capture) { //(capture axiosInstance.post args an
   return qtests.stubMethod(axiosInstance, 'post', async (url, body) => { //(store url and body for assertions)
     capture.url = url; //(save called url)
     capture.body = body; //(save called body)
-    return { data: { choices: [{ message: { content } }] } }; //(return predictable api response)
+    return { data: { choices: [{ message: { content } }] } }; //(return predictable api response as object)
   });
 }
 
@@ -58,7 +58,7 @@ test('analyzeError returns null without token', async () => {
 test('analyzeError processes JSON response from API', async () => {
   const restoreToken = withOpenAIToken('test-token'); //(set valid token)
   const capture = {}; //(object to collect axios call args)
-  const restoreAxios = stubAxiosPost('{"advice": "test advice"}', capture); //(stub axios and capture arguments)
+  const restoreAxios = stubAxiosPost({ advice: 'test advice' }, capture); //(stub axios and capture arguments with object)
   try {
     const err = new Error('test error');
     err.uniqueErrorName = 'TESTERR';
@@ -96,7 +96,7 @@ test('analyzeError handles JSON parse errors', async () => {
 test('analyzeError returns cached advice on repeat call', async () => {
   const restoreToken = withOpenAIToken('cache-token'); //(set token for analysis)
   const capture = {}; //(capture axios parameters)
-  const restoreAxios = stubAxiosPost('{"advice":"cached"}', capture); //(first api response)
+  const restoreAxios = stubAxiosPost({ advice: 'cached' }, capture); //(first api response as object)
   try {
     const err = new Error('cache me');
     err.stack = 'stack';
