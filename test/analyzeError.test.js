@@ -91,3 +91,29 @@ test('analyzeError handles JSON parse errors', async () => {
     restoreAxios(); //(restore axios)
   }
 });
+
+// Scenario: reuse cached advice when same error repeats
+test('analyzeError returns cached advice on repeat call', async () => {
+  const restoreToken = withOpenAIToken('cache-token'); //(set token for analysis)
+  const capture = {}; //(capture axios parameters)
+  const restoreAxios = stubAxiosPost('{"advice":"cached"}', capture); //(first api response)
+  try {
+    const err = new Error('cache me');
+    err.stack = 'stack';
+    err.uniqueErrorName = 'CACHE1';
+    const first = await analyzeError(err, 'ctx');
+    assert.equal(first.advice, 'cached');
+    restoreAxios(); //(remove first stub)
+    let secondCalled = false; //(track second axios call)
+    const restoreAxios2 = qtests.stubMethod(axios, 'post', async () => { secondCalled = true; return {}; });
+    const err2 = new Error('cache me');
+    err2.stack = 'stack';
+    err2.uniqueErrorName = 'CACHE2';
+    const second = await analyzeError(err2, 'ctx');
+    restoreAxios2(); //(restore second stub)
+    assert.equal(second.advice, 'cached');
+    assert.equal(secondCalled, false); //(axios should not run second time)
+  } finally {
+    restoreToken(); //(restore environment)
+  }
+});
