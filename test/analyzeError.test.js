@@ -23,6 +23,10 @@ function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
 };
 }
 
+function stubAxiosPost(content) { //(stub axios.post for consistent responses)
+  return stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content } }] } })); //return restore from stubMethod
+}
+
 // Scenario: skip analyzing Axios errors to prevent infinite loops
 test('analyzeError handles AxiosError gracefully', async () => {
   const err = new Error('axios fail');
@@ -48,7 +52,7 @@ test('analyzeError returns null without token', async () => {
 // Scenario: provide advice object when API call succeeds
 test('analyzeError returns advice from api', async () => {
   const restoreToken = withOpenAIToken('t'); //(set OPENAI_TOKEN)
-  const restorePost = stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content: '{"data":"adv"}' } }] } })); //(stub axios.post to avoid real network and mimic JSON string)
+  const restorePost = stubAxiosPost('{"data":"adv"}'); //(use stubAxiosPost for json advice)
   try {
     const err = new Error('test');
     err.uniqueErrorName = 'OK';
@@ -63,7 +67,7 @@ test('analyzeError returns advice from api', async () => {
 // Scenario: treat string advice as invalid and return null
 test('analyzeError handles non-object advice as null', async () => {
   const restoreToken = withOpenAIToken('t'); //(set OPENAI_TOKEN)
-  const restorePost = stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content: 'adv' } }] } })); //(stub axios.post to avoid real network with invalid JSON)
+  const restorePost = stubAxiosPost('adv'); //(use stubAxiosPost to return invalid content)
   try {
     const err = new Error('test2');
     err.uniqueErrorName = 'NOOBJ';
