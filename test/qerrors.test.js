@@ -19,8 +19,8 @@ function createRes() { //construct minimal Express-like response mock
 }
 
 function stubDeps(loggerFn, analyzeFn) { //create combined stub utility for tests
-  const restoreLogger = qtests.stub(logger, 'error', loggerFn); //stub logger.error with provided function
-  const restoreAnalyze = qtests.stub(qerrors, 'analyzeError', analyzeFn); //stub analyzeError with provided function
+  const restoreLogger = qtests.stubMethod(logger, 'error', loggerFn); //stub logger.error with provided function
+  const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', analyzeFn); //stub analyzeError with provided function
   return () => { //return unified restore
     restoreLogger(); //restore logger.error after each test
     restoreAnalyze(); //restore analyzeError after each test
@@ -110,7 +110,7 @@ test('qerrors calls next without res', async () => {
 test('qerrors exits if no error provided', async () => {
   const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
   let warned = false; //track if warn was called
-  const restoreWarn = qtests.stub(console, 'warn', () => { warned = true; }); //use qtests to stub console.warn
+  const restoreWarn = qtests.stubMethod(console, 'warn', () => { warned = true; }); //use qtests to stub console.warn
   try {
     await qerrors(null, 'ctx');
     assert.equal(warned, true);

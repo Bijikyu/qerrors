@@ -25,7 +25,7 @@ function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
 }
 
 function stubAxiosPost(content) { //(stub axios.post for consistent responses)
-  return qtests.stub(axios, 'post', async () => ({ data: { choices: [{ message: { content } }] } })); //use qtests stub
+  return qtests.stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content } }] } })); //use qtests stub
 }
 
 // Scenario: skip analyzing Axios errors to prevent infinite loops
