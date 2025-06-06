@@ -6,6 +6,10 @@ to resolve errors.
 
 ## Environment Variables
 
+
+You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //(mention required token)
+The retry behaviour can be tuned with QERRORS_RETRY_ATTEMPTS and QERRORS_RETRY_BASE_MS which default to 2 and 100 respectively. //(document retry env vars)
+
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com).
 You can optionally set `QERRORS_CACHE_LIMIT` to adjust how many advice entries are cached; the default is 50.
 
@@ -13,6 +17,7 @@ Additional options control the logger's file rotation:
 
 * `QERRORS_LOG_MAXSIZE` - max log file size in bytes before rotation (default `1048576`)
 * `QERRORS_LOG_MAXFILES` - number of rotated files to keep (default `5`)
+
 
 ## License
 
