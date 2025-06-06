@@ -1,0 +1,41 @@
+const test = require('node:test'); //node test runner
+const assert = require('node:assert/strict'); //strict assertions
+const qtests = require('qtests'); //stubbing utilities
+const axios = require('axios'); //axios for stubbed network call
+
+const qerrors = require('../lib/qerrors'); //module under test
+const logger = require('../lib/logger'); //logger instance
+
+function createRes() { //minimal express like response mock
+  return {
+    headersSent: false, //flag for header state
+    statusCode: null, //status tracking
+    payload: null, //captured payload
+    status(code) { this.statusCode = code; return this; }, //status setter
+    json(data) { this.payload = data; return this; }, //json payload
+    send(html) { this.payload = html; return this; } //html payload
+  };
+}
+
+test('qerrors integration logs error and analyzes context', async () => {
+  const restoreAxios = qtests.stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content: '{"ok":true}' } }] } })); //stub axios.post
+  let logArg; //capture logger.error argument
+  const origLog = logger.error; //store original function
+  logger.error = (...args) => { logArg = args[0]; return origLog.apply(logger, args); }; //wrap logger.error to capture call //(wrap to spy while preserving)
+  let analyzeCtx; //capture analyzeError context
+  const origAnalyze = qerrors.analyzeError; //store original function
+  qerrors.analyzeError = async (err, ctx) => { analyzeCtx = ctx; return origAnalyze(err, ctx); }; //wrap analyzeError to capture call //(wrap to spy while preserving)
+  process.env.OPENAI_TOKEN = 'tkn'; //set token for analyzeError to run
+  const res = createRes(); //create mock res
+  const err = new Error('boom'); //sample error
+  try {
+    await qerrors(err, 'spyCtx', {}, res); //invoke qerrors real functions
+  } finally {
+    restoreAxios(); //restore axios.post
+    logger.error = origLog; //restore logger.error
+    qerrors.analyzeError = origAnalyze; //restore analyzeError
+  }
+  assert.ok(logArg.uniqueErrorName); //ensure log contains id
+  assert.equal(logArg.uniqueErrorName, err.uniqueErrorName); //id matches error
+  assert.equal(analyzeCtx, 'spyCtx'); //context passed to analyzeError
+});
