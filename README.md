@@ -6,7 +6,9 @@ to resolve errors.
 
 ## Environment Variables
 
-You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com).
+You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //env variable for OpenAI access
+Set QERRORS_CONCURRENCY to adjust how many analyses run simultaneously; //new variable controlling concurrency
+if not set the default limit is 5. //explain fallback value
 
 ## License
 
