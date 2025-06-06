@@ -24,8 +24,12 @@ function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
   };
 }
 
-function stubAxiosPost(content) { //(stub axios.post for consistent responses)
-  return qtests.stubMethod(axios, 'post', async () => ({ data: { choices: [{ message: { content } }] } })); //use qtests stub
+function stubAxiosPost(content, capture) { //(capture axios.post args and stub response)
+  return qtests.stubMethod(axios, 'post', async (url, body) => { //(store url and body for assertions)
+    capture.url = url; //(save called url)
+    capture.body = body; //(save called body)
+    return { data: { choices: [{ message: { content } }] } }; //(return predictable api response)
+  });
 }
 
 // Scenario: skip analyzing Axios errors to prevent infinite loops
@@ -53,13 +57,19 @@ test('analyzeError returns null without token', async () => {
 // Scenario: handle successful API response with JSON content
 test('analyzeError processes JSON response from API', async () => {
   const restoreToken = withOpenAIToken('test-token'); //(set valid token)
-  const restoreAxios = stubAxiosPost('{"advice": "test advice"}'); //(stub axios with JSON response)
+  const capture = {}; //(object to collect axios call args)
+  const restoreAxios = stubAxiosPost('{"advice": "test advice"}', capture); //(stub axios and capture arguments)
   try {
     const err = new Error('test error');
     err.uniqueErrorName = 'TESTERR';
     const result = await analyzeError(err, 'test context');
     assert.ok(result);
     assert.equal(result.advice, 'test advice');
+    assert.equal(capture.url, 'https://api.openai.com/v1/chat/completions'); //(assert api endpoint used)
+    assert.equal(capture.body.model, 'gpt-4.1'); //(validate model in request body)
+    assert.ok(Array.isArray(capture.body.messages)); //(ensure messages array sent)
+    assert.equal(capture.body.messages[0].role, 'user'); //(first message role should be user)
+    assert.deepEqual(capture.body.response_format, { type: 'json_object' }); //(verify response_format object)
   } finally {
     restoreToken(); //(restore original token)
     restoreAxios(); //(restore axios)
@@ -69,7 +79,8 @@ test('analyzeError processes JSON response from API', async () => {
 // Scenario: handle API response parsing errors gracefully
 test('analyzeError handles JSON parse errors', async () => {
   const restoreToken = withOpenAIToken('test-token'); //(set valid token)
-  const restoreAxios = stubAxiosPost('invalid json'); //(stub axios with invalid JSON)
+  const cap = {}; //(obj to capture axios args if needed)
+  const restoreAxios = stubAxiosPost('invalid json', cap); //(stub axios with invalid JSON)
   try {
     const err = new Error('test error');
     err.uniqueErrorName = 'PARSEERR';
