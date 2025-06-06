@@ -28,6 +28,7 @@ test('qerrors integration logs error and analyzes context', async () => {
   const err = new Error('boom'); //sample error
   try {
     await qerrors(err, 'spyCtx', {}, res); //invoke qerrors real functions
+    await new Promise(r => setTimeout(r, 0)); //wait for queued analysis to finish
   } finally {
     restoreAxios(); //restore axios.post
     logger.error = origLog; //restore logger.error

@@ -38,6 +38,7 @@ test('qerrors logs and responds with json then calls next', async () => {
   const next = (e) => { nextArg = e; }; //spy for next()
   try {
     await qerrors(err, 'ctx', req, res, next);
+    await new Promise(r => setTimeout(r, 0)); //wait for queued analysis completion
   } finally {
     restore(); //restore all stubs after test
   }
@@ -56,6 +57,7 @@ test('qerrors sends html when accept header requests it', async () => {
   const err = new Error('boom'); //sample error to send
   try {
     await qerrors(err, 'ctx', req, res);
+    await new Promise(r => setTimeout(r, 0)); //wait for queued analysis completion
   } finally {
     restore(); //restore all stubs after test
   }
@@ -72,6 +74,7 @@ test('qerrors escapes html content', async () => {
   err.stack = '<script>stack</script>'; //custom stack with html
   try {
     await qerrors(err, 'ctx', req, res);
+    await new Promise(r => setTimeout(r, 0)); //wait for queued analysis completion
   } finally {
     restore(); //restore stubs after test
   }
@@ -88,6 +91,7 @@ test('qerrors honors error.statusCode in json', async () => {
   err.statusCode = 404; //status code to verify
   try {
     await qerrors(err, 'ctx', req, res); //invoke handler with status
+    await new Promise(r => setTimeout(r, 0)); //wait for queued analysis completion
   } finally {
     restore(); //restore stubs after test
   }
@@ -104,6 +108,7 @@ test('qerrors honors error.statusCode in html', async () => {
   err.statusCode = 404; //status code to verify
   try {
     await qerrors(err, 'ctx', req, res); //invoke handler with status and html
+    await new Promise(r => setTimeout(r, 0)); //wait for queued analysis completion
   } finally {
     restore(); //restore stubs after test
   }
@@ -120,6 +125,7 @@ test('qerrors does nothing when headers already sent', async () => {
   let nextCalled = false; //track if next() invoked
   try {
     await qerrors(err, 'ctx', {}, res, () => { nextCalled = true; });
+    await new Promise(r => setTimeout(r, 0)); //wait for queued analysis completion
   } finally {
     restore(); //restore all stubs after test
   }
@@ -134,6 +140,7 @@ test('qerrors handles absence of req res and next', async () => {
   const err = new Error('boom'); //error for generic usage
   try {
     await qerrors(err);
+    await new Promise(r => setTimeout(r, 0)); //wait for queued analysis completion
   } finally {
     restore(); //restore all stubs after test
   }
@@ -148,6 +155,7 @@ test('qerrors calls next without res', async () => {
   let nextArg; //captured arg for next()
   try {
     await qerrors(err, 'ctx', undefined, undefined, (e) => { nextArg = e; });
+    await new Promise(r => setTimeout(r, 0)); //wait for queued analysis completion
   } finally {
     restore(); //restore all stubs after test
   }
@@ -161,6 +169,7 @@ test('qerrors exits if no error provided', async () => {
   const restoreWarn = qtests.stubMethod(console, 'warn', () => { warned = true; }); //use qtests to stub console.warn
   try {
     await qerrors(null, 'ctx');
+    await new Promise(r => setTimeout(r, 0)); //wait for queued analysis completion
     assert.equal(warned, true);
   } finally {
     restoreWarn(); //restore console.warn after test
