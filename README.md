@@ -6,7 +6,8 @@ to resolve errors.
 
 ## Environment Variables
 
-You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com).
+You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //(mention required token)
+The retry behaviour can be tuned with QERRORS_RETRY_ATTEMPTS and QERRORS_RETRY_BASE_MS which default to 2 and 100 respectively. //(document retry env vars)
 
 ## License
 
