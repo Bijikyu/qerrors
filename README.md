@@ -26,6 +26,7 @@ qerrors reads several environment variables to tune its behavior. A small config
 * `QERRORS_VERBOSE` &ndash; enable console logging (`true` by default).
 * `QERRORS_LOG_DIR` &ndash; directory for logger output (default `logs`).
 * `QERRORS_DISABLE_FILE_LOGS` &ndash; disable file transports when set.
+* `QERRORS_SERVICE_NAME` &ndash; service name added to logger metadata (default `qerrors`). //(document service variable)
 
 
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //env variable for OpenAI access
@@ -52,6 +53,7 @@ Additional options control the logger's file rotation:
 * `QERRORS_LOG_MAXFILES` - number of rotated files to keep (default `5`)
 * `QERRORS_LOG_DIR` - path for log files (default `logs`)
 * `QERRORS_DISABLE_FILE_LOGS` - omit file logs when set
+* `QERRORS_SERVICE_NAME` - service name added to logger metadata (default `qerrors`)
 
 
 
