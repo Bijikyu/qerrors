@@ -34,6 +34,33 @@ test('scheduleAnalysis rejects when queue exceeds limit', async () => {
   assert.equal(logged.message, 'queue full'); //message indicates queue full
 });
 
+test('queue reject count increments when queue exceeds limit', async () => {
+  const origConc = process.env.QERRORS_CONCURRENCY; //backup env
+  const origQueue = process.env.QERRORS_QUEUE_LIMIT; //backup env
+  process.env.QERRORS_CONCURRENCY = '1'; //force single concurrency
+  process.env.QERRORS_QUEUE_LIMIT = '0'; //reject all queued
+  const qerrors = reloadQerrors(); //reload to apply env
+  const logger = require('../lib/logger'); //logger instance
+  const restoreWarn = qtests.stubMethod(logger, 'warn', () => {}); //silence warn
+  const restoreError = qtests.stubMethod(logger, 'error', () => {}); //silence err
+  const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', async () => {
+    return new Promise((r) => setTimeout(r, 20)); //simulate analysis time
+  });
+  try {
+    qerrors(new Error('one')); //consume concurrency slot
+    qerrors(new Error('two')); //should increment counter
+    await new Promise((r) => setTimeout(r, 30)); //allow tasks
+  } finally {
+    restoreWarn(); //restore warn stub
+    restoreError(); //restore error stub
+    restoreAnalyze(); //restore analyze stub
+    if (origConc === undefined) { delete process.env.QERRORS_CONCURRENCY; } else { process.env.QERRORS_CONCURRENCY = origConc; }
+    if (origQueue === undefined) { delete process.env.QERRORS_QUEUE_LIMIT; } else { process.env.QERRORS_QUEUE_LIMIT = origQueue; }
+    reloadQerrors(); //reset state
+  }
+  assert.equal(qerrors.getQueueRejectCount(), 1); //expect single rejection
+});
+
 test('scheduleAnalysis uses defaults on invalid env', () => { //verify helper fallback
   const origConc = process.env.QERRORS_CONCURRENCY; //backup
   const origQueue = process.env.QERRORS_QUEUE_LIMIT; //backup
