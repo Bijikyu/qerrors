@@ -44,6 +44,7 @@ Whenever the queue rejects an analysis the module increments an internal counter
 Check it with `qerrors.getQueueRejectCount()`. //(usage note)
 
 Call `qerrors.clearAdviceCache()` to manually empty the advice cache. //(document cache clearing)
+Call `qerrors.purgeExpiredAdvice()` to drop stale entries based on the TTL. //(document cleanup)
 
 Use `qerrors.getQueueLength()` to monitor how many analyses are waiting. //(mention queue length)
 
