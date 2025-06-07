@@ -1,4 +1,5 @@
 
+const test = require('node:test'); //node builtin test runner
 const assert = require('assert');
 const qtests = require('qtests');
 const { getMissingEnvVars, throwIfMissingEnvVars, warnIfMissingEnvVars } = require('../lib/envUtils');
