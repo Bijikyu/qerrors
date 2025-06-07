@@ -229,3 +229,27 @@ test('analyzeError bypasses cache when limit is zero', async () => {
     restoreToken(); //(restore token)
   }
 });
+
+// Scenario: ensure hashing skipped when cache disabled
+test('analyzeError does not hash when cache limit is zero', async () => {
+  const restoreToken = withOpenAIToken('nohash-token'); //(set token for api)
+  const origLimit = process.env.QERRORS_CACHE_LIMIT; //(store current limit)
+  process.env.QERRORS_CACHE_LIMIT = '0'; //(disable caching)
+  const fresh = reloadQerrors(); //(reload module with new env)
+  let hashCount = 0; //(track hashing)
+  const origHash = crypto.createHash; //(reference original)
+  const restoreHash = qtests.stubMethod(crypto, 'createHash', (...args) => { hashCount++; return origHash(...args); }); //(count calls)
+  try {
+    const err = new Error('nohash');
+    err.stack = 'stack';
+    err.uniqueErrorName = 'NOHASH';
+    await fresh.analyzeError(err, 'ctx');
+    assert.equal(hashCount, 0); //(expect hashing skipped)
+    assert.equal(err.qerrorsKey, undefined); //(ensure key not set)
+  } finally {
+    restoreHash(); //(restore createHash)
+    if (origLimit === undefined) { delete process.env.QERRORS_CACHE_LIMIT; } else { process.env.QERRORS_CACHE_LIMIT = origLimit; }
+    reloadQerrors(); //(reset module)
+    restoreToken(); //(restore token)
+  }
+});

@@ -37,6 +37,9 @@ if not set the default limit is 5. //explain fallback value
 Use QERRORS_QUEUE_LIMIT to cap how many analyses can wait in line before rejection; //(explain queue limit)
 if not set the default limit is 100. //(explain queue default)
 
+Whenever the queue rejects an analysis the module increments an internal counter. //(document reject counter)
+Check it with `qerrors.getQueueRejectCount()`. //(usage note)
+
 QERRORS_MAX_SOCKETS lets you limit how many sockets the http agents open; //document new env var usage
 if not set the default is 50. //state default behaviour
 
