@@ -4,5 +4,5 @@ function stubPost() { //default unmocked post throws to catch stray calls
 
 module.exports = {
   post: async () => { stubPost(); },
-  create: () => ({ post: async () => { stubPost(); } }) //mimic axios.create returning instance with post
+  create: (opts = {}) => ({ post: async () => { stubPost(); }, defaults: opts }) //mimic axios.create returning instance with post and defaults
 };
