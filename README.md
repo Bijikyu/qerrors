@@ -134,4 +134,6 @@ Running `npm test` starts Node's built-in test runner using the `--test` flag.
 The included tests rely on the `qtests` library to stub network requests, so the
 suite can run entirely offline.
 
+GitHub Actions runs this test suite automatically on every push and pull request using Node.js LTS. The workflow caches npm dependencies to speed up subsequent runs.
+
 
