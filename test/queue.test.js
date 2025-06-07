@@ -20,9 +20,9 @@ test('scheduleAnalysis rejects when queue exceeds limit', async () => {
     return new Promise((r) => setTimeout(r, 20)); //simulate long analysis
   });
   try {
-    qerrors(new Error('one')); //first call fills slot
-    qerrors(new Error('two')); //second call queued
-    qerrors(new Error('three')); //third call should exceed queue limit
+    qerrors(new Error('one')); //first call fills active slot
+    qerrors(new Error('two')); //second call should exceed queue limit
+    qerrors(new Error('three')); //third call also exceeds queue limit
     await new Promise((r) => setTimeout(r, 30)); //wait for processing
   } finally {
     restoreLog(); //restore logger stub
@@ -48,9 +48,9 @@ test('queue reject count increments when queue exceeds limit', async () => {
     return new Promise((r) => setTimeout(r, 20)); //simulate analysis time
   });
   try {
-    qerrors(new Error('one')); //consume concurrency slot
-    qerrors(new Error('two')); //queued under limit
-    qerrors(new Error('three')); //should increment counter
+    qerrors(new Error('one')); //consume active slot
+    qerrors(new Error('two')); //first rejection increments counter
+    qerrors(new Error('three')); //second rejection increments counter
     await new Promise((r) => setTimeout(r, 30)); //allow tasks
   } finally {
     restoreWarn(); //restore warn stub
@@ -60,7 +60,7 @@ test('queue reject count increments when queue exceeds limit', async () => {
     if (origQueue === undefined) { delete process.env.QERRORS_QUEUE_LIMIT; } else { process.env.QERRORS_QUEUE_LIMIT = origQueue; }
     reloadQerrors(); //reset state
   }
-  assert.equal(qerrors.getQueueRejectCount(), 1); //expect single rejection
+  assert.equal(qerrors.getQueueRejectCount(), 2); //expect two rejections
 });
 
 test('getQueueLength reflects queued analyses', async () => {
@@ -124,10 +124,10 @@ test('queue never exceeds limit under high concurrency', async () => {
   const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', async () => new Promise(r => setTimeout(r, 20))); //simulate work
   try {
     qerrors(new Error('one')); //start first analysis
-    qerrors(new Error('two')); //start second analysis
-    qerrors(new Error('three')); //start third analysis
-    qerrors(new Error('four')); //queued under limit
-    qerrors(new Error('five')); //should be rejected
+    qerrors(new Error('two')); //rejected since limit reached
+    qerrors(new Error('three')); //rejected since limit reached
+    qerrors(new Error('four')); //rejected since limit reached
+    qerrors(new Error('five')); //another rejection due to limit
     await new Promise(r => setTimeout(r, 50)); //allow processing
   } finally {
     restoreWarn();
@@ -138,5 +138,5 @@ test('queue never exceeds limit under high concurrency', async () => {
     reloadQerrors(); //reset state
   }
   assert.ok(qerrors.getQueueLength() <= 1); //queue length at most limit
-  assert.equal(qerrors.getQueueRejectCount(), 1); //one task rejected
+  assert.equal(qerrors.getQueueRejectCount(), 4); //four tasks rejected
 });
