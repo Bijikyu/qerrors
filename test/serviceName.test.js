@@ -13,7 +13,7 @@ test('logger uses QERRORS_SERVICE_NAME env var', () => {
   const orig = process.env.QERRORS_SERVICE_NAME; //save original value
   process.env.QERRORS_SERVICE_NAME = 'svc'; //set custom name
   let captured; //will capture config passed to createLogger
-  const restore = qtests.stubMethod(winston, 'createLogger', (cfg) => { captured = cfg; return { defaultMeta: cfg.defaultMeta }; });
+  const restore = qtests.stubMethod(winston, 'createLogger', (cfg) => { captured = cfg; return { defaultMeta: cfg.defaultMeta, warn() {}, info() {}, error() {} }; }); //include warn for startup check
   const logger = reloadLogger(); //reload module
   try {
     assert.equal(captured.defaultMeta.service, 'svc'); //verify custom service
@@ -29,7 +29,7 @@ test('logger defaults QERRORS_SERVICE_NAME when unset', () => {
   const orig = process.env.QERRORS_SERVICE_NAME; //store original
   delete process.env.QERRORS_SERVICE_NAME; //unset for default test
   let captured; //capture config
-  const restore = qtests.stubMethod(winston, 'createLogger', (cfg) => { captured = cfg; return { defaultMeta: cfg.defaultMeta }; });
+  const restore = qtests.stubMethod(winston, 'createLogger', (cfg) => { captured = cfg; return { defaultMeta: cfg.defaultMeta, warn() {}, info() {}, error() {} }; }); //include warn for startup check
   const logger = reloadLogger(); //reload module
   try {
     assert.equal(captured.defaultMeta.service, 'qerrors'); //uses default
