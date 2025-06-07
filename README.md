@@ -13,8 +13,8 @@ qerrors reads several environment variables to tune its behavior. A small config
 * `QERRORS_CONCURRENCY` &ndash; maximum concurrent analyses (default `5`).
 * `QERRORS_CACHE_LIMIT` &ndash; size of the advice cache (default `50`).
 
-* `QERRORS_RETRIES` &ndash; attempts when calling OpenAI (default `3`).
-* `QERRORS_RETRY_DELAY_MS` &ndash; base delay in ms for retries (default `500`).
+* `QERRORS_RETRY_ATTEMPTS` &ndash; attempts when calling OpenAI (default `2`).
+* `QERRORS_RETRY_BASE_MS` &ndash; base delay in ms for retries (default `100`).
 * `QERRORS_TIMEOUT` &ndash; axios request timeout in ms (default `10000`).
 
 * `QERRORS_LOG_MAXSIZE` &ndash; logger rotation size in bytes (default `1048576`).
