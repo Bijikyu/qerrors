@@ -16,6 +16,7 @@ qerrors reads several environment variables to tune its behavior. A small config
 * `QERRORS_RETRY_ATTEMPTS` &ndash; attempts when calling OpenAI (default `2`).
 * `QERRORS_RETRY_BASE_MS` &ndash; base delay in ms for retries (default `100`).
 * `QERRORS_TIMEOUT` &ndash; axios request timeout in ms (default `10000`).
+* `QERRORS_MAX_SOCKETS` &ndash; maximum sockets per agent (default `50`).
 
 * `QERRORS_LOG_MAXSIZE` &ndash; logger rotation size in bytes (default `1048576`).
 * `QERRORS_LOG_MAXFILES` &ndash; number of rotated log files (default `5`).
@@ -25,6 +26,8 @@ qerrors reads several environment variables to tune its behavior. A small config
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //env variable for OpenAI access
 Set QERRORS_CONCURRENCY to adjust how many analyses run simultaneously; //new variable controlling concurrency
 if not set the default limit is 5. //explain fallback value
+QERRORS_MAX_SOCKETS lets you limit how many sockets the http agents open; //document new env var usage
+if not set the default is 50. //state default behaviour
 
 
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //(mention required token)
