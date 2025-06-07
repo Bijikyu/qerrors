@@ -41,7 +41,11 @@ if not set the default limit is 100; increase when expecting heavy load. //(expl
 
 Whenever the queue rejects an analysis the module increments an internal counter. //(document reject counter)
 Check it with `qerrors.getQueueRejectCount()`. //(usage note)
+
+Call `qerrors.clearAdviceCache()` to manually empty the advice cache. //(document cache clearing)
+
 Use `qerrors.getQueueLength()` to monitor how many analyses are waiting. //(mention queue length)
+
 
 QERRORS_MAX_SOCKETS lets you limit how many sockets the http agents open; //document new env var usage
 if not set the default is 50; raise this to handle high traffic. //state default behaviour
