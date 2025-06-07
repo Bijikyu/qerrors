@@ -25,12 +25,12 @@ qerrors reads several environment variables to tune its behavior. A small config
 * `QERRORS_LOG_MAXSIZE` &ndash; logger rotation size in bytes (default `1048576`).
 * `QERRORS_LOG_MAXFILES` &ndash; number of rotated log files (default `5`).
 * `QERRORS_LOG_MAX_DAYS` &ndash; days to retain daily logs (default `0`).
-* `QERRORS_VERBOSE` &ndash; enable console logging (`true` by default, disable in production to reduce console overhead).
+* `QERRORS_VERBOSE` &ndash; enable console logging (`true` by default). Set `QERRORS_VERBOSE=false` for production deployments to keep logs from flooding the console and rely on file output instead.
 * `QERRORS_LOG_DIR` &ndash; directory for logger output (default `logs`).
 * `QERRORS_DISABLE_FILE_LOGS` &ndash; disable file transports when set.
 * `QERRORS_SERVICE_NAME` &ndash; service name added to logger metadata (default `qerrors`). //(document service variable)
 
-For high traffic scenarios raise `QERRORS_CONCURRENCY`, `QERRORS_QUEUE_LIMIT`, and `QERRORS_MAX_SOCKETS`; disable `QERRORS_VERBOSE` to reduce console overhead.
+For high traffic scenarios raise `QERRORS_CONCURRENCY`, `QERRORS_QUEUE_LIMIT`, and `QERRORS_MAX_SOCKETS`. Set `QERRORS_VERBOSE=false` in production to reduce console overhead.
 
 
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //env variable for OpenAI access
