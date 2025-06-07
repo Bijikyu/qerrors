@@ -5,6 +5,7 @@ const logger = require('../lib/logger'); //logger instance under test
 const qtests = require('qtests'); //stubbing utilities
 const winston = require('winston'); //winston stub to intercept config
 const DailyRotateFile = require('winston-daily-rotate-file'); //daily rotate stub
+const fs = require('fs'); //filesystem for stubbing mkdir failures
 
 function reloadLogger() { //reload logger with current env
   delete require.cache[require.resolve('../lib/logger')];
@@ -34,6 +35,28 @@ test('logger uses daily rotate when QERRORS_LOG_MAX_DAYS set', () => {
     restore();
     if (orig === undefined) { delete process.env.QERRORS_LOG_MAX_DAYS; } else { process.env.QERRORS_LOG_MAX_DAYS = orig; }
     reloadLogger(); //reset logger cache
+  }
+});
+
+test('logger continues with console transport when mkdir fails', () => {
+  const origVerbose = process.env.QERRORS_VERBOSE; //save current verbose
+  process.env.QERRORS_VERBOSE = 'true'; //ensure console transport
+  let captured; //capture logger config
+  const restoreLogger = qtests.stubMethod(winston, 'createLogger', (cfg) => { captured = cfg; return { transports: cfg.transports }; });
+  const restoreMkdir = qtests.stubMethod(fs, 'mkdirSync', () => { throw new Error('fail'); }); //simulate failure
+  let errMsg; //capture console error message
+  const restoreErr = qtests.stubMethod(console, 'error', (msg) => { errMsg = msg; });
+  const log = reloadLogger();
+  try {
+    assert.ok(log.transports.length > 0); //logger returned usable instance
+    assert.equal(captured.transports.length, 1); //only console transport present
+    assert.ok(errMsg.includes('Failed to create log directory')); //error logged
+  } finally {
+    restoreLogger();
+    restoreMkdir();
+    restoreErr();
+    if (origVerbose === undefined) { delete process.env.QERRORS_VERBOSE; } else { process.env.QERRORS_VERBOSE = origVerbose; }
+    reloadLogger(); //reset cached module
   }
 });
 
