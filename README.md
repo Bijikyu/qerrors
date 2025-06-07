@@ -10,38 +10,40 @@ to resolve errors.
 qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. Only `OPENAI_TOKEN` must be provided manually to enable AI analysis.
 
 * `OPENAI_TOKEN` &ndash; your OpenAI API key.
-* `QERRORS_CONCURRENCY` &ndash; maximum concurrent analyses (default `5`).
+* `QERRORS_CONCURRENCY` &ndash; maximum concurrent analyses (default `5`, raise for high traffic).
 
 * `QERRORS_CACHE_LIMIT` &ndash; size of the advice cache (default `50`, set to `0` to disable caching).
-* `QERRORS_QUEUE_LIMIT` &ndash; maximum queued analyses before rejecting new ones (default `100`). //(document new queue limit)
+* `QERRORS_QUEUE_LIMIT` &ndash; maximum queued analyses before rejecting new ones (default `100`, raise when under heavy load). //(note queue tuning for traffic)
 
 
 * `QERRORS_RETRY_ATTEMPTS` &ndash; attempts when calling OpenAI (default `2`).
 * `QERRORS_RETRY_BASE_MS` &ndash; base delay in ms for retries (default `100`).
 * `QERRORS_TIMEOUT` &ndash; axios request timeout in ms (default `10000`).
-* `QERRORS_MAX_SOCKETS` &ndash; maximum sockets per agent (default `50`).
+* `QERRORS_MAX_SOCKETS` &ndash; maximum sockets per agent (default `50`, increase for high traffic).
 
 * `QERRORS_LOG_MAXSIZE` &ndash; logger rotation size in bytes (default `1048576`).
 * `QERRORS_LOG_MAXFILES` &ndash; number of rotated log files (default `5`).
 * `QERRORS_LOG_MAX_DAYS` &ndash; days to retain daily logs (default `0`).
-* `QERRORS_VERBOSE` &ndash; enable console logging (`true` by default).
+* `QERRORS_VERBOSE` &ndash; enable console logging (`true` by default, disable in production to reduce console overhead).
 * `QERRORS_LOG_DIR` &ndash; directory for logger output (default `logs`).
 * `QERRORS_DISABLE_FILE_LOGS` &ndash; disable file transports when set.
 * `QERRORS_SERVICE_NAME` &ndash; service name added to logger metadata (default `qerrors`). //(document service variable)
 
+For high traffic scenarios raise `QERRORS_CONCURRENCY`, `QERRORS_QUEUE_LIMIT`, and `QERRORS_MAX_SOCKETS`; disable `QERRORS_VERBOSE` to reduce console overhead.
+
 
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //env variable for OpenAI access
 Set QERRORS_CONCURRENCY to adjust how many analyses run simultaneously; //new variable controlling concurrency
-if not set the default limit is 5. //explain fallback value
+if not set the default limit is 5; raise this for high traffic. //explain fallback value
 
 Use QERRORS_QUEUE_LIMIT to cap how many analyses can wait in line before rejection; //(explain queue limit)
-if not set the default limit is 100. //(explain queue default)
+if not set the default limit is 100; increase when expecting heavy load. //(explain queue default)
 
 Whenever the queue rejects an analysis the module increments an internal counter. //(document reject counter)
 Check it with `qerrors.getQueueRejectCount()`. //(usage note)
 
 QERRORS_MAX_SOCKETS lets you limit how many sockets the http agents open; //document new env var usage
-if not set the default is 50. //state default behaviour
+if not set the default is 50; raise this to handle high traffic. //state default behaviour
 
 
 
