@@ -13,7 +13,7 @@ test('logger adds Console transport when verbose true', () => {
   const orig = process.env.QERRORS_VERBOSE; //save original env
   process.env.QERRORS_VERBOSE = 'true'; //enable console logging
   let captured; //will hold config passed in
-  const restore = qtests.stubMethod(winston, 'createLogger', cfg => { captured = cfg; return { transports: cfg.transports }; }); //capture transports
+  const restore = qtests.stubMethod(winston, 'createLogger', cfg => { captured = cfg; return { transports: cfg.transports, warn() {}, info() {}, error() {} }; }); //capture transports with warn for startup check
   const logger = reloadLogger(); //load module under new env
   try {
     const hasConsole = captured.transports.some(t => t instanceof winston.transports.Console); //check captured transports
@@ -30,7 +30,7 @@ test('logger excludes Console transport when verbose false', () => {
   const orig = process.env.QERRORS_VERBOSE; //save env
   process.env.QERRORS_VERBOSE = 'false'; //disable console
   let captured; //hold config
-  const restore = qtests.stubMethod(winston, 'createLogger', cfg => { captured = cfg; return { transports: cfg.transports }; }); //capture transports
+  const restore = qtests.stubMethod(winston, 'createLogger', cfg => { captured = cfg; return { transports: cfg.transports, warn() {}, info() {}, error() {} }; }); //capture transports with warn for startup check
   const logger = reloadLogger(); //reload module
   try {
     const hasConsole = captured.transports.some(t => t instanceof winston.transports.Console); //detect console

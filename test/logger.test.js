@@ -25,7 +25,7 @@ test('logger uses daily rotate when QERRORS_LOG_MAX_DAYS set', () => {
   process.env.QERRORS_LOG_MAX_DAYS = '2'; //enable two day rotation
   let captured; //will capture config passed to createLogger
   DailyRotateFile.calls.length = 0; //reset constructor calls
-  const restore = qtests.stubMethod(winston, 'createLogger', (cfg) => { captured = cfg; return { transports: cfg.transports }; });
+  const restore = qtests.stubMethod(winston, 'createLogger', (cfg) => { captured = cfg; return { transports: cfg.transports, warn() {}, info() {}, error() {} }; }); //include warn for startup check
   const log = reloadLogger();
   try {
     assert.equal(DailyRotateFile.calls.length, 2); //two rotate transports created
@@ -42,7 +42,7 @@ test('logger continues with console transport when mkdir fails', async () => {
   const origVerbose = process.env.QERRORS_VERBOSE; //save current verbose
   process.env.QERRORS_VERBOSE = 'true'; //ensure console transport
   let captured; //capture logger config
-  const restoreLogger = qtests.stubMethod(winston, 'createLogger', (cfg) => { captured = cfg; return { transports: cfg.transports }; });
+  const restoreLogger = qtests.stubMethod(winston, 'createLogger', (cfg) => { captured = cfg; return { transports: cfg.transports, warn() {}, info() {}, error() {} }; }); //include warn for startup check
   const restoreMkdir = qtests.stubMethod(fs.promises, 'mkdir', async () => { throw new Error('fail'); }); //simulate failure with async mkdir
   let errMsg; //capture console error message
   const restoreErr = qtests.stubMethod(console, 'error', (msg) => { errMsg = msg; });
@@ -57,7 +57,25 @@ test('logger continues with console transport when mkdir fails', async () => {
     restoreMkdir();
     restoreErr();
     if (origVerbose === undefined) { delete process.env.QERRORS_VERBOSE; } else { process.env.QERRORS_VERBOSE = origVerbose; }
-    reloadLogger(); //reset cached module
+  reloadLogger(); //reset cached module
+  }
+});
+
+test('logger warns when max days zero with file logs', () => {
+  const origDays = process.env.QERRORS_LOG_MAX_DAYS; //save env day setting
+  const origDisable = process.env.QERRORS_DISABLE_FILE_LOGS; //save disable flag
+  process.env.QERRORS_LOG_MAX_DAYS = '0'; //explicit zero days
+  delete process.env.QERRORS_DISABLE_FILE_LOGS; //ensure file logs active
+  let warned = false; //track warn call
+  const restore = qtests.stubMethod(winston, 'createLogger', cfg => { return { transports: cfg.transports, warn: () => { warned = true; }, info() {}, error() {} }; }); //provide stub logger
+  reloadLogger(); //load module which should warn
+  try {
+    assert.equal(warned, true); //expect warning
+  } finally {
+    restore();
+    if (origDays === undefined) { delete process.env.QERRORS_LOG_MAX_DAYS; } else { process.env.QERRORS_LOG_MAX_DAYS = origDays; }
+    if (origDisable === undefined) { delete process.env.QERRORS_DISABLE_FILE_LOGS; } else { process.env.QERRORS_DISABLE_FILE_LOGS = origDisable; }
+    reloadLogger(); //reset logger
   }
 });
 
