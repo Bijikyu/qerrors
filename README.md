@@ -20,6 +20,8 @@ qerrors reads several environment variables to tune its behavior. A small config
 * `QERRORS_LOG_MAXSIZE` &ndash; logger rotation size in bytes (default `1048576`).
 * `QERRORS_LOG_MAXFILES` &ndash; number of rotated log files (default `5`).
 * `QERRORS_VERBOSE` &ndash; enable console logging (`true` by default).
+* `QERRORS_LOG_DIR` &ndash; directory for logger output (default `logs`).
+* `QERRORS_DISABLE_FILE_LOGS` &ndash; disable file transports when set.
 
 
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //env variable for OpenAI access
@@ -37,6 +39,8 @@ Additional options control the logger's file rotation:
 
 * `QERRORS_LOG_MAXSIZE` - max log file size in bytes before rotation (default `1048576`)
 * `QERRORS_LOG_MAXFILES` - number of rotated files to keep (default `5`)
+* `QERRORS_LOG_DIR` - path for log files (default `logs`)
+* `QERRORS_DISABLE_FILE_LOGS` - omit file logs when set
 
 
 
