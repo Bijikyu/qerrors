@@ -14,6 +14,7 @@ qerrors reads several environment variables to tune its behavior. A small config
 
 * `QERRORS_CACHE_LIMIT` &ndash; size of the advice cache (default `50`, set to `0` to disable caching).
 * `QERRORS_CACHE_TTL` &ndash; seconds before cached advice expires (default `86400`).
+* `QERRORS_REDIS_URL` &ndash; Redis connection string for cross process caching (optional).
 * `QERRORS_QUEUE_LIMIT` &ndash; maximum queued analyses before rejecting new ones (default `100`, raise when under heavy load). //(note queue tuning for traffic)
 
 
@@ -59,6 +60,7 @@ The retry behaviour can be tuned with QERRORS_RETRY_ATTEMPTS and QERRORS_RETRY_B
 
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com).
 You can optionally set `QERRORS_CACHE_LIMIT` to adjust how many advice entries are cached; set `0` to disable caching (default is 50). Use `QERRORS_CACHE_TTL` to control how long each entry stays valid in seconds (default is 86400).
+Specify `QERRORS_REDIS_URL` to enable shared caching across Node.js processes when running multiple instances.
 
 Additional options control the logger's file rotation:
 
