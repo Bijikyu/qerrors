@@ -111,3 +111,32 @@ test('scheduleAnalysis uses defaults on invalid env', () => { //verify helper fa
     require('../lib/config'); //reapply defaults
   }
 });
+
+test('queue never exceeds limit under high concurrency', async () => {
+  const origConc = process.env.QERRORS_CONCURRENCY; //backup env
+  const origQueue = process.env.QERRORS_QUEUE_LIMIT; //backup env
+  process.env.QERRORS_CONCURRENCY = '3'; //allow more active analyses
+  process.env.QERRORS_QUEUE_LIMIT = '1'; //only one queued task
+  const qerrors = reloadQerrors(); //reload config vars
+  const logger = require('../lib/logger'); //logger instance
+  const restoreWarn = qtests.stubMethod(logger, 'warn', () => {}); //silence warn
+  const restoreError = qtests.stubMethod(logger, 'error', () => {}); //silence error
+  const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', async () => new Promise(r => setTimeout(r, 20))); //simulate work
+  try {
+    qerrors(new Error('one')); //start first analysis
+    qerrors(new Error('two')); //start second analysis
+    qerrors(new Error('three')); //start third analysis
+    qerrors(new Error('four')); //queued under limit
+    qerrors(new Error('five')); //should be rejected
+    await new Promise(r => setTimeout(r, 50)); //allow processing
+  } finally {
+    restoreWarn();
+    restoreError();
+    restoreAnalyze();
+    if (origConc === undefined) { delete process.env.QERRORS_CONCURRENCY; } else { process.env.QERRORS_CONCURRENCY = origConc; }
+    if (origQueue === undefined) { delete process.env.QERRORS_QUEUE_LIMIT; } else { process.env.QERRORS_QUEUE_LIMIT = origQueue; }
+    reloadQerrors(); //reset state
+  }
+  assert.ok(qerrors.getQueueLength() <= 1); //queue length at most limit
+  assert.equal(qerrors.getQueueRejectCount(), 1); //one task rejected
+});
