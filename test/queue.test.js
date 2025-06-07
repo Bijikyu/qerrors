@@ -63,6 +63,37 @@ test('queue reject count increments when queue exceeds limit', async () => {
   assert.equal(qerrors.getQueueRejectCount(), 1); //expect single rejection
 });
 
+test('getQueueLength reflects queued analyses', async () => {
+  const origConc = process.env.QERRORS_CONCURRENCY; //backup env
+  const origQueue = process.env.QERRORS_QUEUE_LIMIT; //backup env
+  process.env.QERRORS_CONCURRENCY = '1'; //force single concurrency
+  process.env.QERRORS_QUEUE_LIMIT = '2'; //allow one queued item
+  process.env.OPENAI_TOKEN = 'tkn'; //enable analyzeError path
+  const qerrors = reloadQerrors(); //reload to apply env
+  const logger = require('../lib/logger'); //logger instance
+  const restoreWarn = qtests.stubMethod(logger, 'warn', () => {}); //silence warn
+  const restoreError = qtests.stubMethod(logger, 'error', () => {}); //silence err
+  const capture = {}; //track axios args
+  const restorePost = qtests.stubMethod(qerrors.axiosInstance, 'post', async () => {
+    return new Promise((r) => setTimeout(() => r({ data: { choices: [{ message: { content: '{}' } }] } }), 20)); //simulate delay
+  });
+  try {
+    qerrors(new Error('one')); //consume concurrency slot
+    qerrors(new Error('two')); //queued under limit
+    await new Promise((r) => setTimeout(r, 15)); //allow queue update
+    assert.equal(qerrors.getQueueLength(), 1); //expect one item queued
+    await new Promise((r) => setTimeout(r, 30)); //allow tasks
+  } finally {
+    restoreWarn(); //restore warn stub
+    restoreError(); //restore error stub
+    restorePost(); //restore axios stub
+    if (origConc === undefined) { delete process.env.QERRORS_CONCURRENCY; } else { process.env.QERRORS_CONCURRENCY = origConc; }
+    if (origQueue === undefined) { delete process.env.QERRORS_QUEUE_LIMIT; } else { process.env.QERRORS_QUEUE_LIMIT = origQueue; }
+    delete process.env.OPENAI_TOKEN; //cleanup token
+    reloadQerrors(); //reset state
+  }
+});
+
 test('scheduleAnalysis uses defaults on invalid env', () => { //verify helper fallback
   const origConc = process.env.QERRORS_CONCURRENCY; //backup
   const origQueue = process.env.QERRORS_QUEUE_LIMIT; //backup
