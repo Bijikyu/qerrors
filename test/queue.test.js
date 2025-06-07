@@ -11,7 +11,7 @@ test('scheduleAnalysis rejects when queue exceeds limit', async () => {
   const origConc = process.env.QERRORS_CONCURRENCY; //save original concurrency
   const origQueue = process.env.QERRORS_QUEUE_LIMIT; //save original queue limit
   process.env.QERRORS_CONCURRENCY = '1'; //one concurrent analysis
-  process.env.QERRORS_QUEUE_LIMIT = '0'; //no waiting allowed
+  process.env.QERRORS_QUEUE_LIMIT = '1'; //allow single queued item
   const qerrors = reloadQerrors(); //reload with env vars
   const logger = require('../lib/logger'); //logger instance
   let logged; //capture logged error
@@ -21,7 +21,8 @@ test('scheduleAnalysis rejects when queue exceeds limit', async () => {
   });
   try {
     qerrors(new Error('one')); //first call fills slot
-    qerrors(new Error('two')); //second call should exceed queue limit
+    qerrors(new Error('two')); //second call queued
+    qerrors(new Error('three')); //third call should exceed queue limit
     await new Promise((r) => setTimeout(r, 30)); //wait for processing
   } finally {
     restoreLog(); //restore logger stub
@@ -38,7 +39,7 @@ test('queue reject count increments when queue exceeds limit', async () => {
   const origConc = process.env.QERRORS_CONCURRENCY; //backup env
   const origQueue = process.env.QERRORS_QUEUE_LIMIT; //backup env
   process.env.QERRORS_CONCURRENCY = '1'; //force single concurrency
-  process.env.QERRORS_QUEUE_LIMIT = '0'; //reject all queued
+  process.env.QERRORS_QUEUE_LIMIT = '1'; //allow one queued before rejection
   const qerrors = reloadQerrors(); //reload to apply env
   const logger = require('../lib/logger'); //logger instance
   const restoreWarn = qtests.stubMethod(logger, 'warn', () => {}); //silence warn
@@ -48,7 +49,8 @@ test('queue reject count increments when queue exceeds limit', async () => {
   });
   try {
     qerrors(new Error('one')); //consume concurrency slot
-    qerrors(new Error('two')); //should increment counter
+    qerrors(new Error('two')); //queued under limit
+    qerrors(new Error('three')); //should increment counter
     await new Promise((r) => setTimeout(r, 30)); //allow tasks
   } finally {
     restoreWarn(); //restore warn stub
