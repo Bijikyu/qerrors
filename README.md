@@ -19,6 +19,7 @@ qerrors reads several environment variables to tune its behavior. A small config
 
 * `QERRORS_RETRY_ATTEMPTS` &ndash; attempts when calling OpenAI (default `2`).
 * `QERRORS_RETRY_BASE_MS` &ndash; base delay in ms for retries (default `100`).
+* `QERRORS_RETRY_MAX_MS` &ndash; cap on retry backoff in ms (default `2000`).
 * `QERRORS_TIMEOUT` &ndash; axios request timeout in ms (default `10000`).
 * `QERRORS_MAX_SOCKETS` &ndash; maximum sockets per agent (default `50`, increase for high traffic).
 
@@ -57,7 +58,7 @@ if not set the default is 50; raise this to handle high traffic. //state default
 
 
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //(mention required token)
-The retry behaviour can be tuned with QERRORS_RETRY_ATTEMPTS and QERRORS_RETRY_BASE_MS which default to 2 and 100 respectively. //(document retry env vars)
+The retry behaviour can be tuned with QERRORS_RETRY_ATTEMPTS, QERRORS_RETRY_BASE_MS and QERRORS_RETRY_MAX_MS which default to 2, 100 and 2000 respectively. //(document retry env vars)
 
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com).
 You can optionally set `QERRORS_CACHE_LIMIT` to adjust how many advice entries are cached; set `0` to disable caching (default is 50). Use `QERRORS_CACHE_TTL` to control how long each entry stays valid in seconds (default is 86400).

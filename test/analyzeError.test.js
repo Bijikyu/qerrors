@@ -26,14 +26,17 @@ function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
   };
 }
 
-function withRetryEnv(retry, base) { //(temporarily set retry env vars)
+function withRetryEnv(retry, base, max) { //(temporarily set retry env vars)
   const origRetry = process.env.QERRORS_RETRY_ATTEMPTS; //(store original attempts)
   const origBase = process.env.QERRORS_RETRY_BASE_MS; //(store original delay)
+  const origMax = process.env.QERRORS_RETRY_MAX_MS; //(store original cap)
   if (retry === undefined) { delete process.env.QERRORS_RETRY_ATTEMPTS; } else { process.env.QERRORS_RETRY_ATTEMPTS = String(retry); } //(apply retry)
   if (base === undefined) { delete process.env.QERRORS_RETRY_BASE_MS; } else { process.env.QERRORS_RETRY_BASE_MS = String(base); } //(apply delay)
+  if (max === undefined) { delete process.env.QERRORS_RETRY_MAX_MS; } else { process.env.QERRORS_RETRY_MAX_MS = String(max); } //(apply cap)
   return () => { //(restore both variables)
     if (origRetry === undefined) { delete process.env.QERRORS_RETRY_ATTEMPTS; } else { process.env.QERRORS_RETRY_ATTEMPTS = origRetry; }
     if (origBase === undefined) { delete process.env.QERRORS_RETRY_BASE_MS; } else { process.env.QERRORS_RETRY_BASE_MS = origBase; }
+    if (origMax === undefined) { delete process.env.QERRORS_RETRY_MAX_MS; } else { process.env.QERRORS_RETRY_MAX_MS = origMax; }
   };
 }
 
