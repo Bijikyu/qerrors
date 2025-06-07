@@ -33,3 +33,21 @@ test('scheduleAnalysis rejects when queue exceeds limit', async () => {
   assert.ok(logged instanceof Error); //expect error object logged
   assert.equal(logged.message, 'queue full'); //message indicates queue full
 });
+
+test('scheduleAnalysis uses defaults on invalid env', () => { //verify helper fallback
+  const origConc = process.env.QERRORS_CONCURRENCY; //backup
+  const origQueue = process.env.QERRORS_QUEUE_LIMIT; //backup
+  process.env.QERRORS_CONCURRENCY = 'abc'; //invalid concurrency
+  process.env.QERRORS_QUEUE_LIMIT = 'abc'; //invalid queue limit
+  delete require.cache[require.resolve('../lib/config')]; //reload config
+  const cfg = require('../lib/config'); //load fresh config
+  try {
+    assert.equal(cfg.getInt('QERRORS_CONCURRENCY'), 5); //falls back to default
+    assert.equal(cfg.getInt('QERRORS_QUEUE_LIMIT'), 100); //falls back to default
+  } finally {
+    if (origConc === undefined) { delete process.env.QERRORS_CONCURRENCY; } else { process.env.QERRORS_CONCURRENCY = origConc; }
+    if (origQueue === undefined) { delete process.env.QERRORS_QUEUE_LIMIT; } else { process.env.QERRORS_QUEUE_LIMIT = origQueue; }
+    delete require.cache[require.resolve('../lib/config')]; //reset module
+    require('../lib/config'); //reapply defaults
+  }
+});
