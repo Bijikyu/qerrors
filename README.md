@@ -112,6 +112,16 @@ logger.warn('Something might be wrong');
 logger.error('An error occurred', { errorDetails: error });
 ```
 
+## Monitoring queue
+
+Applications can query the limiter to track queued analyses.
+
+```javascript
+const { getQueueStats } = require('qerrors');
+const stats = getQueueStats();
+console.log(stats);
+```
+
 ## Testing
 
 Running `npm test` starts Node's built-in test runner using the `--test` flag.

@@ -33,3 +33,29 @@ test('scheduleAnalysis rejects when queue exceeds limit', async () => {
   assert.ok(logged instanceof Error); //expect error object logged
   assert.equal(logged.message, 'queue full'); //message indicates queue full
 });
+
+test('getQueueStats reflects limiter counts', async () => {
+  const origConc = process.env.QERRORS_CONCURRENCY; //save original concurrency
+  const origTok = process.env.OPENAI_TOKEN; //save token
+  process.env.QERRORS_CONCURRENCY = '1'; //restrict to one running task
+  process.env.OPENAI_TOKEN = 'tkn'; //enable analyze flow
+  const qerrors = reloadQerrors(); //reload module with env
+  const restorePost = qtests.stubMethod(qerrors, 'postWithRetry', async () => {
+    return new Promise(r => setTimeout(r, 20)); //delay request
+  });
+  try {
+    qerrors(new Error('a')); //start first task
+    qerrors(new Error('b')); //queue second task
+    await new Promise(r => setTimeout(r, 10)); //allow queue setup
+    const during = qerrors.getQueueStats(); //read stats while one queued
+    await new Promise(r => setTimeout(r, 40)); //wait for completion
+    const after = qerrors.getQueueStats(); //stats after all done
+    assert.deepEqual(during, { active: 1, queued: 1 }); //expect one running and one queued
+    assert.deepEqual(after, { active: 0, queued: 0 }); //expect none after finish
+  } finally {
+    restorePost(); //restore postWithRetry stub
+    if (origConc === undefined) { delete process.env.QERRORS_CONCURRENCY; } else { process.env.QERRORS_CONCURRENCY = origConc; }
+    if (origTok === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = origTok; }
+    reloadQerrors(); //reset module state
+  }
+});

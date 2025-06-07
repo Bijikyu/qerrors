@@ -17,6 +17,7 @@
 
 const qerrors = require('./lib/qerrors'); //load primary error handler implementation
 const logger = require('./lib/logger'); //load configured winston logger used by qerrors
+const { getQueueStats } = qerrors; //extract queue stats function from library
 
 /**
  * Error logger middleware that logs errors and provides AI-powered suggestions.
@@ -32,7 +33,8 @@ const logger = require('./lib/logger'); //load configured winston logger used by
 // This pattern provides clear, explicit imports while keeping related functionality grouped
 module.exports = { //exposes logger with qerrors so consumers use the same configured logger
   qerrors, //main error handling function users interact with
-  logger //winston logger instance for consistent logging
+  logger, //winston logger instance for consistent logging
+  getQueueStats //function exposing limiter counts
 };
 
 // Default export for backward compatibility and convenience
