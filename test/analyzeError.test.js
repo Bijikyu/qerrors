@@ -7,6 +7,7 @@ const crypto = require('crypto'); //node crypto for hashing count
 const qerrorsModule = require('../lib/qerrors'); //import module under test
 const { analyzeError } = qerrorsModule; //extract analyzeError for direct calls
 const { axiosInstance } = qerrorsModule; //instance used inside analyzeError
+const { postWithRetry } = qerrorsModule; //helper used for retrying requests
 
 
 function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
@@ -173,6 +174,25 @@ test('analyzeError retries failed axios calls', async () => {
   } finally {
     restoreAxios(); //(restore axios)
     restoreEnv(); //(restore env vars)
+    restoreToken(); //(restore token)
+  }
+});
+
+test('analyzeError uses postWithRetry helper', async () => {
+  const restoreToken = withOpenAIToken('helper-token'); //(set token for test)
+  let helperCalled = false; //(flag when helper invoked)
+  const restoreHelper = qtests.stubMethod(qerrorsModule, 'postWithRetry', async () => { //(stub helper)
+    helperCalled = true; //(mark invocation)
+    return { data: { choices: [{ message: { content: { ok: true } } }] } }; //(fake success response)
+  });
+  try {
+    const err = new Error('helper');
+    err.uniqueErrorName = 'HELPER';
+    const result = await analyzeError(err, 'ctx');
+    assert.equal(result.ok, true); //(expect parsed advice)
+    assert.equal(helperCalled, true); //(ensure helper ran)
+  } finally {
+    restoreHelper(); //(restore stub)
     restoreToken(); //(restore token)
   }
 });
