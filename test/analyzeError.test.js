@@ -196,3 +196,36 @@ test('analyzeError uses postWithRetry helper', async () => {
     restoreToken(); //(restore token)
   }
 });
+
+function reloadQerrors() { //helper to reload module with current env for cache tests
+  delete require.cache[require.resolve('../lib/qerrors')]; //remove cached module so env changes apply
+  return require('../lib/qerrors'); //load qerrors again with new env
+}
+
+// Scenario: disable caching when limit is zero
+test('analyzeError bypasses cache when limit is zero', async () => {
+  const restoreToken = withOpenAIToken('zero-token'); //(set token for api)
+  const origLimit = process.env.QERRORS_CACHE_LIMIT; //(store existing cache limit)
+  process.env.QERRORS_CACHE_LIMIT = '0'; //(env value to disable cache)
+  const fresh = reloadQerrors(); //(reload module with zero cache limit)
+  const restoreAxios1 = qtests.stubMethod(fresh.axiosInstance, 'post', async () => ({ data: { choices: [{ message: { content: { msg: 1 } } }] } })); //(stub for first analysis)
+  try {
+    const err = new Error('nocache');
+    err.stack = 'stack';
+    err.uniqueErrorName = 'NOCACHE1';
+    await fresh.analyzeError(err, 'ctx');
+    restoreAxios1(); //(remove first stub)
+    let secondCalled = false; //(track second axios call when cache disabled)
+    const restoreAxios2 = qtests.stubMethod(fresh.axiosInstance, 'post', async () => { secondCalled = true; return { data: { choices: [{ message: { content: { msg: 2 } } }] } }; });
+    const err2 = new Error('nocache');
+    err2.stack = 'stack';
+    err2.uniqueErrorName = 'NOCACHE2';
+    await fresh.analyzeError(err2, 'ctx');
+    restoreAxios2(); //(restore second stub)
+    assert.equal(secondCalled, true); //(axios should run again without caching)
+  } finally {
+    if (origLimit === undefined) { delete process.env.QERRORS_CACHE_LIMIT; } else { process.env.QERRORS_CACHE_LIMIT = origLimit; }
+    reloadQerrors(); //(restore default module state)
+    restoreToken(); //(restore token)
+  }
+});

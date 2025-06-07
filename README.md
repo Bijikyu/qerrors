@@ -11,7 +11,7 @@ qerrors reads several environment variables to tune its behavior. A small config
 
 * `OPENAI_TOKEN` &ndash; your OpenAI API key.
 * `QERRORS_CONCURRENCY` &ndash; maximum concurrent analyses (default `5`).
-* `QERRORS_CACHE_LIMIT` &ndash; size of the advice cache (default `50`).
+* `QERRORS_CACHE_LIMIT` &ndash; size of the advice cache (default `50`, set to `0` to disable caching).
 
 * `QERRORS_RETRY_ATTEMPTS` &ndash; attempts when calling OpenAI (default `2`).
 * `QERRORS_RETRY_BASE_MS` &ndash; base delay in ms for retries (default `100`).
@@ -34,7 +34,7 @@ You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](
 The retry behaviour can be tuned with QERRORS_RETRY_ATTEMPTS and QERRORS_RETRY_BASE_MS which default to 2 and 100 respectively. //(document retry env vars)
 
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com).
-You can optionally set `QERRORS_CACHE_LIMIT` to adjust how many advice entries are cached; the default is 50.
+You can optionally set `QERRORS_CACHE_LIMIT` to adjust how many advice entries are cached; set `0` to disable caching (default is 50).
 
 Additional options control the logger's file rotation:
 
