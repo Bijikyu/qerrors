@@ -32,3 +32,16 @@ test('axiosInstance uses default max sockets when env missing', () => {
     reloadQerrors(); //reset module state
   }
 });
+
+test('axiosInstance uses default max sockets with invalid env', () => { //invalid value falls back
+  const orig = process.env.QERRORS_MAX_SOCKETS; //preserve original
+  process.env.QERRORS_MAX_SOCKETS = 'abc'; //set non-numeric
+  const { axiosInstance } = reloadQerrors(); //reload module with invalid env
+  try {
+    assert.equal(axiosInstance.defaults.httpAgent.maxSockets, 50); //default http agent value
+    assert.equal(axiosInstance.defaults.httpsAgent.maxSockets, 50); //default https agent value
+  } finally {
+    if (orig === undefined) { delete process.env.QERRORS_MAX_SOCKETS; } else { process.env.QERRORS_MAX_SOCKETS = orig; }
+    reloadQerrors(); //clean module state
+  }
+});

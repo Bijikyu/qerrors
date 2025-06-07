@@ -29,3 +29,15 @@ test('axiosInstance uses default timeout when env missing', () => {
     reloadQerrors(); //reset module state
   }
 });
+
+test('axiosInstance uses default timeout with invalid env', () => { //invalid value fallback
+  const orig = process.env.QERRORS_TIMEOUT; //save current env
+  process.env.QERRORS_TIMEOUT = 'abc'; //set invalid
+  const { axiosInstance } = reloadQerrors(); //reload with invalid value
+  try {
+    assert.equal(axiosInstance.defaults.timeout, 10000); //should use default
+  } finally {
+    if (orig === undefined) { delete process.env.QERRORS_TIMEOUT; } else { process.env.QERRORS_TIMEOUT = orig; }
+    reloadQerrors(); //reset module
+  }
+});

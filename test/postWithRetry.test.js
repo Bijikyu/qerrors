@@ -40,3 +40,28 @@ test('postWithRetry adds jitter to wait time', async () => {
     restoreEnv(); //restore env
   }
 });
+
+test('postWithRetry uses defaults with invalid env', async () => { //invalid values fallback to defaults
+  const restoreEnv = withRetryEnv('abc', 'abc'); //set invalid strings
+  let callCount = 0; //track axios calls
+  const restoreAxios = qtests.stubMethod(axiosInstance, 'post', async () => { //stub post
+    callCount++; //increment each time
+    if (callCount === 1) { throw new Error('fail'); } //first call fails
+    return { ok: true }; //success second
+  });
+  let waited; //capture delay used
+  const restoreTimeout = qtests.stubMethod(global, 'setTimeout', (fn, ms) => { waited = ms; fn(); }); //intercept timeout
+  const origRandom = Math.random; //save random
+  Math.random = () => 0.5; //predictable jitter
+  try {
+    const res = await postWithRetry('url', {}); //invoke helper
+    assert.equal(res.ok, true); //successful result
+    assert.equal(callCount, 2); //one retry
+    assert.ok(waited >= 100 && waited < 200); //default base of 100 used
+  } finally {
+    Math.random = origRandom; //restore random
+    restoreTimeout(); //restore timeout
+    restoreAxios(); //restore axios
+    restoreEnv(); //restore env vars
+  }
+});
