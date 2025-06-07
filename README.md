@@ -12,6 +12,7 @@ qerrors reads several environment variables to tune its behavior. A small config
 * `OPENAI_TOKEN` &ndash; your OpenAI API key.
 * `QERRORS_CONCURRENCY` &ndash; maximum concurrent analyses (default `5`).
 * `QERRORS_CACHE_LIMIT` &ndash; size of the advice cache (default `50`).
+* `QERRORS_QUEUE_LIMIT` &ndash; maximum queued analyses before rejecting new ones (default `100`). //(document new queue limit)
 
 * `QERRORS_RETRY_ATTEMPTS` &ndash; attempts when calling OpenAI (default `2`).
 * `QERRORS_RETRY_BASE_MS` &ndash; base delay in ms for retries (default `100`).
@@ -25,6 +26,8 @@ qerrors reads several environment variables to tune its behavior. A small config
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //env variable for OpenAI access
 Set QERRORS_CONCURRENCY to adjust how many analyses run simultaneously; //new variable controlling concurrency
 if not set the default limit is 5. //explain fallback value
+Use QERRORS_QUEUE_LIMIT to cap how many analyses can wait in line before rejection; //(explain queue limit)
+if not set the default limit is 100. //(explain queue default)
 
 
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //(mention required token)
