@@ -59,6 +59,7 @@ if not set the default is 50; raise this to handle high traffic. //state default
 
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //(mention required token)
 The retry behaviour can be tuned with QERRORS_RETRY_ATTEMPTS, QERRORS_RETRY_BASE_MS and QERRORS_RETRY_MAX_MS which default to 2, 100 and 2000 respectively. //(document retry env vars)
+When the API responds with 429 or 503 qerrors uses the `Retry-After` header to wait before retrying; if the header is missing the computed delay is doubled. //(document rate limit behaviour)
 
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com).
 You can optionally set `QERRORS_CACHE_LIMIT` to adjust how many advice entries are cached; set `0` to disable caching (default is 50). Use `QERRORS_CACHE_TTL` to control how long each entry stays valid in seconds (default is 86400).
