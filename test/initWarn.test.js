@@ -26,3 +26,26 @@ test('warn when limits exceed safe threshold', () => {
   }
   assert.equal(warned, true); //expect warning emitted
 });
+
+test('limits below custom threshold do not warn', () => { //verify config clamp usage
+  const origConc = process.env.QERRORS_CONCURRENCY; //backup concurrency value
+  const origQueue = process.env.QERRORS_QUEUE_LIMIT; //backup queue value
+  const origSafe = process.env.QERRORS_SAFE_THRESHOLD; //backup safe threshold
+  process.env.QERRORS_CONCURRENCY = '1500'; //value above default threshold
+  process.env.QERRORS_QUEUE_LIMIT = '1500'; //value above default threshold
+  process.env.QERRORS_SAFE_THRESHOLD = '2000'; //raise threshold so no warn expected
+  const logger = require('../lib/logger'); //logger instance
+  let warned = false; //track warn state
+  const restoreWarn = qtests.stubMethod(logger, 'warn', () => { warned = true; });
+  try {
+    loadQerrors(); //reload with custom env values
+  } finally {
+    restoreWarn(); //restore logger.warn method
+    if (origConc === undefined) { delete process.env.QERRORS_CONCURRENCY; } else { process.env.QERRORS_CONCURRENCY = origConc; }
+    if (origQueue === undefined) { delete process.env.QERRORS_QUEUE_LIMIT; } else { process.env.QERRORS_QUEUE_LIMIT = origQueue; }
+    if (origSafe === undefined) { delete process.env.QERRORS_SAFE_THRESHOLD; } else { process.env.QERRORS_SAFE_THRESHOLD = origSafe; }
+    delete require.cache[require.resolve('../lib/qerrors')]; //reset cached module
+    require('../lib/qerrors'); //restore defaults
+  }
+  assert.equal(warned, false); //expect no warning when within custom threshold
+});
