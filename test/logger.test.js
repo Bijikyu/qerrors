@@ -5,7 +5,7 @@ const logger = require('../lib/logger'); //logger instance under test
 const qtests = require('qtests'); //stubbing utilities
 const winston = require('winston'); //winston stub to intercept config
 const DailyRotateFile = require('winston-daily-rotate-file'); //daily rotate stub
-const fs = require('fs'); //filesystem for stubbing mkdir failures
+const fs = require('fs'); //filesystem for stubbing mkdir behaviour
 
 function reloadLogger() { //reload logger with current env
   delete require.cache[require.resolve('../lib/logger')];
@@ -38,16 +38,35 @@ test('logger uses daily rotate when QERRORS_LOG_MAX_DAYS set', () => {
   }
 });
 
-test('logger continues with console transport when mkdir fails', async () => {
+test('file transports active when mkdirSync succeeds', () => {
+  const origDisable = process.env.QERRORS_DISABLE_FILE_LOGS; //save flag state
+  delete process.env.QERRORS_DISABLE_FILE_LOGS; //ensure files allowed
+  let captured; //capture logger config
+  const restoreLogger = qtests.stubMethod(winston, 'createLogger', cfg => { captured = cfg; return { transports: cfg.transports, warn() {}, info() {}, error() {} }; }); //capture transports
+  let callCount = 0; //track mkdir calls
+  const restoreMkdir = qtests.stubMethod(fs, 'mkdirSync', () => { callCount++; }); //stub sync mkdir
+  const log = reloadLogger();
+  try {
+    assert.ok(callCount > 0); //directory attempted
+    assert.ok(log.transports.length >= 2); //file transports configured
+    assert.ok(captured.transports.length >= 2); //logger received file transports
+  } finally {
+    restoreLogger();
+    restoreMkdir();
+    if (origDisable === undefined) { delete process.env.QERRORS_DISABLE_FILE_LOGS; } else { process.env.QERRORS_DISABLE_FILE_LOGS = origDisable; }
+    reloadLogger(); //reset logger
+  }
+});
+
+test('logger continues with console transport when mkdirSync fails', () => {
   const origVerbose = process.env.QERRORS_VERBOSE; //save current verbose
   process.env.QERRORS_VERBOSE = 'true'; //ensure console transport
   let captured; //capture logger config
   const restoreLogger = qtests.stubMethod(winston, 'createLogger', (cfg) => { captured = cfg; return { transports: cfg.transports, warn() {}, info() {}, error() {} }; }); //include warn for startup check
-  const restoreMkdir = qtests.stubMethod(fs.promises, 'mkdir', async () => { throw new Error('fail'); }); //simulate failure with async mkdir
+  const restoreMkdir = qtests.stubMethod(fs, 'mkdirSync', () => { throw new Error('fail'); }); //simulate failure with sync mkdir
   let errMsg; //capture console error message
   const restoreErr = qtests.stubMethod(console, 'error', (msg) => { errMsg = msg; });
   const log = reloadLogger();
-  await log.initPromise; //ensure async initialization finished
   try {
     assert.ok(log.transports.length > 0); //logger returned usable instance
     assert.ok(captured.transports.length >= 1); //console transport configured even if files remain
