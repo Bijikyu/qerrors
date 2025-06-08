@@ -1,4 +1,4 @@
-class LRU {
+class LRUCache {
   constructor(opts = {}) {
     this.max = opts.max ?? Infinity; //limit of entries
     this.ttl = opts.ttl ?? 0; //time to live in ms
@@ -25,4 +25,5 @@ class LRU {
     for (const [k, e] of this.store) { if (now - e.ts > this.ttl) this.store.delete(k); }
   }
 }
-module.exports = LRU;
+module.exports = LRUCache; //export class as module default for CommonJS consumers
+module.exports.LRUCache = LRUCache; //provide named export to mimic real module
