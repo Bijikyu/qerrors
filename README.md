@@ -23,6 +23,7 @@ qerrors reads several environment variables to tune its behavior. A small config
 * `QERRORS_RETRY_MAX_MS` &ndash; cap on retry backoff in ms (default `2000`).
 * `QERRORS_TIMEOUT` &ndash; axios request timeout in ms (default `10000`).
 * `QERRORS_MAX_SOCKETS` &ndash; maximum sockets per agent (default `50`, increase for high traffic).
+* `QERRORS_MAX_FREE_SOCKETS` &ndash; maximum idle sockets per agent (default `256`).
 
 * `QERRORS_LOG_MAXSIZE` &ndash; logger rotation size in bytes (default `1048576`).
 * `QERRORS_LOG_MAXFILES` &ndash; number of rotated log files (default `5`).
@@ -32,7 +33,7 @@ qerrors reads several environment variables to tune its behavior. A small config
 * `QERRORS_DISABLE_FILE_LOGS` &ndash; disable file transports when set.
 * `QERRORS_SERVICE_NAME` &ndash; service name added to logger metadata (default `qerrors`). //(document service variable)
 
-For high traffic scenarios raise `QERRORS_CONCURRENCY`, `QERRORS_QUEUE_LIMIT`, and `QERRORS_MAX_SOCKETS`. Set `QERRORS_VERBOSE=false` in production to reduce console overhead.
+For high traffic scenarios raise `QERRORS_CONCURRENCY`, `QERRORS_QUEUE_LIMIT`, `QERRORS_MAX_SOCKETS`, and `QERRORS_MAX_FREE_SOCKETS`. Set `QERRORS_VERBOSE=false` in production to reduce console overhead.
 
 
 Set QERRORS_CONCURRENCY to adjust how many analyses run simultaneously; //new variable controlling concurrency
@@ -54,6 +55,8 @@ Use `qerrors.getQueueLength()` to monitor how many analyses are waiting. //(ment
 
 QERRORS_MAX_SOCKETS lets you limit how many sockets the http agents open; //document new env var usage
 if not set the default is 50; raise this to handle high traffic. //state default behaviour
+QERRORS_MAX_FREE_SOCKETS caps idle sockets the agents keep for reuse; //explain idle setting
+if not set the default is 256 which matches Node's agent default. //state default value
 
 
 
