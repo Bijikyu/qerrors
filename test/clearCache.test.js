@@ -42,3 +42,23 @@ test('clearAdviceCache empties cache', async () => {
     reloadQerrors();
   }
 });
+
+test('cache limit above threshold clamps and warns', () => {
+  const orig = process.env.QERRORS_CACHE_LIMIT; //backup current env
+  process.env.QERRORS_CACHE_LIMIT = '5000'; //set exaggerated limit
+  const logger = require('../lib/logger'); //import logger to stub warn
+  let warned = false; //track call state
+  const restoreWarn = qtests.stubMethod(logger, 'warn', () => { warned = true; });
+  let limit; //will capture clamped limit
+  try {
+    const qerrors = reloadQerrors(); //reload module with large limit
+    limit = qerrors.getAdviceCacheLimit(); //fetch clamped limit value
+  } finally {
+    restoreWarn(); //restore logger warn
+    if (orig === undefined) { delete process.env.QERRORS_CACHE_LIMIT; } else { process.env.QERRORS_CACHE_LIMIT = orig; }
+    delete require.cache[require.resolve('../lib/qerrors')]; //reset state
+    require('../lib/qerrors'); //reload defaults
+  }
+  assert.equal(limit, 1000); //expect clamp to safe threshold
+  assert.equal(warned, true); //warning should fire
+});

@@ -12,7 +12,7 @@ qerrors reads several environment variables to tune its behavior. A small config
 * `OPENAI_TOKEN` &ndash; your OpenAI API key.
 * `QERRORS_CONCURRENCY` &ndash; maximum concurrent analyses (default `5`, raise for high traffic, values over `1000` are clamped). //(document clamp)
 
-* `QERRORS_CACHE_LIMIT` &ndash; size of the advice cache (default `50`, set to `0` to disable caching).
+* `QERRORS_CACHE_LIMIT` &ndash; size of the advice cache (default `50`, set to `0` to disable caching, values over `1000` are clamped).
 * `QERRORS_CACHE_TTL` &ndash; seconds before cached advice expires (default `86400`).
 * `QERRORS_QUEUE_LIMIT` &ndash; maximum queued analyses before rejecting new ones (default `100`, raise when under heavy load, values over `1000` are clamped). //(document queue clamp)
 * `QERRORS_SAFE_THRESHOLD` &ndash; maximum allowed value for `QERRORS_CONCURRENCY` and `QERRORS_QUEUE_LIMIT` before clamping occurs (default `1000`). //(document configurable safe clamp)
@@ -63,7 +63,7 @@ The retry behaviour can be tuned with QERRORS_RETRY_ATTEMPTS, QERRORS_RETRY_BASE
 When the API responds with 429 or 503 qerrors uses the `Retry-After` header to wait before retrying; if the header is missing the computed delay is doubled. //(document rate limit behaviour)
 
 You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com).
-You can optionally set `QERRORS_CACHE_LIMIT` to adjust how many advice entries are cached; set `0` to disable caching (default is 50). Use `QERRORS_CACHE_TTL` to control how long each entry stays valid in seconds (default is 86400).
+You can optionally set `QERRORS_CACHE_LIMIT` to adjust how many advice entries are cached; set `0` to disable caching (default is 50, values over `1000` are clamped). Use `QERRORS_CACHE_TTL` to control how long each entry stays valid in seconds (default is 86400).
 
 Additional options control the logger's file rotation:
 
