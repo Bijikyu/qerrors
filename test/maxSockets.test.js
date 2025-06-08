@@ -45,3 +45,23 @@ test('axiosInstance uses default max sockets with invalid env', () => { //invali
     reloadQerrors(); //clean module state
   }
 });
+
+test('max sockets above threshold clamps and warns', async () => {
+  const orig = process.env.QERRORS_MAX_SOCKETS; //remember original sockets value
+  process.env.QERRORS_MAX_SOCKETS = '5000'; //set excessive sockets
+  const logger = await require('../lib/logger'); //resolve logger for stubbing
+  let warned = false; //capture warn calls
+  const restoreWarn = require('qtests').stubMethod(logger, 'warn', () => { warned = true; });
+  let sockets; //will hold resulting sockets value
+  try {
+    const { axiosInstance } = reloadQerrors(); //reload module with big value
+    sockets = axiosInstance.defaults.httpAgent.maxSockets; //record clamped result
+    await Promise.resolve(); //allow async warn to run
+  } finally {
+    restoreWarn(); //restore logger warn
+    if (orig === undefined) { delete process.env.QERRORS_MAX_SOCKETS; } else { process.env.QERRORS_MAX_SOCKETS = orig; }
+    reloadQerrors(); //reset module state
+  }
+  assert.equal(sockets, 1000); //expect clamp to safe threshold
+  assert.equal(warned, true); //warning should trigger
+});
