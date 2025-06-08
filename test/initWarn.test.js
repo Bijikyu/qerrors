@@ -7,16 +7,17 @@ function loadQerrors() {
   return require('../lib/qerrors');
 }
 
-test('warn when limits exceed safe threshold', () => {
+test('warn when limits exceed safe threshold', async () => {
   const origConc = process.env.QERRORS_CONCURRENCY; //backup concurrency
   const origQueue = process.env.QERRORS_QUEUE_LIMIT; //backup queue limit
   process.env.QERRORS_CONCURRENCY = '2000'; //excessive concurrency
   process.env.QERRORS_QUEUE_LIMIT = '2000'; //excessive queue
-  const logger = require('../lib/logger'); //logger instance
+  const logger = await require('../lib/logger'); //logger instance
   let warned = false; //track warn calls
   const restoreWarn = qtests.stubMethod(logger, 'warn', () => { warned = true; });
   try {
     loadQerrors(); //module initialization triggers warning
+    await Promise.resolve(); //allow async logger call
   } finally {
     restoreWarn(); //restore logger.warn
     if (origConc === undefined) { delete process.env.QERRORS_CONCURRENCY; } else { process.env.QERRORS_CONCURRENCY = origConc; }
@@ -27,18 +28,19 @@ test('warn when limits exceed safe threshold', () => {
   assert.equal(warned, true); //expect warning emitted
 });
 
-test('limits below custom threshold do not warn', () => { //verify config clamp usage
+test('limits below custom threshold do not warn', async () => { //verify config clamp usage
   const origConc = process.env.QERRORS_CONCURRENCY; //backup concurrency value
   const origQueue = process.env.QERRORS_QUEUE_LIMIT; //backup queue value
   const origSafe = process.env.QERRORS_SAFE_THRESHOLD; //backup safe threshold
   process.env.QERRORS_CONCURRENCY = '1500'; //value above default threshold
   process.env.QERRORS_QUEUE_LIMIT = '1500'; //value above default threshold
   process.env.QERRORS_SAFE_THRESHOLD = '2000'; //raise threshold so no warn expected
-  const logger = require('../lib/logger'); //logger instance
+  const logger = await require('../lib/logger'); //logger instance
   let warned = false; //track warn state
   const restoreWarn = qtests.stubMethod(logger, 'warn', () => { warned = true; });
   try {
     loadQerrors(); //reload with custom env values
+    await Promise.resolve(); //allow async logger call
   } finally {
     restoreWarn(); //restore logger.warn method
     if (origConc === undefined) { delete process.env.QERRORS_CONCURRENCY; } else { process.env.QERRORS_CONCURRENCY = origConc; }

@@ -4,7 +4,7 @@ const qtests = require('qtests'); //stubbing utilities
 
 const qerrors = require('../lib/qerrors'); //module under test
 const { axiosInstance } = qerrors; //axios instance used by qerrors
-const logger = require('../lib/logger'); //logger instance
+const logger = require('../lib/logger'); //logger promise instance
 
 function createRes() { //minimal express like response mock
   return {
@@ -20,8 +20,9 @@ function createRes() { //minimal express like response mock
 test('qerrors integration logs error and analyzes context', async () => {
   const restoreAxios = qtests.stubMethod(axiosInstance, 'post', async () => ({ data: { choices: [{ message: { content: { ok: true } } }] } })); //stub axiosInstance.post with object content
   let logArg; //capture logger.error argument
-  const origLog = logger.error; //store original function
-  logger.error = (...args) => { logArg = args[0]; return origLog.apply(logger, args); }; //wrap logger.error to capture call //(wrap to spy while preserving)
+  const realLogger = await logger; //resolve logger promise
+  const origLog = realLogger.error; //store original function
+  realLogger.error = (...args) => { logArg = args[0]; return origLog.apply(realLogger, args); }; //wrap logger.error to capture call //(wrap to spy while preserving)
   const origToken = process.env.OPENAI_TOKEN; //store token to restore after test
   process.env.OPENAI_TOKEN = 'tkn'; //set token for analyzeError to run
   const res = createRes(); //create mock res
@@ -31,7 +32,7 @@ test('qerrors integration logs error and analyzes context', async () => {
     await new Promise(r => setTimeout(r, 0)); //wait for queued analysis to finish
   } finally {
     restoreAxios(); //restore axios.post
-    logger.error = origLog; //restore logger.error
+    realLogger.error = origLog; //restore logger.error
     if (origToken === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = origToken; } //restore token after test
   }
   assert.ok(logArg.uniqueErrorName); //ensure log contains id

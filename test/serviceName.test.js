@@ -9,15 +9,15 @@ function reloadLogger() { //reload logger with current env
   return require('../lib/logger');
 }
 
-test('logger uses QERRORS_SERVICE_NAME env var', () => {
+test('logger uses QERRORS_SERVICE_NAME env var', async () => {
   const orig = process.env.QERRORS_SERVICE_NAME; //save original value
   process.env.QERRORS_SERVICE_NAME = 'svc'; //set custom name
   let captured; //will capture config passed to createLogger
   const restore = qtests.stubMethod(winston, 'createLogger', (cfg) => { captured = cfg; return { defaultMeta: cfg.defaultMeta, warn() {}, info() {}, error() {} }; }); //include warn for startup check
-  const logger = reloadLogger(); //reload module
+  const logger = await reloadLogger(); //reload module and await
   try {
     assert.equal(captured.defaultMeta.service, 'svc'); //verify custom service
-    assert.equal(logger.defaultMeta.service, 'svc'); //logger carries meta
+    assert.equal((await logger).defaultMeta.service, 'svc'); //logger carries meta
   } finally {
     restore(); //restore stubbed method
     if (orig === undefined) { delete process.env.QERRORS_SERVICE_NAME; } else { process.env.QERRORS_SERVICE_NAME = orig; }
@@ -25,15 +25,15 @@ test('logger uses QERRORS_SERVICE_NAME env var', () => {
   }
 });
 
-test('logger defaults QERRORS_SERVICE_NAME when unset', () => {
+test('logger defaults QERRORS_SERVICE_NAME when unset', async () => {
   const orig = process.env.QERRORS_SERVICE_NAME; //store original
   delete process.env.QERRORS_SERVICE_NAME; //unset for default test
   let captured; //capture config
   const restore = qtests.stubMethod(winston, 'createLogger', (cfg) => { captured = cfg; return { defaultMeta: cfg.defaultMeta, warn() {}, info() {}, error() {} }; }); //include warn for startup check
-  const logger = reloadLogger(); //reload module
+  const logger = await reloadLogger(); //reload module and await
   try {
     assert.equal(captured.defaultMeta.service, 'qerrors'); //uses default
-    assert.equal(logger.defaultMeta.service, 'qerrors'); //logger meta default
+    assert.equal((await logger).defaultMeta.service, 'qerrors'); //logger meta default
   } finally {
     restore(); //restore stub
     if (orig === undefined) { delete process.env.QERRORS_SERVICE_NAME; } else { process.env.QERRORS_SERVICE_NAME = orig; }
