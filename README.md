@@ -7,7 +7,7 @@ to resolve errors.
 ## Environment Variables
 
 
-qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. Only `OPENAI_TOKEN` must be provided manually to enable AI analysis.
+qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. Only `OPENAI_TOKEN` must be provided manually to enable AI analysis. Obtain your key from [OpenAI](https://openai.com) and set the variable in your environment.
 
 * `OPENAI_TOKEN` &ndash; your OpenAI API key.
 * `QERRORS_CONCURRENCY` &ndash; maximum concurrent analyses (default `5`, raise for high traffic, values over `1000` are clamped). //(document clamp)
@@ -35,7 +35,6 @@ qerrors reads several environment variables to tune its behavior. A small config
 For high traffic scenarios raise `QERRORS_CONCURRENCY`, `QERRORS_QUEUE_LIMIT`, and `QERRORS_MAX_SOCKETS`. Set `QERRORS_VERBOSE=false` in production to reduce console overhead.
 
 
-You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //env variable for OpenAI access
 Set QERRORS_CONCURRENCY to adjust how many analyses run simultaneously; //new variable controlling concurrency
 if not set the default limit is 5; raise this for high traffic. //explain fallback value
 
@@ -58,11 +57,9 @@ if not set the default is 50; raise this to handle high traffic. //state default
 
 
 
-You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com). //(mention required token)
 The retry behaviour can be tuned with QERRORS_RETRY_ATTEMPTS, QERRORS_RETRY_BASE_MS and QERRORS_RETRY_MAX_MS which default to 2, 100 and 2000 respectively. //(document retry env vars)
 When the API responds with 429 or 503 qerrors uses the `Retry-After` header to wait before retrying; if the header is missing the computed delay is doubled. //(document rate limit behaviour)
 
-You will need to set OPENAI_TOKEN in your environment, get your key at [OpenAI](https://openai.com).
 You can optionally set `QERRORS_CACHE_LIMIT` to adjust how many advice entries are cached; set `0` to disable caching (default is 50, values over `1000` are clamped). Use `QERRORS_CACHE_TTL` to control how long each entry stays valid in seconds (default is 86400).
 
 Additional options control the logger's file rotation:
@@ -139,6 +136,11 @@ log.error('An error occurred', { errorDetails: error });
 Running `npm test` starts Node's built-in test runner using the `--test` flag.
 The included tests rely on the `qtests` library to stub network requests, so the
 suite can run entirely offline.
+
+Run tests from the project directory:
+```bash
+cd qerrors && npm test
+```
 
 GitHub Actions runs this test suite automatically on every push and pull request using Node.js LTS. The workflow caches npm dependencies to speed up subsequent runs.
 
