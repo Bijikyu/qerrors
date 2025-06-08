@@ -63,6 +63,36 @@ test('queue reject count increments when queue exceeds limit', async () => {
   assert.equal(qerrors.getQueueRejectCount(), 2); //expect two rejections
 });
 
+test('queue full warnings are throttled', async () => {
+  const origConc = process.env.QERRORS_CONCURRENCY; //backup env values
+  const origQueue = process.env.QERRORS_QUEUE_LIMIT; //backup env values
+  const origInt = process.env.QERRORS_WARN_INTERVAL; //backup throttle interval
+  process.env.QERRORS_CONCURRENCY = '1'; //force single concurrency
+  process.env.QERRORS_QUEUE_LIMIT = '1'; //allow one queued item
+  process.env.QERRORS_WARN_INTERVAL = '1000'; //1s throttle for test
+  const qerrors = reloadQerrors(); //reload with new env
+  const logger = require('../lib/logger'); //logger instance
+  let warnCnt = 0; //track warnings emitted
+  const restoreWarn = qtests.stubMethod(logger, 'warn', () => { warnCnt++; });
+  const restoreError = qtests.stubMethod(logger, 'error', () => {}); //silence error
+  const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', async () => new Promise(r => setTimeout(r, 20))); //mock analyze
+  try {
+    qerrors(new Error('one')); //occupy active slot
+    qerrors(new Error('two')); //first rejection logs warning
+    qerrors(new Error('three')); //second rejection within interval
+    await new Promise(r => setTimeout(r, 30)); //allow processing
+  } finally {
+    restoreWarn();
+    restoreError();
+    restoreAnalyze();
+    if (origConc === undefined) { delete process.env.QERRORS_CONCURRENCY; } else { process.env.QERRORS_CONCURRENCY = origConc; }
+    if (origQueue === undefined) { delete process.env.QERRORS_QUEUE_LIMIT; } else { process.env.QERRORS_QUEUE_LIMIT = origQueue; }
+    if (origInt === undefined) { delete process.env.QERRORS_WARN_INTERVAL; } else { process.env.QERRORS_WARN_INTERVAL = origInt; }
+    reloadQerrors(); //reset module state
+  }
+  assert.equal(warnCnt, 1); //only one warning logged within throttle interval
+});
+
 test('getQueueLength reflects queued analyses', async () => {
   const origConc = process.env.QERRORS_CONCURRENCY; //backup env
   const origQueue = process.env.QERRORS_QUEUE_LIMIT; //backup env

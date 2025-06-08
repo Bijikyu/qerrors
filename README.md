@@ -16,6 +16,7 @@ qerrors reads several environment variables to tune its behavior. A small config
 * `QERRORS_CACHE_TTL` &ndash; seconds before cached advice expires (default `86400`).
 * `QERRORS_QUEUE_LIMIT` &ndash; maximum queued analyses before rejecting new ones (default `100`, raise when under heavy load, values over `1000` are clamped). //(document queue clamp)
 * `QERRORS_SAFE_THRESHOLD` &ndash; maximum allowed value for `QERRORS_CONCURRENCY` and `QERRORS_QUEUE_LIMIT` before clamping occurs (default `1000`). //(document configurable safe clamp)
+* `QERRORS_WARN_INTERVAL` &ndash; milliseconds between queue full warnings (default `30000`). //(document throttle interval)
 
 
 * `QERRORS_RETRY_ATTEMPTS` &ndash; attempts when calling OpenAI (default `2`).
