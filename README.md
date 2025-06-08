@@ -94,6 +94,7 @@ npm install qerrors
 const {qerrors} = require('qerrors');
 // OR import both qerrors and logger: //(changed qErrors to qerrors for casing consistency)
 const { qerrors, logger } = require('qerrors');
+const log = await logger; //await logger initialization before use
 
 // Example of using qerrors as Express middleware:
 app.use((err, req, res, next) => {
@@ -128,9 +129,9 @@ function doFunction(param1, param2) {
 }
 
 // Using the Winston logger directly:
-logger.info('Application started');
-logger.warn('Something might be wrong');
-logger.error('An error occurred', { errorDetails: error });
+log.info('Application started');
+log.warn('Something might be wrong');
+log.error('An error occurred', { errorDetails: error });
 ```
 
 ## Testing

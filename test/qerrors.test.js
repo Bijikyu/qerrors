@@ -18,8 +18,9 @@ function createRes() { //construct minimal Express-like response mock
   };
 }
 
-function stubDeps(loggerFn, analyzeFn) { //create combined stub utility for tests
-  const restoreLogger = qtests.stubMethod(logger, 'error', loggerFn); //stub logger.error with provided function
+async function stubDeps(loggerFn, analyzeFn) { //create combined stub utility for tests
+  const realLogger = await logger; //wait for logger instance
+  const restoreLogger = qtests.stubMethod(realLogger, 'error', loggerFn); //stub logger.error with provided function
   const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', analyzeFn); //stub analyzeError with provided function
   return () => { //return unified restore
     restoreLogger(); //restore logger.error after each test
@@ -30,7 +31,7 @@ function stubDeps(loggerFn, analyzeFn) { //create combined stub utility for test
 // Scenario: standard JSON error handling and next() invocation
 test('qerrors logs and responds with json then calls next', async () => {
   let logged; //capture logger output for assertions
-  const restore = stubDeps((err) => { logged = err; }, async () => 'adv'); //stub logger and analyze with helper
+  const restore = await stubDeps((err) => { logged = err; }, async () => 'adv'); //stub logger and analyze with helper
   const res = createRes(); //mock response object
   const req = { headers: {} }; //minimal request object
   const err = new Error('boom'); //sample error to handle
@@ -51,7 +52,7 @@ test('qerrors logs and responds with json then calls next', async () => {
 
 // Scenario: send HTML when browser requests it
 test('qerrors sends html when accept header requests it', async () => {
-  const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
+  const restore = await stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
   const res = createRes(); //mock response object to capture html
   const req = { headers: { accept: 'text/html' } }; //request asking for html
   const err = new Error('boom'); //sample error to send
@@ -67,7 +68,7 @@ test('qerrors sends html when accept header requests it', async () => {
 
 // Scenario: sanitize html output to avoid injection
 test('qerrors escapes html content', async () => {
-  const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
+  const restore = await stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
   const res = createRes(); //mock response object
   const req = { headers: { accept: 'text/html' } }; //requesting html
   const err = new Error('<script>boom</script>'); //error message containing html
@@ -84,7 +85,7 @@ test('qerrors escapes html content', async () => {
 
 // Scenario: use statusCode from error object in json response
 test('qerrors honors error.statusCode in json', async () => {
-  const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
+  const restore = await stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
   const res = createRes(); //mock response for json
   const req = { headers: {} }; //no html accept header
   const err = new Error('not found'); //error with custom status
@@ -101,7 +102,7 @@ test('qerrors honors error.statusCode in json', async () => {
 
 // Scenario: use statusCode from error object in html response
 test('qerrors honors error.statusCode in html', async () => {
-  const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
+  const restore = await stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
   const res = createRes(); //mock response for html
   const req = { headers: { accept: 'text/html' } }; //html accept header
   const err = new Error('not found'); //error with custom status
@@ -118,7 +119,7 @@ test('qerrors honors error.statusCode in html', async () => {
 
 // Scenario: skip response when headers already sent
 test('qerrors does nothing when headers already sent', async () => {
-  const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
+  const restore = await stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
   const res = createRes(); //mock response object with headers already sent
   res.headersSent = true; //simulate Express sending headers prior
   const err = new Error('boom'); //error to pass into handler
@@ -136,7 +137,7 @@ test('qerrors does nothing when headers already sent', async () => {
 // Scenario: operate without Express objects
 test('qerrors handles absence of req res and next', async () => {
   let logged; //capture logger output
-  const restore = stubDeps((err) => { logged = err; }, async () => {}); //stub logger and analyze with helper
+  const restore = await stubDeps((err) => { logged = err; }, async () => {}); //stub logger and analyze with helper
   const err = new Error('boom'); //error for generic usage
   try {
     await qerrors(err);
@@ -150,7 +151,7 @@ test('qerrors handles absence of req res and next', async () => {
 
 // Scenario: still call next when res is undefined
 test('qerrors calls next without res', async () => {
-  const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
+  const restore = await stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
   const err = new Error('boom'); //error when res missing
   let nextArg; //captured arg for next()
   try {
@@ -164,7 +165,7 @@ test('qerrors calls next without res', async () => {
 
 // Scenario: warn and exit when called without an error
 test('qerrors exits if no error provided', async () => {
-  const restore = stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
+  const restore = await stubDeps(() => {}, async () => {}); //stub logger and analyze with helper
   let warned = false; //track if warn was called
   const restoreWarn = qtests.stubMethod(console, 'warn', () => { warned = true; }); //use qtests to stub console.warn
   try {

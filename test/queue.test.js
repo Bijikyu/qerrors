@@ -13,7 +13,7 @@ test('scheduleAnalysis rejects when queue exceeds limit', async () => {
   process.env.QERRORS_CONCURRENCY = '1'; //one concurrent analysis
   process.env.QERRORS_QUEUE_LIMIT = '1'; //allow single queued item
   const qerrors = reloadQerrors(); //reload with env vars
-  const logger = require('../lib/logger'); //logger instance
+  const logger = await require('../lib/logger'); //logger instance
   let logged; //capture logged error
   const restoreLog = qtests.stubMethod(logger, 'error', (e) => { logged = e; });
   const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', async () => {
@@ -41,7 +41,7 @@ test('queue reject count increments when queue exceeds limit', async () => {
   process.env.QERRORS_CONCURRENCY = '1'; //force single concurrency
   process.env.QERRORS_QUEUE_LIMIT = '1'; //allow one queued before rejection
   const qerrors = reloadQerrors(); //reload to apply env
-  const logger = require('../lib/logger'); //logger instance
+  const logger = await require('../lib/logger'); //logger instance
   const restoreWarn = qtests.stubMethod(logger, 'warn', () => {}); //silence warn
   const restoreError = qtests.stubMethod(logger, 'error', () => {}); //silence err
   const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', async () => {
@@ -70,7 +70,7 @@ test('getQueueLength reflects queued analyses', async () => {
   process.env.QERRORS_QUEUE_LIMIT = '2'; //allow one queued item
   process.env.OPENAI_TOKEN = 'tkn'; //enable analyzeError path
   const qerrors = reloadQerrors(); //reload to apply env
-  const logger = require('../lib/logger'); //logger instance
+  const logger = await require('../lib/logger'); //logger instance
   const restoreWarn = qtests.stubMethod(logger, 'warn', () => {}); //silence warn
   const restoreError = qtests.stubMethod(logger, 'error', () => {}); //silence err
   const capture = {}; //track axios args
@@ -118,7 +118,7 @@ test('queue never exceeds limit under high concurrency', async () => {
   process.env.QERRORS_CONCURRENCY = '3'; //allow more active analyses
   process.env.QERRORS_QUEUE_LIMIT = '1'; //only one queued task
   const qerrors = reloadQerrors(); //reload config vars
-  const logger = require('../lib/logger'); //logger instance
+  const logger = await require('../lib/logger'); //logger instance
   const restoreWarn = qtests.stubMethod(logger, 'warn', () => {}); //silence warn
   const restoreError = qtests.stubMethod(logger, 'error', () => {}); //silence error
   const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', async () => new Promise(r => setTimeout(r, 20))); //simulate work
