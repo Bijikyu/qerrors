@@ -92,3 +92,52 @@ test('postWithRetry enforces backoff cap', async () => { //cap ensures wait time
     restoreEnv(); //restore env
   }
 });
+
+test('postWithRetry uses Retry-After header for rate limit', async () => { //header controls wait
+  const restoreEnv = withRetryEnv(1, 100); //set base delay
+  const err = new Error('rate'); //error for first attempt
+  err.response = { status: 429, headers: { 'retry-after': '1' } }; //429 with header
+  let count = 0; //track calls
+  const restoreAxios = qtests.stubMethod(axiosInstance, 'post', async () => { //stub axios
+    count++; //increment each call
+    if (count === 1) { throw err; } //fail first attempt
+    return { ok: true }; //succeed second
+  });
+  let waited; //capture wait time
+  const restoreTimeout = qtests.stubMethod(global, 'setTimeout', (fn, ms) => { waited = ms; fn(); }); //capture delay
+  try {
+    const res = await postWithRetry('url', {}); //invoke helper
+    assert.equal(res.ok, true); //success after retry
+    assert.equal(waited, 1000); //wait from header used
+  } finally {
+    restoreTimeout(); //restore timeout
+    restoreAxios(); //restore axios
+    restoreEnv(); //restore env
+  }
+});
+
+test('postWithRetry doubles delay when rate limit header missing', async () => { //extend backoff
+  const restoreEnv = withRetryEnv(1, 100); //use default cap
+  const err = new Error('unavail'); //error for first attempt
+  err.response = { status: 503, headers: {} }; //503 without header
+  let count = 0; //track calls
+  const restoreAxios = qtests.stubMethod(axiosInstance, 'post', async () => { //stub axios
+    count++; //increment each call
+    if (count === 1) { throw err; } //fail first
+    return { ok: true }; //succeed second
+  });
+  let waited; //capture backoff
+  const restoreTimeout = qtests.stubMethod(global, 'setTimeout', (fn, ms) => { waited = ms; fn(); }); //capture delay
+  const origRandom = Math.random; //store random
+  Math.random = () => 0.5; //predictable jitter
+  try {
+    const res = await postWithRetry('url', {}); //call helper
+    assert.equal(res.ok, true); //succeeded after retry
+    assert.equal(waited, 300); //100 base +50 jitter doubled
+  } finally {
+    Math.random = origRandom; //restore random
+    restoreTimeout(); //restore timeout
+    restoreAxios(); //restore axios
+    restoreEnv(); //restore env
+  }
+});
