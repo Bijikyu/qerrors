@@ -19,7 +19,7 @@
   "dependencies": {
     "axios": "^1.9.0",
     "p-limit": "^4.0.0",
-    "qtests": "^1.0.2",
+    "qtests": "^1.0.4",
     "winston": "^3.13.0",
     "lru-cache": "^10.0.0"
   },
