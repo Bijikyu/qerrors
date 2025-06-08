@@ -51,6 +51,7 @@ Call `qerrors.purgeExpiredAdvice()` to run a purge instantly. //(manual purge re
 
 Use `qerrors.getQueueLength()` to monitor how many analyses are waiting. //(mention queue length)
 
+The module logs `queueLength` and `queueRejects` every 30s for monitoring. //(document metrics)
 
 QERRORS_MAX_SOCKETS lets you limit how many sockets the http agents open; //document new env var usage
 if not set the default is 50; raise this to handle high traffic. //state default behaviour
