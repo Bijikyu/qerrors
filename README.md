@@ -40,6 +40,7 @@ if not set the default limit is 5; raise this for high traffic. //explain fallba
 
 Use QERRORS_QUEUE_LIMIT to cap how many analyses can wait in line before rejection; //(explain queue limit)
 if not set the default limit is 100; increase when expecting heavy load. //(explain queue default)
+The pending queue uses a double ended queue from the denque package for efficient O(1) dequeues. //(document deque)
 
 Whenever the queue rejects an analysis the module increments an internal counter. //(document reject counter)
 Check it with `qerrors.getQueueRejectCount()`. //(usage note)
