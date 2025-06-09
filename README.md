@@ -56,6 +56,7 @@ Call `qerrors.clearAdviceCache()` to manually empty the advice cache. //(documen
 Use `qerrors.startAdviceCleanup()` to begin automatic purging of expired entries. //(document cleanup scheduler)
 Call `qerrors.stopAdviceCleanup()` if you need to halt the cleanup interval. //(document cleanup stop)
 Call `qerrors.purgeExpiredAdvice()` to run a purge instantly. //(manual purge reminder)
+After each purge or clear operation the module checks the cache size and stops cleanup when it reaches zero, restarting the interval when new advice is cached. //(document cleanup auto stop/start)
 
 Use `qerrors.getQueueLength()` to monitor how many analyses are waiting. //(mention queue length)
 
