@@ -32,7 +32,7 @@ qerrors reads several environment variables to tune its behavior. A small config
 
 * `QERRORS_LOG_MAXSIZE` &ndash; logger rotation size in bytes (default `1048576`).
 * `QERRORS_LOG_MAXFILES` &ndash; number of rotated log files (default `5`).
- * `QERRORS_LOG_MAX_DAYS` &ndash; days to retain daily logs (default `0`). Setting `0` with file logging enabled triggers a startup warning because logs may grow without bound. //(document startup warning behavior)
+  * `QERRORS_LOG_MAX_DAYS` &ndash; days to retain daily logs (default `0`). A value of `0` keeps all logs forever and emits a startup warning; set a finite number in production to manage disk usage. //(document startup warning behavior)
 * `QERRORS_VERBOSE` &ndash; enable console logging (`true` by default). Set `QERRORS_VERBOSE=false` for production deployments to keep logs from flooding the console and rely on file output instead.
 * `QERRORS_LOG_DIR` &ndash; directory for logger output (default `logs`).
 * `QERRORS_DISABLE_FILE_LOGS` &ndash; disable file transports when set.
@@ -80,7 +80,7 @@ Additional options control the logger's file rotation:
 
 * `QERRORS_LOG_MAXSIZE` - max log file size in bytes before rotation (default `1048576`)
 * `QERRORS_LOG_MAXFILES` - number of rotated files to keep (default `5`)
- * `QERRORS_LOG_MAX_DAYS` - number of days to keep daily logs (default `0`). Setting `0` with file logs active emits a startup warning that log files may grow without bound. //(note about startup warning)
+  * `QERRORS_LOG_MAX_DAYS` - number of days to keep daily logs (default `0`). A value of `0` retains logs forever and triggers a startup warning; specify a finite number in production to manage disk usage. //(note about startup warning)
 * `QERRORS_LOG_DIR` - path for log files (default `logs`)
 * `QERRORS_DISABLE_FILE_LOGS` - omit file logs when set
 * `QERRORS_SERVICE_NAME` - service name added to logger metadata (default `qerrors`)
