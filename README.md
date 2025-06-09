@@ -25,6 +25,11 @@ qerrors reads several environment variables to tune its behavior. A small config
 * `QERRORS_MAX_SOCKETS` &ndash; maximum sockets per agent (default `50`, increase for high traffic).
 * `QERRORS_MAX_FREE_SOCKETS` &ndash; maximum idle sockets per agent (default `256`).
 
+* `QERRORS_MAX_TOKENS` &ndash; max tokens for each OpenAI request (default `2048`).
+
+* `QERRORS_METRIC_INTERVAL_MS` &ndash; interval for queue metric logging in milliseconds (default `30000`, set to `0` to disable). //(document metric variable)
+
+
 * `QERRORS_LOG_MAXSIZE` &ndash; logger rotation size in bytes (default `1048576`).
 * `QERRORS_LOG_MAXFILES` &ndash; number of rotated log files (default `5`).
  * `QERRORS_LOG_MAX_DAYS` &ndash; days to retain daily logs (default `0`). Setting `0` with file logging enabled triggers a startup warning because logs may grow without bound. //(document startup warning behavior)
@@ -54,12 +59,14 @@ Call `qerrors.purgeExpiredAdvice()` to run a purge instantly. //(manual purge re
 
 Use `qerrors.getQueueLength()` to monitor how many analyses are waiting. //(mention queue length)
 
-The module logs `queueLength` and `queueRejects` every 30s for monitoring. //(document metrics)
+The module logs `queueLength` and `queueRejects` at a regular interval (default `30s`). Use `QERRORS_METRIC_INTERVAL_MS` to change the period or set `0` to disable logging. //(document metrics)
 
 QERRORS_MAX_SOCKETS lets you limit how many sockets the http agents open; //document new env var usage
 if not set the default is 50; raise this to handle high traffic. //state default behaviour
 QERRORS_MAX_FREE_SOCKETS caps idle sockets the agents keep for reuse; //explain idle setting
 if not set the default is 256 which matches Node's agent default. //state default value
+QERRORS_MAX_TOKENS sets the token limit for OpenAI responses; //describe new env var
+if not set the default is 2048 which balances cost and detail. //state default value
 
 
 
