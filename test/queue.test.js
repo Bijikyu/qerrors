@@ -140,3 +140,42 @@ test('queue never exceeds limit under high concurrency', async () => {
   assert.ok(qerrors.getQueueLength() <= 1); //queue length at most limit
   assert.equal(qerrors.getQueueRejectCount(), 4); //four tasks rejected
 });
+
+test('metrics stop when queue drains then restart on new analysis', async () => {
+  const origConc = process.env.QERRORS_CONCURRENCY; //backup concurrency
+  const origInterval = process.env.QERRORS_METRIC_INTERVAL_MS; //backup metric interval
+  const realSet = global.setInterval; //save original setInterval
+  const realClear = global.clearInterval; //save original clearInterval
+  let startCount = 0; //track interval creation
+  global.setInterval = (fn, ms) => { startCount++; fn(); return { unref() {} }; }; //simulate immediate tick
+  global.clearInterval = () => {}; //noop for test
+  process.env.QERRORS_CONCURRENCY = '1'; //single task
+  process.env.QERRORS_METRIC_INTERVAL_MS = '5'; //fast metrics
+  const qerrors = reloadQerrors(); //reload with env
+  const logger = await require('../lib/logger'); //logger instance
+  let metrics = 0; //metric log count
+  const restoreInfo = qtests.stubMethod(logger, 'info', (m) => { if (String(m).startsWith('metrics')) metrics++; });
+  const restoreWarn = qtests.stubMethod(logger, 'warn', () => {}); //silence warn
+  const restoreError = qtests.stubMethod(logger, 'error', () => {}); //silence error
+  const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', async () => new Promise(r => setTimeout(r, 10))); //simulate work
+  try {
+    qerrors(new Error('one')); //start first analysis
+    await new Promise(r => setTimeout(r, 20)); //wait for completion
+    const first = metrics; //capture metric count
+    await new Promise(r => setTimeout(r, 5)); //allow stopQueueMetrics
+    qerrors(new Error('two')); //restart queue
+    await new Promise(r => setTimeout(r, 20)); //wait for run
+    assert.ok(metrics > first); //metrics resumed
+    assert.equal(startCount, 3); //cleanup once and metrics twice
+  } finally {
+    global.setInterval = realSet; //restore interval
+    global.clearInterval = realClear; //restore clear
+    restoreInfo();
+    restoreWarn();
+    restoreError();
+    restoreAnalyze();
+    if (origConc === undefined) { delete process.env.QERRORS_CONCURRENCY; } else { process.env.QERRORS_CONCURRENCY = origConc; }
+    if (origInterval === undefined) { delete process.env.QERRORS_METRIC_INTERVAL_MS; } else { process.env.QERRORS_METRIC_INTERVAL_MS = origInterval; }
+    reloadQerrors();
+  }
+});
