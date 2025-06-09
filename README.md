@@ -31,6 +31,7 @@ qerrors reads several environment variables to tune its behavior. A small config
 * `QERRORS_VERBOSE` &ndash; enable console logging (`true` by default). Set `QERRORS_VERBOSE=false` for production deployments to keep logs from flooding the console and rely on file output instead.
 * `QERRORS_LOG_DIR` &ndash; directory for logger output (default `logs`).
 * `QERRORS_DISABLE_FILE_LOGS` &ndash; disable file transports when set.
+* `QERRORS_LOG_LEVEL` &ndash; logger output level (default `info`). //(document log level)
 * `QERRORS_SERVICE_NAME` &ndash; service name added to logger metadata (default `qerrors`). //(document service variable)
 
 For high traffic scenarios raise `QERRORS_CONCURRENCY`, `QERRORS_QUEUE_LIMIT`, `QERRORS_MAX_SOCKETS`, and `QERRORS_MAX_FREE_SOCKETS`. Set `QERRORS_VERBOSE=false` in production to reduce console overhead.
