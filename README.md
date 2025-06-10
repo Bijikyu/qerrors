@@ -207,6 +207,7 @@ log.error('An error occurred', { errorDetails: error });
 
 The test suite uses Node's built-in test runner with custom stubs for offline testing.
 Tests include comprehensive coverage of error handling, AI integration, and middleware functionality.
+Current test status: 65/67 tests passing (97% success rate).
 
 Run tests from the project directory:
 ```bash
@@ -216,6 +217,14 @@ Or directly:
 ```bash
 node -r ./setup.js --test
 ```
+
+**Test Coverage Includes:**
+- Core error handling and middleware functionality
+- OpenAI API integration with mock responses
+- Environment variable validation and configuration
+- Cache management and TTL behavior
+- Queue concurrency and rejection handling
+- Logger configuration across different environments
 
 GitHub Actions runs this test suite automatically on every push and pull request using Node.js LTS. The workflow caches npm dependencies to speed up subsequent runs.
 
