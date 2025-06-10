@@ -1,13 +1,13 @@
 # qerrors
 
-A middleware module to log errors and analyze them via an external AI API. 
-Error logger that prints error stack and AI advice in the actual logs
-to resolve errors.
+Intelligent error handling middleware that combines traditional logging with AI-powered debugging assistance. When errors occur, qerrors automatically generates contextual suggestions using OpenAI's GPT models while maintaining fast response times through asynchronous analysis and intelligent caching.
 
 ## Environment Variables
 
 
 qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. Only `OPENAI_TOKEN` must be provided manually to enable AI analysis. Obtain your key from [OpenAI](https://openai.com) and set the variable in your environment.
+
+**Security Note**: Keep your OpenAI API key secure. Never commit it to version control or expose it in client-side code. Use environment variables or secure configuration management.
 
 * `OPENAI_TOKEN` &ndash; your OpenAI API key.
 
@@ -28,7 +28,7 @@ qerrors reads several environment variables to tune its behavior. A small config
 * `QERRORS_MAX_SOCKETS` &ndash; maximum sockets per agent (default `50`, increase for high traffic).
 * `QERRORS_MAX_FREE_SOCKETS` &ndash; maximum idle sockets per agent (default `256`).
 
-* `QERRORS_MAX_TOKENS` &ndash; max tokens for each OpenAI request (default `2048`).
+* `QERRORS_MAX_TOKENS` &ndash; max tokens for each OpenAI request (default `2048`). Uses GPT-4 model for error analysis.
 
 * `QERRORS_METRIC_INTERVAL_MS` &ndash; interval for queue metric logging in milliseconds (default `30000`, set to `0` to disable). //(document metric variable)
 
@@ -97,49 +97,63 @@ ISC
 
 ## Installation
 
+**Requirements**: Node.js 18 or higher
+
 ```bash
 npm install qerrors
 ```
 
 ## Usage
 
+### Basic Setup
+
+First, set your OpenAI API key:
+```bash
+export OPENAI_TOKEN="your-openai-api-key-here"
+```
+
+Import the module:
 ```javascript
 // Import just qerrors:
 const {qerrors} = require('qerrors');
-// OR import both qerrors and logger: //(changed qErrors to qerrors for casing consistency)
+// OR import both qerrors and logger:
 const { qerrors, logger } = require('qerrors');
 const log = await logger; //await logger initialization before use
 
 // Example of using qerrors as Express middleware:
 app.use((err, req, res, next) => {
-	qerrors(err, 'RouteName', req, res, next);
+        qerrors(err, 'RouteName', req, res, next);
 });
 
 // Using qerrors in any catch block:
 function doFunction(req, res, next) {
-	try {
-		//code
-	} catch (error) {
-		qerrors(error, "doFunction", req, res, next); //req res and next are optional
-	}
+        try {
+                //code
+        } catch (error) {
+                qerrors(error, "doFunction", req, res, next); //req res and next are optional
+        }
 }
+
+// Response Format: qerrors automatically detects client type
+// - Browser requests (Accept: text/html) receive HTML error pages
+// - API requests receive JSON error responses with structured data
 
 // Example for javascript that is not express related (node / service code / biz logic)
 function doFunction(param) {
-	try {
-		//code
-	} catch (error) {
-		qerrors(error, "doFunction", param);
-	}
+        try {
+                //code
+        } catch (error) {
+                qerrors(error, "doFunction", param);
+        }
 }
 
 // ... or if multiple params:
 function doFunction(param1, param2) {
-	try {
-		//code
-	} catch (error) {
-		qerrors(error, "doFunction", {param1, param2}); 
-	}
+        try {
+                //code
+        } catch (error) {
+                qerrors(error, "doFunction", {param1, param2}); 
+        }
 }
 
 // Using the Winston logger directly:
@@ -148,15 +162,57 @@ log.warn('Something might be wrong');
 log.error('An error occurred', { errorDetails: error });
 ```
 
+### Features
+
+- **AI-Powered Analysis**: Automatically generates debugging suggestions using OpenAI GPT models
+- **Express Middleware**: Seamless integration with Express.js applications
+- **Content Negotiation**: Returns HTML pages for browsers, JSON for API clients
+- **Intelligent Caching**: Prevents duplicate API calls for identical errors
+- **Queue Management**: Handles high-traffic scenarios with configurable concurrency limits
+- **Graceful Degradation**: Functions normally even without OpenAI API access
+- **Comprehensive Logging**: Multi-transport Winston logging with file rotation
+
+### Error Response Formats
+
+**HTML Response** (for browsers):
+```html
+<!DOCTYPE html>
+<html>
+<head><title>Error: 500</title></head>
+<body>
+    <h1 class="error">Error: 500</h1>
+    <h2>Internal Server Error</h2>
+    <pre>Error stack trace...</pre>
+</body>
+</html>
+```
+
+**JSON Response** (for APIs):
+```json
+{
+  "error": {
+    "uniqueErrorName": "ERROR:TypeError_abc123",
+    "timestamp": "2024-01-01T00:00:00.000Z",
+    "message": "Cannot read property 'foo' of undefined",
+    "statusCode": 500,
+    "context": "userController",
+    "stack": "TypeError: Cannot read property..."
+  }
+}
+```
+
 ## Testing
 
-Running `npm test` starts Node's built-in test runner using the `--test` flag.
-The included tests rely on the `qtests` library to stub network requests, so the
-suite can run entirely offline.
+The test suite uses Node's built-in test runner with custom stubs for offline testing.
+Tests include comprehensive coverage of error handling, AI integration, and middleware functionality.
 
 Run tests from the project directory:
 ```bash
-cd qerrors && npm test
+npm test
+```
+Or directly:
+```bash
+node -r ./setup.js --test
 ```
 
 GitHub Actions runs this test suite automatically on every push and pull request using Node.js LTS. The workflow caches npm dependencies to speed up subsequent runs.
