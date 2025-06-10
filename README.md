@@ -10,7 +10,10 @@ to resolve errors.
 qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. Only `OPENAI_TOKEN` must be provided manually to enable AI analysis. Obtain your key from [OpenAI](https://openai.com) and set the variable in your environment.
 
 * `OPENAI_TOKEN` &ndash; your OpenAI API key.
-* `QERRORS_CONCURRENCY` &ndash; maximum concurrent analyses (default `5`, raise for high traffic, values over `QERRORS_SAFE_THRESHOLD` are clamped).
+
+* `QERRORS_OPENAI_URL` &ndash; OpenAI API endpoint (default `https://api.openai.com/v1/chat/completions`).
+* `QERRORS_CONCURRENCY` &ndash; maximum concurrent analyses (default `5`, raise for high traffic, values over `1000` are clamped). //(document clamp)
+
 
 * `QERRORS_CACHE_LIMIT` &ndash; size of the advice cache (default `50`, set to `0` to disable caching, values over `1000` are clamped).
 * `QERRORS_CACHE_TTL` &ndash; seconds before cached advice expires (default `86400`).
