@@ -9,6 +9,8 @@ qerrors reads several environment variables to tune its behavior. A small config
 
 **Security Note**: Keep your OpenAI API key secure. Never commit it to version control or expose it in client-side code. Use environment variables or secure configuration management.
 
+**Dependencies**: This package includes production-grade security improvements with the `escape-html` library for safe HTML output.
+
 * `OPENAI_TOKEN` &ndash; your OpenAI API key.
 
 * `QERRORS_OPENAI_URL` &ndash; OpenAI API endpoint (default `https://api.openai.com/v1/chat/completions`).
@@ -28,7 +30,7 @@ qerrors reads several environment variables to tune its behavior. A small config
 * `QERRORS_MAX_SOCKETS` &ndash; maximum sockets per agent (default `50`, increase for high traffic).
 * `QERRORS_MAX_FREE_SOCKETS` &ndash; maximum idle sockets per agent (default `256`).
 
-* `QERRORS_MAX_TOKENS` &ndash; max tokens for each OpenAI request (default `2048`). Uses GPT-4 model for error analysis.
+* `QERRORS_MAX_TOKENS` &ndash; max tokens for each OpenAI request (default `2048`). Uses GPT-4o model for error analysis.
 
 * `QERRORS_METRIC_INTERVAL_MS` &ndash; interval for queue metric logging in milliseconds (default `30000`, set to `0` to disable). //(document metric variable)
 
@@ -164,7 +166,7 @@ log.error('An error occurred', { errorDetails: error });
 
 ### Features
 
-- **AI-Powered Analysis**: Automatically generates debugging suggestions using OpenAI GPT models
+- **AI-Powered Analysis**: Automatically generates debugging suggestions using OpenAI GPT-4o model
 - **Express Middleware**: Seamless integration with Express.js applications
 - **Content Negotiation**: Returns HTML pages for browsers, JSON for API clients
 - **Intelligent Caching**: Prevents duplicate API calls for identical errors
