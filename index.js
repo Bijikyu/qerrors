@@ -28,14 +28,9 @@ const logger = require('./lib/logger'); //load configured winston logger used by
  * @returns {Promise<void>}
  */
 
-// Primary export object - allows destructuring imports like { qerrors, logger }
-// This pattern provides clear, explicit imports while keeping related functionality grouped
-module.exports = { //exposes logger with qerrors so consumers use the same configured logger
-  qerrors, //main error handling function users interact with
-  logger //winston logger instance for consistent logging
+module.exports = { //(primary export object allows destructuring imports like { qerrors, logger } providing clear explicit imports while keeping related functionality grouped)
+  qerrors, //(main error handling function users interact with)
+  logger //(winston logger instance for consistent logging, exposes same configured logger qerrors uses internally)
 };
 
-// Default export for backward compatibility and convenience
-// Allows both 'const qerrors = require("qerrors")' and 'const { qerrors } = require("qerrors")'
-// This dual export strategy accommodates different developer preferences and existing codebases
-module.exports.default = qerrors;
+module.exports.default = qerrors; //(default export for backward compatibility allowing both 'const qerrors = require("qerrors")' and destructuring patterns, dual strategy accommodates different developer preferences)
