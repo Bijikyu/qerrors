@@ -13,13 +13,15 @@ test('logger adds Console transport when verbose true', async () => {
   const orig = process.env.QERRORS_VERBOSE; //save original env
   process.env.QERRORS_VERBOSE = 'true'; //enable console logging
   let captured; //will hold config passed in
-  const restore = qtests.stubMethod(winston, 'createLogger', cfg => { captured = cfg; return { transports: cfg.transports, warn() {}, info() {}, error() {} }; }); //capture transports with warn for startup check
+  let warned = false; //track verbose warning
+  const restore = qtests.stubMethod(winston, 'createLogger', cfg => { captured = cfg; return { transports: cfg.transports, warn: () => { warned = true; }, info() {}, error() {} }; }); //capture transports and watch warn
   const logger = await reloadLogger(); //load module under new env
   await logger;
   try {
     const hasConsole = captured.transports.some(t => t instanceof winston.transports.Console); //check captured transports
     assert.equal(hasConsole, true); //expect console present
     assert.equal(logger.transports.length, captured.transports.length); //logger returns same transports
+    assert.equal(warned, true); //expect startup warning
   } finally {
     restore(); //restore stub
     if (orig === undefined) { delete process.env.QERRORS_VERBOSE; } else { process.env.QERRORS_VERBOSE = orig; } //restore env
