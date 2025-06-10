@@ -12,7 +12,7 @@ The architecture prioritizes graceful degradation - the module must never break 
 
 ## FUNCTIONALITY
 
-AI agents working on this codebase must understand that qerrors implements a sophisticated error handling middleware that must never cause additional errors. The module is designed to be "error-safe" meaning any failure in qerrors itself should fail silently rather than propagate.
+AI agents working on this codebase must understand that qerrors implements a sophisticated error handling middleware that must never cause additional errors. The module is designed to be "error-safe" meaning any failure in qerrors itself should fail and simply console.error rather than propagate.
 
 Key agent boundaries:
 - Never implement recursive error handling where qerrors processes its own errors
