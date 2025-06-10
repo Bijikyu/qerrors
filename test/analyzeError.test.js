@@ -8,6 +8,7 @@ const qerrorsModule = require('../lib/qerrors'); //import module under test
 const { analyzeError } = qerrorsModule; //extract analyzeError for direct calls
 const { axiosInstance } = qerrorsModule; //instance used inside analyzeError
 const { postWithRetry } = qerrorsModule; //helper used for retrying requests
+const config = require('../lib/config'); //load env defaults for assertions //(new import)
 
 
 function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
@@ -81,7 +82,7 @@ test('analyzeError processes JSON response from API', async () => {
     const result = await analyzeError(err, 'test context');
     assert.ok(result);
     assert.equal(result.advice, 'test advice');
-    assert.equal(capture.url, 'https://api.openai.com/v1/chat/completions'); //(assert api endpoint used)
+    assert.equal(capture.url, config.getEnv('QERRORS_OPENAI_URL')); //(assert api endpoint used)
     assert.equal(capture.body.model, 'gpt-4.1'); //(validate model in request body)
     assert.ok(Array.isArray(capture.body.messages)); //(ensure messages array sent)
     assert.equal(capture.body.messages[0].role, 'user'); //(first message role should be user)
