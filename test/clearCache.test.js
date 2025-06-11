@@ -43,15 +43,17 @@ test('clearAdviceCache empties cache', async () => {
   }
 });
 
-test('cache limit above threshold clamps and warns', () => {
+test('cache limit above threshold clamps and warns', async () => {
   const orig = process.env.QERRORS_CACHE_LIMIT; //backup current env
   process.env.QERRORS_CACHE_LIMIT = '5000'; //set exaggerated limit
-  const logger = require('../lib/logger'); //import logger to stub warn
+  const loggerPromise = require('../lib/logger'); //logger promise for stub
+  const log = await loggerPromise; //wait for logger instance
   let warned = false; //track call state
-  const restoreWarn = qtests.stubMethod(logger, 'warn', () => { warned = true; });
+  const restoreWarn = qtests.stubMethod(log, 'warn', () => { warned = true; });
   let limit; //will capture clamped limit
   try {
     const qerrors = reloadQerrors(); //reload module with large limit
+    await new Promise(r => setImmediate(r)); //allow async warn callback
     limit = qerrors.getAdviceCacheLimit(); //fetch clamped limit value
   } finally {
     restoreWarn(); //restore logger warn
