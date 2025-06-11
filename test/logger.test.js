@@ -26,15 +26,17 @@ test('logger uses daily rotate when QERRORS_LOG_MAX_DAYS set', async () => {
   const orig = process.env.QERRORS_LOG_MAX_DAYS; //store original days
   process.env.QERRORS_LOG_MAX_DAYS = '2'; //enable two day rotation
   let captured; //will capture config passed to createLogger
-  const freshRotateFile = require('winston-daily-rotate-file'); //get fresh instance
-  if (!freshRotateFile.calls) freshRotateFile.calls = []; //ensure calls array exists
-  freshRotateFile.calls.length = 0; //reset constructor calls
-  const restore = qtests.stubMethod(winston, 'createLogger', (cfg) => { captured = cfg; return { transports: cfg.transports, warn() {}, info() {}, error() {} }; }); //include warn for startup check
+  if (!DailyRotateFile.calls) DailyRotateFile.calls = []; //ensure calls array exists
+  DailyRotateFile.calls.length = 0; //reset constructor calls
+  const restore = qtests.stubMethod(winston, 'createLogger', (cfg) => { 
+    captured = cfg; 
+    return { transports: cfg.transports, warn() {}, info() {}, error() {} }; 
+  }); //include warn for startup check
   const log = await reloadLogger();
   await log; //ensure init completed
   try {
-    assert.equal(freshRotateFile.calls.length, 2); //two rotate transports created
-    assert.equal(freshRotateFile.calls[0].maxFiles, '2d'); //retention uses env days
+    assert.equal(DailyRotateFile.calls.length, 2); //two rotate transports created
+    assert.equal(DailyRotateFile.calls[0].maxFiles, '2d'); //retention uses env days
     assert.ok(captured.transports.length > 0); //transports configured
   } finally {
     restore();
