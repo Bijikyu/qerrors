@@ -43,7 +43,7 @@ test('logger uses daily rotate when QERRORS_LOG_MAX_DAYS set', async () => {
     assert.equal(captured.transports[0].constructor.name, 'DailyRotateFile'); //first is daily rotate
     assert.equal(captured.transports[1].constructor.name, 'DailyRotateFile'); //second is daily rotate
     // Verify the maxFiles configuration matches expected pattern for daily retention
-    assert.equal(captured.transports[0].options.maxFiles, '2d'); //retention uses env days
+    assert.equal(captured.transports[0].opts.maxFiles, '2d'); //stub records options under opts
   } finally {
     restore();
     if (orig === undefined) { delete process.env.QERRORS_LOG_MAX_DAYS; } else { process.env.QERRORS_LOG_MAX_DAYS = orig; }
@@ -93,6 +93,30 @@ test('logger continues with console transport when mkdirSync fails', async () =>
     restoreErr();
     if (origVerbose === undefined) { delete process.env.QERRORS_VERBOSE; } else { process.env.QERRORS_VERBOSE = origVerbose; }
   reloadLogger(); //reset cached module
+  }
+});
+
+test('file logs stay disabled after mkdir failure when env unset', async () => {
+  const origVerbose = process.env.QERRORS_VERBOSE; //preserve verbose setting
+  const origDisable = process.env.QERRORS_DISABLE_FILE_LOGS; //preserve disable flag
+  process.env.QERRORS_VERBOSE = 'true'; //enable console transport for test
+  delete process.env.QERRORS_DISABLE_FILE_LOGS; //simulate no disable env var
+  let captured; //capture logger configuration
+  const restoreLogger = qtests.stubMethod(winston, 'createLogger', cfg => { captured = cfg; return { transports: cfg.transports, warn() {}, info() {}, error() {} }; }); //capture transports
+  const restoreMkdir = qtests.stubMethod(fs.promises, 'mkdir', async () => { throw new Error('fail'); }); //simulate mkdir failure
+  const restoreErr = qtests.stubMethod(console, 'error', () => {}); //suppress console error output during test
+  const log = await reloadLogger();
+  await log;
+  try {
+    assert.equal(captured.transports.length, 1); //only console transport should be active
+    assert.ok(captured.transports[0] instanceof winston.transports.Console); //verify transport is console
+  } finally {
+    restoreLogger();
+    restoreMkdir();
+    restoreErr();
+    if (origVerbose === undefined) { delete process.env.QERRORS_VERBOSE; } else { process.env.QERRORS_VERBOSE = origVerbose; }
+    if (origDisable === undefined) { delete process.env.QERRORS_DISABLE_FILE_LOGS; } else { process.env.QERRORS_DISABLE_FILE_LOGS = origDisable; }
+    reloadLogger(); //reset cached module
   }
 });
 
