@@ -41,9 +41,9 @@ test('advice cleanup interval start and stop', () => {
 // Scenario: purgeExpiredAdvice calls underlying cache purge
 test('purgeExpiredAdvice triggers cache purge', () => {
   const restoreEnv = withEnv({ QERRORS_CACHE_TTL: '1', QERRORS_CACHE_LIMIT: '1' });
-  const LRU = require('lru-cache');
+  const { LRUCache } = require('lru-cache');
   let purged = false;
-  const restorePur = qtests.stubMethod(LRU.prototype, 'purgeStale', function() { purged = true; });
+  const restorePur = qtests.stubMethod(LRUCache.prototype, 'purgeStale', function() { purged = true; });
   const qerrors = reloadQerrors();
   try {
     qerrors.purgeExpiredAdvice();
