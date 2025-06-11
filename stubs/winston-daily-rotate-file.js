@@ -1,6 +1,10 @@
 class DailyRotateFile {
   constructor(opts) {
     this.opts = opts; //store options for test verification
+    // Use global tracking to ensure all instances are captured
+    if (!global.DailyRotateFileCalls) global.DailyRotateFileCalls = [];
+    global.DailyRotateFileCalls.push(opts);
+    // Also track on class for backward compatibility
     DailyRotateFile.calls.push(opts); //record constructor usage
   }
 }

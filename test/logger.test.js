@@ -10,7 +10,9 @@ const fs = require('fs'); //filesystem for stubbing mkdir behaviour
 function reloadLogger() { //reload logger with current env
   delete require.cache[require.resolve('../lib/logger')];
   delete require.cache[require.resolve('../lib/config')];
-  delete require.cache[require.resolve('winston-daily-rotate-file')];
+  // Clear winston-daily-rotate-file from cache to get fresh stub instance
+  const stubPath = require.resolve('winston-daily-rotate-file');
+  delete require.cache[stubPath];
   return require('../lib/logger');
 }
 
@@ -28,8 +30,17 @@ test('logger uses daily rotate when QERRORS_LOG_MAX_DAYS set', async () => {
   process.env.QERRORS_LOG_MAX_DAYS = '2'; //enable two day rotation
   delete process.env.QERRORS_DISABLE_FILE_LOGS; //ensure file logs are enabled
   let captured; //will capture config passed to createLogger
-  if (!DailyRotateFile.calls) DailyRotateFile.calls = []; //ensure calls array exists
-  DailyRotateFile.calls.length = 0; //reset constructor calls
+  
+  // Reset global call tracking
+  global.DailyRotateFileCalls = [];
+  
+  // Clear cache and get fresh stub instance
+  const stubPath = require.resolve('winston-daily-rotate-file');
+  delete require.cache[stubPath];
+  const FreshDailyRotateFile = require('winston-daily-rotate-file');
+  if (!FreshDailyRotateFile.calls) FreshDailyRotateFile.calls = [];
+  FreshDailyRotateFile.calls.length = 0; //reset constructor calls
+  
   const restore = qtests.stubMethod(winston, 'createLogger', (cfg) => { 
     captured = cfg; 
     return { transports: cfg.transports, warn() {}, info() {}, error() {} }; 
@@ -37,8 +48,8 @@ test('logger uses daily rotate when QERRORS_LOG_MAX_DAYS set', async () => {
   const log = await reloadLogger();
   await log; //ensure init completed
   try {
-    assert.equal(DailyRotateFile.calls.length, 2); //two rotate transports created
-    assert.equal(DailyRotateFile.calls[0].maxFiles, '2d'); //retention uses env days
+    assert.equal(global.DailyRotateFileCalls.length, 2); //two rotate transports created
+    assert.equal(global.DailyRotateFileCalls[0].maxFiles, '2d'); //retention uses env days
     assert.ok(captured.transports.length > 0); //transports configured
   } finally {
     restore();
