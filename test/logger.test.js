@@ -43,7 +43,7 @@ test('logger uses daily rotate when QERRORS_LOG_MAX_DAYS set', async () => {
     assert.equal(captured.transports[0].constructor.name, 'DailyRotateFile'); //first is daily rotate
     assert.equal(captured.transports[1].constructor.name, 'DailyRotateFile'); //second is daily rotate
     // Verify the maxFiles configuration matches expected pattern for daily retention
-    assert.equal(captured.transports[0].opts.maxFiles, '2d'); //stub records options under opts
+    assert.equal(captured.transports[0].options.maxFiles, '2d'); //retention uses env days
   } finally {
     restore();
     if (orig === undefined) { delete process.env.QERRORS_LOG_MAX_DAYS; } else { process.env.QERRORS_LOG_MAX_DAYS = orig; }
