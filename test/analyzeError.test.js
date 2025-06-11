@@ -83,7 +83,7 @@ test('analyzeError processes JSON response from API', async () => {
     assert.ok(result);
     assert.equal(result.advice, 'test advice');
     assert.equal(capture.url, config.getEnv('QERRORS_OPENAI_URL')); //(assert api endpoint used)
-    assert.equal(capture.body.model, 'gpt-4.1'); //(validate model in request body)
+    assert.equal(capture.body.model, 'gpt-4o'); //(validate model in request body)
     assert.ok(Array.isArray(capture.body.messages)); //(ensure messages array sent)
     assert.equal(capture.body.messages[0].role, 'user'); //(first message role should be user)
     assert.deepEqual(capture.body.response_format, { type: 'json_object' }); //(verify response_format object)
