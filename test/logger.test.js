@@ -138,3 +138,28 @@ test('logger warns when max days zero with file logs', async () => {
   }
 });
 
+test('logger defaults to console when mkdir fails and verbose unset', async () => {
+  const origVerbose = process.env.QERRORS_VERBOSE; //preserve verbose state
+  const origDisable = process.env.QERRORS_DISABLE_FILE_LOGS; //preserve disable state
+  delete process.env.QERRORS_VERBOSE; //unset verbose so fallback logic triggers
+  delete process.env.QERRORS_DISABLE_FILE_LOGS; //allow file logs so mkdir will attempt
+  let captured; //capture logger configuration
+  const restoreLogger = qtests.stubMethod(winston, 'createLogger', cfg => { captured = cfg; return { transports: cfg.transports, warn() {}, info() {}, error() {} }; }); //intercept createLogger
+  const restoreMkdir = qtests.stubMethod(fs.promises, 'mkdir', async () => { throw new Error('fail'); }); //force init failure
+  const restoreErr = qtests.stubMethod(console, 'error', () => {}); //suppress console error
+  const logPromise = await reloadLogger();
+  await logPromise;
+  try {
+    const hasConsole = captured.transports.some(t => t instanceof winston.transports.Console); //look for console transport
+    assert.equal(hasConsole, true); //expect console added
+    assert.ok((await logPromise).transports.length >= 1); //logger exposes transport
+  } finally {
+    restoreLogger();
+    restoreMkdir();
+    restoreErr();
+    if (origVerbose === undefined) { delete process.env.QERRORS_VERBOSE; } else { process.env.QERRORS_VERBOSE = origVerbose; }
+    if (origDisable === undefined) { delete process.env.QERRORS_DISABLE_FILE_LOGS; } else { process.env.QERRORS_DISABLE_FILE_LOGS = origDisable; }
+    reloadLogger(); //reset logger cache
+  }
+});
+
