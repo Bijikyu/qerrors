@@ -174,6 +174,12 @@ log.error('An error occurred', { errorDetails: error });
 - **Graceful Degradation**: Functions normally even without OpenAI API access
 - **Comprehensive Logging**: Multi-transport Winston logging with file rotation
 
+### Logging
+
+File transports output JSON objects with timestamps and stack traces. Console
+output, enabled when `QERRORS_VERBOSE=true`, uses a compact printf format for
+readability.
+
 ### Error Response Formats
 
 **HTML Response** (for browsers):
