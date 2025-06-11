@@ -24,7 +24,9 @@ test('logger exposes standard logging methods', async () => {
 
 test('logger uses daily rotate when QERRORS_LOG_MAX_DAYS set', async () => {
   const orig = process.env.QERRORS_LOG_MAX_DAYS; //store original days
+  const origDisable = process.env.QERRORS_DISABLE_FILE_LOGS; //store original disable flag
   process.env.QERRORS_LOG_MAX_DAYS = '2'; //enable two day rotation
+  delete process.env.QERRORS_DISABLE_FILE_LOGS; //ensure file logs are enabled
   let captured; //will capture config passed to createLogger
   if (!DailyRotateFile.calls) DailyRotateFile.calls = []; //ensure calls array exists
   DailyRotateFile.calls.length = 0; //reset constructor calls
@@ -41,6 +43,7 @@ test('logger uses daily rotate when QERRORS_LOG_MAX_DAYS set', async () => {
   } finally {
     restore();
     if (orig === undefined) { delete process.env.QERRORS_LOG_MAX_DAYS; } else { process.env.QERRORS_LOG_MAX_DAYS = orig; }
+    if (origDisable === undefined) { delete process.env.QERRORS_DISABLE_FILE_LOGS; } else { process.env.QERRORS_DISABLE_FILE_LOGS = origDisable; }
     reloadLogger(); //reset logger cache
   }
 });
