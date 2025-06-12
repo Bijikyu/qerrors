@@ -5,6 +5,7 @@ const qtests = require('qtests'); //stubbing utility
 const qerrorsModule = require('../lib/qerrors'); //module under test
 const qerrors = qerrorsModule; //default export used for call
 const { axiosInstance } = qerrorsModule; //axios instance for capture
+const logger = require('../lib/logger'); //promise resolving logger for capture
 
 function withOpenAIToken(token) { //temporarily set OPENAI_TOKEN
   const orig = process.env.OPENAI_TOKEN; //save original value
@@ -25,6 +26,11 @@ function createRes() { //minimal express like response object
     send(html) { this.payload = html; return this; } };
 }
 
+async function stubLogger(fn) { //stub logger.error for capture
+  const real = await logger; //await resolved logger
+  return qtests.stubMethod(real, 'error', fn); //replace error method
+}
+
 test('qerrors stringifies object context for openai request', async () => {
   const restoreToken = withOpenAIToken('ctx-token'); //ensure token for analysis
   const capture = {}; //capture axios body
@@ -40,4 +46,23 @@ test('qerrors stringifies object context for openai request', async () => {
     restoreToken(); //restore env token
   }
   assert.ok(capture.body.messages[0].content.includes(JSON.stringify(ctxObj))); //ensure context stringified
+});
+
+test('qerrors handles circular context without throwing', async () => {
+  const restoreToken = withOpenAIToken(undefined); //ensure analysis skipped
+  let logged; //capture logger output
+  const restoreLogger = await stubLogger(errObj => { logged = errObj; }); //stub logger
+  const res = createRes(); //response mock
+  const ctxObj = {}; ctxObj.self = ctxObj; //self reference
+  const err = new Error('boom'); //sample error
+  try {
+    await qerrors(err, ctxObj, {}, res); //invoke with circular context
+    await new Promise(r => setTimeout(r, 0)); //wait for queue
+  } finally {
+    restoreLogger(); //restore logger stub
+    restoreToken(); //restore env token
+  }
+  assert.equal(res.statusCode, 500); //response still sent
+  assert.ok(typeof logged.context === 'string'); //context logged as string
+  assert.ok(logged.context.includes('[Circular')); //circular marker present
 });
