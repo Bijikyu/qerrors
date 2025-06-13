@@ -16,8 +16,8 @@ test('logger uses QERRORS_LOG_LEVEL env var', async () => {
   const restore = qtests.stubMethod(winston, 'createLogger', cfg => { captured = cfg; return { level: cfg.level, transports: cfg.transports, warn() {}, info() {}, error() {} }; }); //return stub logger
   const logger = await reloadLogger();
   try {
-    assert.equal(captured.level, 'debug');
-    assert.equal((await logger).level, 'debug');
+    assert.equal(captured.level, 'debug'); //logger configured with env level
+    assert.equal((await logger).level, 'debug'); //promise resolves same level
   } finally {
     restore();
     if (orig === undefined) { delete process.env.QERRORS_LOG_LEVEL; } else { process.env.QERRORS_LOG_LEVEL = orig; }
@@ -32,8 +32,8 @@ test('logger defaults QERRORS_LOG_LEVEL when unset', async () => {
   const restore = qtests.stubMethod(winston, 'createLogger', cfg => { captured = cfg; return { level: cfg.level, transports: cfg.transports, warn() {}, info() {}, error() {} }; }); //return stub logger
   const logger = await reloadLogger();
   try {
-    assert.equal(captured.level, 'info');
-    assert.equal((await logger).level, 'info');
+    assert.equal(captured.level, 'info'); //default level used when unset
+    assert.equal((await logger).level, 'info'); //logger exposes default
   } finally {
     restore();
     if (orig === undefined) { delete process.env.QERRORS_LOG_LEVEL; } else { process.env.QERRORS_LOG_LEVEL = orig; }

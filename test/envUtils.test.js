@@ -32,7 +32,7 @@ test('getMissingEnvVars identifies missing variables', () => {
        const restore = withEnvVars({ TEST_VAR1: 'present', TEST_VAR2: undefined });
        try {
                const missing = getMissingEnvVars(['TEST_VAR1', 'TEST_VAR2', 'TEST_VAR3']);
-               assert.deepEqual(missing, ['TEST_VAR2', 'TEST_VAR3']);
+               assert.deepEqual(missing, ['TEST_VAR2', 'TEST_VAR3']); //missing vars returned
        } finally {
                restore();
        }
@@ -43,7 +43,7 @@ test('getMissingEnvVars returns empty array when all present', () => {
        const restore = withEnvVars({ TEST_VAR1: 'present', TEST_VAR2: 'also_present' });
        try {
                const missing = getMissingEnvVars(['TEST_VAR1', 'TEST_VAR2']);
-               assert.deepEqual(missing, []);
+               assert.deepEqual(missing, []); //no vars missing
        } finally {
                restore();
        }
@@ -53,7 +53,7 @@ test('getMissingEnvVars returns empty array when all present', () => {
 test('throwIfMissingEnvVars throws when variables missing', () => {
        const restore = withEnvVars({ REQUIRED_VAR: undefined });
        try {
-               assert.throws(() => {
+               assert.throws(() => { //throws when required var absent
                        throwIfMissingEnvVars(['REQUIRED_VAR']);
                }, /Missing required environment variables: REQUIRED_VAR/);
        } finally {
@@ -65,8 +65,8 @@ test('throwIfMissingEnvVars throws when variables missing', () => {
 test('throwIfMissingEnvVars returns empty array when all present', () => {
        const restore = withEnvVars({ REQUIRED_VAR: 'present' });
        try {
-               const result = throwIfMissingEnvVars(['REQUIRED_VAR']);
-               assert.deepEqual(result, []);
+               const result = throwIfMissingEnvVars(['REQUIRED_VAR']); //returns empty array
+               assert.deepEqual(result, []); //no errors thrown
        } finally {
                restore();
        }
@@ -78,10 +78,10 @@ test('warnIfMissingEnvVars returns false when variables missing', () => {
        let warnings = [];
        const restoreWarn = qtests.stubMethod(console, 'warn', (msg) => warnings.push(msg));
        try {
-               const result = warnIfMissingEnvVars(['OPTIONAL_VAR']);
-               assert.equal(result, false);
-               assert.equal(warnings.length, 1);
-               assert.ok(warnings[0].includes('OPTIONAL_VAR'));
+               const result = warnIfMissingEnvVars(['OPTIONAL_VAR']); //warn about missing
+               assert.equal(result, false); //function indicates missing
+               assert.equal(warnings.length, 1); //one warning logged
+               assert.ok(warnings[0].includes('OPTIONAL_VAR')); //message references var
        } finally {
                restore();
                restoreWarn();
@@ -92,8 +92,8 @@ test('warnIfMissingEnvVars returns false when variables missing', () => {
 test('warnIfMissingEnvVars returns true when all present', () => {
        const restore = withEnvVars({ OPTIONAL_VAR: 'present' });
        try {
-               const result = warnIfMissingEnvVars(['OPTIONAL_VAR']);
-               assert.equal(result, true);
+               const result = warnIfMissingEnvVars(['OPTIONAL_VAR']); //nothing missing
+               assert.equal(result, true); //no warning needed
        } finally {
                restore();
        }
@@ -105,8 +105,8 @@ test('warnIfMissingEnvVars uses custom message', () => {
        let warnings = [];
        const restoreWarn = qtests.stubMethod(console, 'warn', (msg) => warnings.push(msg));
        try {
-               warnIfMissingEnvVars(['CUSTOM_VAR'], 'Custom warning message');
-               assert.equal(warnings[0], 'Custom warning message');
+               warnIfMissingEnvVars(['CUSTOM_VAR'], 'Custom warning message'); //custom warn text
+               assert.equal(warnings[0], 'Custom warning message'); //exact message logged
        } finally {
                restore();
                restoreWarn();

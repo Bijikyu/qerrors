@@ -1,3 +1,4 @@
+// simplified LRU cache stub for testing cache logic without external dependency
 class LRUCache {
   constructor(opts = {}) {
     this.max = opts.max ?? Infinity; //limit of entries

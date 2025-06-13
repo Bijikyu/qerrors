@@ -1,3 +1,4 @@
+// minimal denque stub providing queue methods for tests
 class Denque {
   constructor(){ this.items = []; }
   push(val){ this.items.push(val); } //add item to end

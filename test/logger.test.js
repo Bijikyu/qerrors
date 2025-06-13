@@ -19,9 +19,9 @@ function reloadLogger() { //reload logger with current env
 // Scenario: verify logger exposes basic Winston-style methods
 test('logger exposes standard logging methods', async () => {
   const log = await logger; //wait for initialization
-  assert.equal(typeof log.error, 'function');
-  assert.equal(typeof log.warn, 'function');
-  assert.equal(typeof log.info, 'function');
+  assert.equal(typeof log.error, 'function'); //error method present
+  assert.equal(typeof log.warn, 'function'); //warn method present
+  assert.equal(typeof log.info, 'function'); //info method present
 });
 
 test('logger uses daily rotate when QERRORS_LOG_MAX_DAYS set', async () => {
