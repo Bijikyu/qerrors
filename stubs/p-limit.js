@@ -1,3 +1,4 @@
+// lightweight concurrency limiter mimicking the p-limit API
 module.exports = function(limit){
   let active=0; //current running count
   const queue=[]; //queued functions waiting to run
@@ -10,7 +11,7 @@ module.exports = function(limit){
   const limiter=(fn)=>{ //returned limit function
     return new Promise((resolve,reject)=>{ queue.push({fn,resolve,reject}); next(); });
   };
-  Object.defineProperties(limiter,{ activeCount:{get:()=>active}, pendingCount:{get:()=>queue.length} }); //expose counts like real p-limit //(support pendingCount)
+  Object.defineProperties(limiter,{ activeCount:{get:()=>active}, pendingCount:{get:()=>queue.length} }); //expose counts like real p-limit
   return limiter; //return throttle function
 };
 

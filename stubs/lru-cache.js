@@ -1,3 +1,4 @@
+// in-memory LRU cache stub mirroring lru-cache API for tests
 class LRUCache {
   constructor(opts = {}) {
     this.max = opts.max ?? Infinity; //limit of entries
@@ -6,16 +7,16 @@ class LRUCache {
   }
   get size() { return this.store.size; }
   get(key) { //retrieve value or undefined
-    const entry = this.store.get(key);
-    if (!entry) return undefined;
-    if (this.ttl && Date.now() - entry.ts > this.ttl) { this.store.delete(key); return undefined; }
+    const entry = this.store.get(key); //pull from map
+    if (!entry) return undefined; //cache miss
+    if (this.ttl && Date.now() - entry.ts > this.ttl) { this.store.delete(key); return undefined; } //evict stale
     this.store.delete(key); this.store.set(key, entry); //move to newest
-    return entry.val;
+    return entry.val; //return stored value
   }
   set(key, val) { //insert value and enforce size limit
-    this.store.delete(key);
-    this.store.set(key, { val, ts: Date.now() });
-    if (this.store.size > this.max) { const first = this.store.keys().next().value; this.store.delete(first); }
+    this.store.delete(key); //remove existing
+    this.store.set(key, { val, ts: Date.now() }); //store with timestamp
+    if (this.store.size > this.max) { const first = this.store.keys().next().value; this.store.delete(first); } //evict oldest when over limit
   }
   has(key) { return this.get(key) !== undefined; }
   delete(key) { return this.store.delete(key); }
