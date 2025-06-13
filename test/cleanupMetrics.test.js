@@ -25,11 +25,11 @@ test('advice cleanup interval start and stop', () => {
   const qerrors = reloadQerrors();
   try {
     qerrors.startAdviceCleanup();
-    assert.equal(called, 1);
-    assert.equal(ms, 1000);
-    assert.equal(unref, true);
+    assert.equal(called, 1); //interval set once
+    assert.equal(ms, 1000); //uses TTL in ms
+    assert.equal(unref, true); //interval unref'ed
     qerrors.stopAdviceCleanup();
-    assert.equal(cleared, handle);
+    assert.equal(cleared, handle); //cleared with saved handle
   } finally {
     global.setInterval = realSet;
     global.clearInterval = realClear;
@@ -46,8 +46,8 @@ test('purgeExpiredAdvice triggers cache purge', () => {
   const restorePur = qtests.stubMethod(LRUCache.prototype, 'purgeStale', function() { purged = true; });
   const qerrors = reloadQerrors();
   try {
-    qerrors.purgeExpiredAdvice();
-    assert.equal(purged, true);
+  qerrors.purgeExpiredAdvice();
+  assert.equal(purged, true); //cache purge triggered
   } finally {
     restorePur();
     restoreEnv();
@@ -66,11 +66,11 @@ test('queue metrics interval start and stop', () => {
   const qerrors = reloadQerrors();
   try {
     qerrors.startQueueMetrics();
-    assert.equal(called, 1);
-    assert.equal(ms, 5);
-    assert.equal(unref, true);
+    assert.equal(called, 1); //interval created once
+    assert.equal(ms, 5); //interval uses env ms
+    assert.equal(unref, true); //unref keeps process exitable
     qerrors.stopQueueMetrics();
-    assert.equal(cleared, handle);
+    assert.equal(cleared, handle); //handle cleared correctly
   } finally {
     global.setInterval = realSet;
     global.clearInterval = realClear;
@@ -84,7 +84,7 @@ test('getAdviceCacheLimit reflects clamped env', () => {
   const restoreEnv = withEnv({ QERRORS_CACHE_LIMIT: '2000' });
   const qerrors = reloadQerrors();
   try {
-    assert.equal(qerrors.getAdviceCacheLimit(), 1000);
+    assert.equal(qerrors.getAdviceCacheLimit(), 1000); //value clamped to max
   } finally {
     restoreEnv();
     reloadQerrors();

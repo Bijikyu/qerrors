@@ -65,7 +65,7 @@ test('analyzeError returns null without token', async () => {
     const err = new Error('no token');
     err.uniqueErrorName = 'NOTOKEN';
     const result = await analyzeError(err, 'ctx');
-    assert.equal(result, null);
+    assert.equal(result, null); //no advice when token missing
   } finally {
     restoreToken(); //(restore original token)
   }
@@ -80,8 +80,8 @@ test('analyzeError processes JSON response from API', async () => {
     const err = new Error('test error');
     err.uniqueErrorName = 'TESTERR';
     const result = await analyzeError(err, 'test context');
-    assert.ok(result);
-    assert.equal(result.advice, 'test advice');
+    assert.ok(result); //response object returned
+    assert.equal(result.advice, 'test advice'); //parsed advice text
     assert.equal(capture.url, config.getEnv('QERRORS_OPENAI_URL')); //(assert api endpoint used)
     assert.equal(capture.body.model, 'gpt-4o'); //(validate model in request body)
     assert.ok(Array.isArray(capture.body.messages)); //(ensure messages array sent)
@@ -119,7 +119,7 @@ test('analyzeError returns cached advice on repeat call', async () => {
     err.stack = 'stack';
     err.uniqueErrorName = 'CACHE1';
     const first = await analyzeError(err, 'ctx');
-    assert.equal(first.advice, 'cached');
+    assert.equal(first.advice, 'cached'); //initial call gets advice
     restoreAxios(); //(remove first stub)
     let secondCalled = false; //(track second axios call)
     const restoreAxios2 = qtests.stubMethod(axiosInstance, 'post', async () => { secondCalled = true; return {}; });
@@ -128,7 +128,7 @@ test('analyzeError returns cached advice on repeat call', async () => {
     err2.uniqueErrorName = 'CACHE2';
     const second = await analyzeError(err2, 'ctx');
     restoreAxios2(); //(restore second stub)
-    assert.equal(second.advice, 'cached');
+    assert.equal(second.advice, 'cached'); //result from cache
     assert.equal(secondCalled, false); //(axios should not run second time)
   } finally {
     restoreToken(); //(restore environment)
@@ -149,10 +149,10 @@ test('analyzeError reuses error.qerrorsKey when present', async () => {
     err.uniqueErrorName = 'REUSEKEY';
     err.qerrorsKey = 'preset';
     const first = await analyzeError(err, 'ctx');
-    assert.equal(first.info, 'first');
+    assert.equal(first.info, 'first'); //advice from first call
     assert.equal(hashCount, 0); //(ensure hashing not called)
     const again = await analyzeError(err, 'ctx');
-    assert.equal(again.info, 'first');
+    assert.equal(again.info, 'first'); //reuse same advice
   } finally {
     restoreHash(); //(restore crypto.createHash)
     restoreToken(); //(restore token)

@@ -25,7 +25,7 @@ test('clearAdviceCache empties cache', async () => {
     err.stack = 'stack';
     err.uniqueErrorName = 'CACHECLR';
     const first = await analyzeError(err, 'ctx');
-    assert.equal(first.info, 'one');
+    assert.equal(first.info, 'one'); //initial advice stored
     restoreAxios(); //restore first stub
     let calledAgain = false;
     const restoreAxios2 = qtests.stubMethod(axiosInstance, 'post', async () => { calledAgain = true; return { data: { choices: [{ message: { content: { info: 'two' } } }] } }; });

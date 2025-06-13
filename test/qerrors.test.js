@@ -43,11 +43,11 @@ test('qerrors logs and responds with json then calls next', async () => {
   } finally {
     restore(); //restore all stubs after test
   }
-  assert.ok(err.uniqueErrorName);
-  assert.equal(res.statusCode, 500);
-  assert.deepEqual(res.payload.error.uniqueErrorName, err.uniqueErrorName);
-  assert.deepEqual(logged.uniqueErrorName, err.uniqueErrorName);
-  assert.equal(nextArg, err);
+  assert.ok(err.uniqueErrorName); //id generated
+  assert.equal(res.statusCode, 500); //response uses default status
+  assert.deepEqual(res.payload.error.uniqueErrorName, err.uniqueErrorName); //json includes id
+  assert.deepEqual(logged.uniqueErrorName, err.uniqueErrorName); //logged id matches
+  assert.equal(nextArg, err); //next() called with error
 });
 
 // Scenario: send HTML when browser requests it
@@ -62,8 +62,8 @@ test('qerrors sends html when accept header requests it', async () => {
   } finally {
     restore(); //restore all stubs after test
   }
-  assert.equal(res.statusCode, 500);
-  assert.ok(typeof res.payload === 'string');
+  assert.equal(res.statusCode, 500); //html response code
+  assert.ok(typeof res.payload === 'string'); //html returned
 });
 
 // Scenario: sanitize html output to avoid injection
@@ -130,8 +130,8 @@ test('qerrors does nothing when headers already sent', async () => {
   } finally {
     restore(); //restore all stubs after test
   }
-  assert.equal(res.statusCode, null);
-  assert.equal(nextCalled, false);
+  assert.equal(res.statusCode, null); //no response after headers sent
+  assert.equal(nextCalled, false); //next not invoked
 });
 
 // Scenario: operate without Express objects
@@ -145,8 +145,8 @@ test('qerrors handles absence of req res and next', async () => {
   } finally {
     restore(); //restore all stubs after test
   }
-  assert.ok(err.uniqueErrorName);
-  assert.equal(logged.context, 'unknown context');
+  assert.ok(err.uniqueErrorName); //id generated without req/res
+  assert.equal(logged.context, 'unknown context'); //default context value
 });
 
 // Scenario: still call next when res is undefined
@@ -160,7 +160,7 @@ test('qerrors calls next without res', async () => {
   } finally {
     restore(); //restore all stubs after test
   }
-  assert.equal(nextArg, err);
+  assert.equal(nextArg, err); //next receives error
 });
 
 // Scenario: warn and exit when called without an error
@@ -171,7 +171,7 @@ test('qerrors exits if no error provided', async () => {
   try {
     await qerrors(null, 'ctx');
     await new Promise(r => setTimeout(r, 0)); //wait for queued analysis completion
-    assert.equal(warned, true);
+    assert.equal(warned, true); //warning emitted
   } finally {
     restoreWarn(); //restore console.warn after test
     restore(); //restore all stubs after test

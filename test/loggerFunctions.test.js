@@ -14,7 +14,7 @@ test('logStart logs function start', async () => {
   try {
     await logStart('fn', { a: 1 });
   } finally { restore(); }
-  assert.equal(msg, 'fn start {"a":1}');
+  assert.equal(msg, 'fn start {"a":1}'); //log message captured
 });
 
 // Scenario: logReturn logs return message
@@ -26,5 +26,5 @@ test('logReturn logs function return', async () => {
   try {
     await logReturn('fn', { b: 2 });
   } finally { restore(); }
-  assert.equal(msg, 'fn return {"b":2}');
+  assert.equal(msg, 'fn return {"b":2}'); //log message captured
 });

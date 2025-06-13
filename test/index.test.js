@@ -7,7 +7,7 @@ const logger = require('../lib/logger'); //expected logger instance
 
 // Scenario: ensure module exports match the library internals
 test('index exports qerrors and logger', () => {
-  assert.equal(pkg.qerrors, qerrors);
-  assert.equal(pkg.logger, logger);
-  assert.equal(pkg.default, qerrors);
+  assert.equal(pkg.qerrors, qerrors); //named export matches
+  assert.equal(pkg.logger, logger); //logger exported
+  assert.equal(pkg.default, qerrors); //default export same as function
 });
