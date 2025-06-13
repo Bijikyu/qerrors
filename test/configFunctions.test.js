@@ -18,7 +18,7 @@ test('getEnv returns env var when present', () => {
   const restore = withEnv({ TEST_VAL: 'xyz' });
   const cfg = reloadConfig();
   try {
-    assert.equal(cfg.getEnv('TEST_VAL'), 'xyz');
+    assert.equal(cfg.getEnv('TEST_VAL'), 'xyz'); //returns provided env value
   } finally { restore(); }
 });
 
@@ -27,7 +27,7 @@ test('getEnv falls back to default', () => {
   const restore = withEnv({ QERRORS_QUEUE_LIMIT: undefined });
   const cfg = reloadConfig();
   try {
-    assert.equal(cfg.getEnv('QERRORS_QUEUE_LIMIT'), '100');
+    assert.equal(cfg.getEnv('QERRORS_QUEUE_LIMIT'), '100'); //falls back to default
   } finally { restore(); }
 });
 
@@ -35,7 +35,7 @@ test('getEnv falls back to default', () => {
 test('safeRun returns result', () => {
   const cfg = reloadConfig();
   const res = cfg.safeRun('fn', () => 5, 0);
-  assert.equal(res, 5);
+  assert.equal(res, 5); //returns function output
 });
 
 // Scenario: safeRun catches error and returns fallback
@@ -45,8 +45,8 @@ test('safeRun returns fallback on error', () => {
   const restoreErr = qtests.stubMethod(console, 'error', m => { msg = m; });
   try {
     const out = cfg.safeRun('fn', () => { throw new Error('boom'); }, 7, 'info');
-    assert.equal(out, 7);
-    assert.ok(msg.includes('fn failed'));
+    assert.equal(out, 7); //fallback value used
+    assert.ok(msg.includes('fn failed')); //error logged for context
   } finally { restoreErr(); }
 });
 
@@ -55,7 +55,7 @@ test('getInt parses integer env value', () => {
   const restore = withEnv({ QERRORS_TIMEOUT: '9000' });
   const cfg = reloadConfig();
   try {
-    assert.equal(cfg.getInt('QERRORS_TIMEOUT'), 9000);
+    assert.equal(cfg.getInt('QERRORS_TIMEOUT'), 9000); //parses integer env
   } finally { restore(); }
 });
 
@@ -64,7 +64,7 @@ test('getInt uses default when env invalid', () => {
   const restore = withEnv({ QERRORS_TIMEOUT: 'abc' });
   const cfg = reloadConfig();
   try {
-    assert.equal(cfg.getInt('QERRORS_TIMEOUT'), 10000);
+    assert.equal(cfg.getInt('QERRORS_TIMEOUT'), 10000); //invalid env uses default
   } finally { restore(); }
 });
 
@@ -73,6 +73,6 @@ test('getInt enforces minimum bound', () => {
   const restore = withEnv({ QERRORS_TIMEOUT: '1' });
   const cfg = reloadConfig();
   try {
-    assert.equal(cfg.getInt('QERRORS_TIMEOUT', 5), 5);
+    assert.equal(cfg.getInt('QERRORS_TIMEOUT', 5), 5); //result respects minimum
   } finally { restore(); }
 });
