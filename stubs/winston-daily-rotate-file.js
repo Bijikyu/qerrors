@@ -1,3 +1,4 @@
+// stub of winston-daily-rotate-file to avoid file system operations in tests
 class DailyRotateFile {
   constructor(opts) {
     this.options = opts; //expose options like real module for tests
@@ -9,4 +10,4 @@ class DailyRotateFile {
   }
 }
 DailyRotateFile.calls = []; //track constructor calls for tests
-module.exports = DailyRotateFile;
+module.exports = DailyRotateFile; //export stub constructor
