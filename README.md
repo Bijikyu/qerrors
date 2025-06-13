@@ -62,10 +62,13 @@ Use `qerrors.startAdviceCleanup()` to begin automatic purging of expired entries
 Call `qerrors.stopAdviceCleanup()` if you need to halt the cleanup interval.
 Call `qerrors.purgeExpiredAdvice()` to run a purge instantly.
 After each purge or clear operation the module checks the cache size and stops cleanup when it reaches zero, restarting the interval when new advice is cached.
+Check the current cache limit with `qerrors.getAdviceCacheLimit()`.
 
 Use `qerrors.getQueueLength()` to monitor how many analyses are waiting.
 
 The module logs `queueLength` and `queueRejects` at a regular interval (default `30s`). Use `QERRORS_METRIC_INTERVAL_MS` to change the period or set `0` to disable logging. Logging starts with the first queued analysis and stops automatically when no analyses remain.
+
+Call `qerrors.startQueueMetrics()` to manually begin metric logging and `qerrors.stopQueueMetrics()` to halt it when needed.
 
 QERRORS_MAX_SOCKETS lets you limit how many sockets the http agents open;
 if not set the default is 50; raise this to handle high traffic.
@@ -162,6 +165,9 @@ function doFunction(param1, param2) {
 log.info('Application started');
 log.warn('Something might be wrong');
 log.error('An error occurred', { errorDetails: error });
+// Optional helpers for consistent function logging
+await logger.logStart('myFunction', {input});
+await logger.logReturn('myFunction', {result});
 ```
 
 ### Features
@@ -213,7 +219,7 @@ readability.
 
 The test suite uses Node's built-in test runner with custom stubs for offline testing.
 Tests include comprehensive coverage of error handling, AI integration, and middleware functionality.
-Current test status: 86/86 tests passing (100% success rate).
+Current test status: 87/87 tests passing (100% success rate).
 
 Run tests from the project directory:
 ```bash
