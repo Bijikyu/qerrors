@@ -25,11 +25,11 @@ test('advice cleanup interval start and stop', () => {
   const qerrors = reloadQerrors();
   try {
     qerrors.startAdviceCleanup();
-    assert.equal(called, 1);
-    assert.equal(ms, 1000);
-    assert.equal(unref, true);
+    assert.equal(called, 1); //interval should be created once
+    assert.equal(ms, 1000); //interval uses env ttl in ms
+    assert.equal(unref, true); //interval handle unref'd
     qerrors.stopAdviceCleanup();
-    assert.equal(cleared, handle);
+    assert.equal(cleared, handle); //cleanup clears same handle
   } finally {
     global.setInterval = realSet;
     global.clearInterval = realClear;
@@ -47,7 +47,7 @@ test('purgeExpiredAdvice triggers cache purge', () => {
   const qerrors = reloadQerrors();
   try {
     qerrors.purgeExpiredAdvice();
-    assert.equal(purged, true);
+    assert.equal(purged, true); //cache purge executed
   } finally {
     restorePur();
     restoreEnv();
@@ -66,11 +66,11 @@ test('queue metrics interval start and stop', () => {
   const qerrors = reloadQerrors();
   try {
     qerrors.startQueueMetrics();
-    assert.equal(called, 1);
-    assert.equal(ms, 5);
-    assert.equal(unref, true);
+    assert.equal(called, 1); //metrics interval created
+    assert.equal(ms, 5); //interval uses env value
+    assert.equal(unref, true); //handle unref'd for cleanup
     qerrors.stopQueueMetrics();
-    assert.equal(cleared, handle);
+    assert.equal(cleared, handle); //interval cleared correctly
   } finally {
     global.setInterval = realSet;
     global.clearInterval = realClear;
@@ -84,7 +84,7 @@ test('getAdviceCacheLimit reflects clamped env', () => {
   const restoreEnv = withEnv({ QERRORS_CACHE_LIMIT: '2000' });
   const qerrors = reloadQerrors();
   try {
-    assert.equal(qerrors.getAdviceCacheLimit(), 1000);
+    assert.equal(qerrors.getAdviceCacheLimit(), 1000); //limit clamped to max
   } finally {
     restoreEnv();
     reloadQerrors();
