@@ -170,6 +170,19 @@ await logger.logStart('myFunction', {input});
 await logger.logReturn('myFunction', {result});
 ```
 
+### Environment Validation Helpers
+
+Use the optional utilities in `lib/envUtils.js` to verify configuration before starting your application.
+
+```javascript
+const { throwIfMissingEnvVars, warnIfMissingEnvVars, getMissingEnvVars } = require('qerrors/lib/envUtils');
+
+throwIfMissingEnvVars(['OPENAI_TOKEN']); // aborts if mandatory variables are missing
+warnIfMissingEnvVars(['MY_OPTIONAL_VAR']); // logs a warning but continues
+const missing = getMissingEnvVars(['OPTIONAL_ONE', 'OPTIONAL_TWO']);
+```
+
+
 ### Features
 
 - **AI-Powered Analysis**: Automatically generates debugging suggestions using OpenAI GPT-4o model
