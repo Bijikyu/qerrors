@@ -7,6 +7,8 @@ Intelligent error handling middleware that combines traditional logging with AI-
 
 qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. Only `OPENAI_TOKEN` must be provided manually to enable AI analysis. Obtain your key from [OpenAI](https://openai.com) and set the variable in your environment.
 
+If `OPENAI_TOKEN` is omitted qerrors still logs errors, but AI-generated advice will be skipped.
+
 **Security Note**: Keep your OpenAI API key secure. Never commit it to version control or expose it in client-side code. Use environment variables or secure configuration management.
 
 **Dependencies**: This package includes production-grade security improvements with the `escape-html` library for safe HTML output.
