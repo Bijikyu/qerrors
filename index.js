@@ -18,6 +18,11 @@
 const qerrors = require('./lib/qerrors'); //load primary error handler implementation
 const logger = require('./lib/logger'); //load configured winston logger used by qerrors
 const errorTypes = require('./lib/errorTypes'); //load error classification and handling utilities
+const sanitization = require('./lib/sanitization'); //load data sanitization utilities
+const queueManager = require('./lib/queueManager'); //load queue management utilities
+const utils = require('./lib/utils'); //load common utility functions
+const config = require('./lib/config'); //load configuration utilities
+const envUtils = require('./lib/envUtils'); //load environment validation utilities
 
 /**
  * Error logger middleware that logs errors and provides AI-powered suggestions.
@@ -52,10 +57,36 @@ module.exports = { //(primary export object allows destructuring imports like { 
   logFatal: logger.logFatal, //(enhanced fatal logging with performance monitoring)
   logAudit: logger.logAudit, //(enhanced audit logging for compliance)
   createPerformanceTimer: logger.createPerformanceTimer, //(performance timer utility for operation monitoring)
-  sanitizeMessage: logger.sanitizeMessage, //(message sanitization utility for security)
-  sanitizeContext: logger.sanitizeContext, //(context sanitization utility for security)
   createEnhancedLogEntry: logger.createEnhancedLogEntry, //(enhanced log entry creator with metadata)
-  LOG_LEVELS: logger.LOG_LEVELS //(log level constants with priorities and colors)
+  LOG_LEVELS: logger.LOG_LEVELS, //(log level constants with priorities and colors)
+
+  // Data sanitization utilities for security
+  sanitizeMessage: sanitization.sanitizeMessage, //(message sanitization utility for security)
+  sanitizeContext: sanitization.sanitizeContext, //(context sanitization utility for security)
+  addCustomSanitizationPattern: sanitization.addCustomSanitizationPattern, //(register custom sanitization rules)
+  clearCustomSanitizationPatterns: sanitization.clearCustomSanitizationPatterns, //(clear custom patterns for testing)
+  sanitizeWithCustomPatterns: sanitization.sanitizeWithCustomPatterns, //(enhanced sanitization with custom rules)
+
+  // Queue management and monitoring utilities
+  createLimiter: queueManager.createLimiter, //(concurrency limiting utility)
+  getQueueLength: queueManager.getQueueLength, //(queue depth monitoring)
+  getQueueRejectCount: queueManager.getQueueRejectCount, //(reject count monitoring)
+  startQueueMetrics: queueManager.startQueueMetrics, //(start periodic metrics)
+  stopQueueMetrics: queueManager.stopQueueMetrics, //(stop periodic metrics)
+
+  // Common utility functions
+  generateUniqueId: utils.generateUniqueId, //(unique identifier generation)
+  createTimer: utils.createTimer, //(performance timing utilities)
+  deepClone: utils.deepClone, //(deep object cloning)
+  safeRun: utils.safeRun, //(safe function execution wrapper)
+  verboseLog: utils.verboseLog, //(conditional verbose logging)
+
+  // Configuration and environment utilities
+  getEnv: config.getEnv, //(environment variable getter with defaults)
+  getInt: config.getInt, //(integer parsing with validation)
+  getMissingEnvVars: envUtils.getMissingEnvVars, //(environment validation)
+  throwIfMissingEnvVars: envUtils.throwIfMissingEnvVars, //(required environment validation)
+  warnIfMissingEnvVars: envUtils.warnIfMissingEnvVars //(optional environment validation)
 };
 
 module.exports.default = qerrors; //(default export for backward compatibility allowing both 'const qerrors = require("qerrors")' and destructuring patterns, dual strategy accommodates different developer preferences)
