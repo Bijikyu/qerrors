@@ -136,7 +136,97 @@ const {
   ErrorTypes,
   ErrorSeverity 
 } = require('qerrors');
+```
 
+## Centralized Error Handling
+
+The module now includes centralized error handling utilities that provide standardized error classification, severity-based logging, and automated response formatting:
+
+### Error Classification
+
+```javascript
+// Create typed errors with automatic classification
+const validationError = createTypedError(
+  'Invalid email format',
+  ErrorTypes.VALIDATION,
+  'INVALID_EMAIL'
+);
+
+const dbError = createTypedError(
+  'Connection timeout',
+  ErrorTypes.DATABASE,
+  'DB_TIMEOUT'
+);
+
+// Available error types:
+ErrorTypes.VALIDATION      // 400 - User input errors
+ErrorTypes.AUTHENTICATION  // 401 - Auth failures  
+ErrorTypes.AUTHORIZATION   // 403 - Permission errors
+ErrorTypes.NOT_FOUND       // 404 - Resource not found
+ErrorTypes.RATE_LIMIT      // 429 - Rate limiting
+ErrorTypes.NETWORK         // 502 - External service errors
+ErrorTypes.DATABASE        // 500 - Database errors
+ErrorTypes.SYSTEM          // 500 - Internal system errors
+ErrorTypes.CONFIGURATION   // 500 - Config/setup errors
+```
+
+### Controller Error Handling
+
+```javascript
+// Standardized error handling in Express controllers
+app.get('/api/users/:id', async (req, res) => {
+  try {
+    const user = await getUserById(req.params.id);
+    if (!user) {
+      const error = createTypedError(
+        'User not found',
+        ErrorTypes.NOT_FOUND,
+        'USER_NOT_FOUND'
+      );
+      return handleControllerError(res, error, 'getUserById', { userId: req.params.id });
+    }
+    res.json(user);
+  } catch (error) {
+    handleControllerError(res, error, 'getUserById', { userId: req.params.id });
+  }
+});
+```
+
+### Async Operation Wrapper
+
+```javascript
+// Wrap async operations with automatic error handling
+const result = await withErrorHandling(
+  async () => {
+    return await complexAsyncOperation();
+  },
+  'complexAsyncOperation',
+  { userId: req.user.id },
+  { fallback: 'default_value' } // optional fallback
+);
+```
+
+### Severity-Based Logging
+
+```javascript
+// Log errors with appropriate severity levels
+await logErrorWithSeverity(
+  error,
+  'functionName',
+  { context: 'additional info' },
+  ErrorSeverity.CRITICAL
+);
+
+// Available severity levels:
+ErrorSeverity.LOW       // Expected errors, user mistakes
+ErrorSeverity.MEDIUM    // Operational issues, recoverable  
+ErrorSeverity.HIGH      // Service degradation, requires attention
+ErrorSeverity.CRITICAL  // Service disruption, immediate response needed
+```
+
+## Basic Usage
+
+```javascript
 // Example of using qerrors as Express middleware:
 app.use((err, req, res, next) => {
         qerrors(err, 'RouteName', req, res, next);
