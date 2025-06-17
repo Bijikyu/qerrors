@@ -127,6 +127,16 @@ const {qerrors} = require('qerrors');
 const { qerrors, logger } = require('qerrors');
 const log = await logger; //await logger initialization before use
 
+// Import centralized error handling utilities:
+const { 
+  qerrors, 
+  handleControllerError, 
+  withErrorHandling, 
+  createTypedError,
+  ErrorTypes,
+  ErrorSeverity 
+} = require('qerrors');
+
 // Example of using qerrors as Express middleware:
 app.use((err, req, res, next) => {
         qerrors(err, 'RouteName', req, res, next);
