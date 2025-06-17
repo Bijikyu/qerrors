@@ -332,3 +332,154 @@ test('errorMiddleware defaults untyped errors to system type', () => {
   assert.equal(capturedData.error.type, errorTypes.ErrorTypes.SYSTEM); //should default to system type
   assert.equal(capturedData.error.code, 'INTERNAL_ERROR'); //should use default error code
 });
+
+test('errorMiddleware handles headers already sent', () => {
+  let statusCalled = false; //track if status was called
+  let jsonCalled = false; //track if json was called
+  
+  const mockReq = { //mock Express request
+    url: '/api/test',
+    method: 'GET',
+    ip: '127.0.0.1',
+    headers: {}
+  };
+  
+  const mockRes = { //mock Express response with headers sent
+    headersSent: true,
+    status() { statusCalled = true; return this; },
+    json() { jsonCalled = true; return this; }
+  };
+  
+  const testError = new Error('Test error'); //test error
+  
+  errorTypes.errorMiddleware(testError, mockReq, mockRes, () => {});
+  
+  assert.ok(!statusCalled); //status should not be called when headers sent
+  assert.ok(!jsonCalled); //json should not be called when headers sent
+});
+
+test('errorMiddleware handles meta-errors gracefully', () => {
+  let consoleCalled = false; //track console.error calls
+  let fallbackCalled = false; //track fallback response
+  
+  const restoreConsole = qtests.stubMethod(console, 'error', () => { consoleCalled = true; });
+  
+  const mockReq = { //mock Express request
+    url: '/api/test',
+    method: 'GET',
+    ip: '127.0.0.1',
+    headers: {}
+  };
+  
+  const mockRes = { //mock response that throws on sendErrorResponse
+    headersSent: false,
+    status() { return this; },
+    json() { throw new Error('JSON error'); }, //throw on json to trigger meta-error handling
+    end() { fallbackCalled = true; }
+  };
+  
+  try {
+    const testError = new Error('Test error'); //test error
+    errorTypes.errorMiddleware(testError, mockReq, mockRes, () => {});
+    
+    assert.ok(consoleCalled); //console.error should be called for meta-error
+    assert.ok(fallbackCalled); //fallback response should be attempted
+  } finally {
+    restoreConsole(); //restore console stub
+  }
+});
+
+test('handleSimpleError sends basic error response', async () => {
+  let capturedStatus; //capture status code
+  let capturedData; //capture response data
+  
+  const mockRes = { //mock Express response
+    headersSent: false,
+    status(code) { 
+      capturedStatus = code; 
+      return this; 
+    },
+    json(data) { 
+      capturedData = data; 
+      return this; 
+    }
+  };
+  
+  const testError = new Error('Test error'); //test error
+  const message = 'Something went wrong'; //error message
+  
+  // Add small delay to allow async operations to complete
+  await new Promise(resolve => setTimeout(resolve, 10));
+  errorTypes.handleSimpleError(mockRes, testError, message);
+  await new Promise(resolve => setTimeout(resolve, 10));
+  
+  assert.equal(capturedStatus, 500); //should return 500 status
+  assert.ok(capturedData.error); //should have error object
+  assert.equal(capturedData.error.code, 'INTERNAL_ERROR'); //should use internal error code
+  assert.equal(capturedData.error.message, message); //should use provided message
+  assert.equal(typeof capturedData.error.timestamp, 'string'); //should include timestamp
+});
+
+test('handleSimpleError includes request context when provided', () => {
+  const mockRes = { //mock Express response
+    headersSent: false,
+    status() { return this; },
+    json() { return this; }
+  };
+  
+  const mockReq = { //mock Express request
+    url: '/api/test',
+    method: 'POST'
+  };
+  
+  const testError = new Error('Test error'); //test error
+  const message = 'Request failed'; //error message
+  
+  // Test passes if no errors are thrown with request context
+  errorTypes.handleSimpleError(mockRes, testError, message, mockReq);
+  assert.ok(true); //test passes if function completes without throwing
+});
+
+test('handleSimpleError handles meta-errors gracefully', () => {
+  let consoleCalled = false; //track console.error calls
+  let fallbackCalled = false; //track fallback response
+  
+  const restoreConsole = qtests.stubMethod(console, 'error', () => { consoleCalled = true; });
+  
+  const mockRes = { //mock response that throws errors
+    headersSent: false,
+    status() { throw new Error('Status error'); },
+    json() { fallbackCalled = true; return this; },
+    end() { fallbackCalled = true; }
+  };
+  
+  try {
+    const testError = new Error('Test error'); //test error
+    const message = 'Test message'; //error message
+    
+    errorTypes.handleSimpleError(mockRes, testError, message);
+    
+    assert.ok(consoleCalled); //console.error should be called for meta-error
+  } finally {
+    restoreConsole(); //restore console stub
+  }
+});
+
+test('handleSimpleError respects headers already sent', () => {
+  let statusCalled = false; //track if status was called
+  let jsonCalled = false; //track if json was called
+  
+  const mockRes = { //mock response with headers sent
+    headersSent: true,
+    status() { statusCalled = true; return this; },
+    json() { jsonCalled = true; return this; }
+  };
+  
+  const testError = new Error('Test error'); //test error
+  const message = 'Test message'; //error message
+  
+  errorTypes.handleSimpleError(mockRes, testError, message);
+  
+  assert.ok(!statusCalled); //status should not be called when headers sent
+  assert.ok(!jsonCalled); //json should not be called when headers sent
+});

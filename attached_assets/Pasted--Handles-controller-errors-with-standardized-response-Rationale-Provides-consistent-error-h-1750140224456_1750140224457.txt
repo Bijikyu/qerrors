@@ -1,0 +1,186 @@
+* Handles controller errors with standardized response
+ * 
+ * Rationale: Provides consistent error handling across all controllers
+ * while maintaining existing responseUtils integration. Automatically
+ * determines appropriate status codes and response format.
+ * 
+ * @param {Object} res - Express response object
+ * @param {Object} error - Error object or Error instance
+ * @param {string} functionName - Name of function where error occurred
+ * @param {Object} context - Request context
+ * @param {string} userMessage - Optional user-friendly message override
+ */
+function handleControllerError(res, error, functionName, context = {}, userMessage = null) { // send standardized error response
+    const errorType = error.type || ErrorTypes.SYSTEM;
+    const severity = ERROR_SEVERITY_MAP[errorType];
+    const statusCode = ERROR_STATUS_MAP[errorType];
+
+    // Log the error with appropriate severity
+    logError(error, functionName, context, severity);
+
+    // Create standardized error response
+    const errorResponse = createError(
+        error.code || 'INTERNAL_ERROR',
+        userMessage || error.message || 'An internal error occurred',
+        errorType,
+        context
+    );
+
+    // Send standardized JSON response
+    sendJsonResponse(res, statusCode, { error: errorResponse });
+}
+
+/**
+ * Wraps async operations with standardized error handling
+ * 
+ * Rationale: Reduces boilerplate code in controllers while ensuring
+ * consistent error handling. Automatically catches and handles errors
+ * according to their type and severity.
+ * 
+ * @param {Function} operation - Async operation to execute
+ * @param {string} functionName - Name for logging purposes
+ * @param {Object} context - Request context
+ * @param {*} fallback - Fallback value on error (optional)
+ * @returns {*} Operation result or fallback value
+ */
+async function withErrorHandling(operation, functionName, context = {}, fallback = null) { // execute operation with safety net
+    try {
+        const result = await operation();
+        console.log(`${functionName} is returning result`);
+        return result;
+    } catch (error) {
+        logError(error, functionName, context);
+        return fallback;
+    }
+}
+
+/**
+ * Creates specific error types with predefined configurations
+ * 
+ * Rationale: Provides convenient error creation functions for common
+ * error scenarios, ensuring consistent error codes and messages.
+ */
+const ErrorFactory = {
+    /**
+     * Creates validation error for user input issues
+     */
+    validation(message, field = null, context = {}) {
+        return createError(
+            'VALIDATION_ERROR',
+            message,
+            ErrorTypes.VALIDATION,
+            { ...context, field }
+        );
+    },
+
+    /**
+     * Creates authentication error for login/auth issues
+     */
+    authentication(message = 'Authentication required', context = {}) {
+        return createError(
+            'AUTHENTICATION_ERROR',
+            message,
+            ErrorTypes.AUTHENTICATION,
+            context
+        );
+    },
+
+    /**
+     * Creates authorization error for permission issues
+     */
+    authorization(message = 'Insufficient permissions', context = {}) {
+        return createError(
+            'AUTHORIZATION_ERROR',
+            message,
+            ErrorTypes.AUTHORIZATION,
+            context
+        );
+    },
+
+    /**
+     * Creates not found error for missing resources
+     */
+    notFound(resource, context = {}) {
+        return createError(
+            'NOT_FOUND',
+            `${resource} not found`,
+            ErrorTypes.NOT_FOUND,
+            context
+        );
+    },
+
+    /**
+     * Creates rate limit error for quota violations
+     */
+    rateLimit(message = 'Rate limit exceeded', context = {}) {
+        return createError(
+            'RATE_LIMIT_EXCEEDED',
+            message,
+            ErrorTypes.RATE_LIMIT,
+            context
+        );
+    },
+
+    /**
+     * Creates network error for external service issues
+     */
+    network(message, service = null, context = {}) {
+        return createError(
+            'NETWORK_ERROR',
+            message,
+            ErrorTypes.NETWORK,
+            { ...context, service }
+        );
+    },
+
+    /**
+     * Creates database error for data persistence issues
+     */
+    database(message, operation = null, context = {}) {
+        return createError(
+            'DATABASE_ERROR',
+            message,
+            ErrorTypes.DATABASE,
+            { ...context, operation }
+        );
+    },
+
+    /**
+     * Creates system error for internal issues
+     */
+    system(message, component = null, context = {}) {
+        return createError(
+            'SYSTEM_ERROR',
+            message,
+            ErrorTypes.SYSTEM,
+            { ...context, component }
+        );
+    }
+};
+
+/**
+ * Middleware for global error handling
+ * 
+ * Rationale: Catches any unhandled errors in the Express middleware chain
+ * and ensures they are properly logged and responded to with consistent format.
+ */
+function errorMiddleware(error, req, res, next) {
+    const context = {
+        req,
+        url: req.url,
+        method: req.method,
+        ip: req.ip
+    };
+
+    handleControllerError(res, error, 'errorMiddleware', context);
+}
+
+module.exports = {
+    ErrorTypes,
+    ErrorSeverity,
+    createError,
+    logError,
+    handleControllerError,
+    withErrorHandling,
+    ErrorFactory,
+    errorMiddleware
