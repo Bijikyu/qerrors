@@ -42,7 +42,20 @@ module.exports = { //(primary export object allows destructuring imports like { 
   ErrorSeverity: errorTypes.ErrorSeverity, //(severity level constants for monitoring)
   ErrorFactory: errorTypes.ErrorFactory, //(convenient error creation utilities for common scenarios)
   errorMiddleware: errorTypes.errorMiddleware, //(Express global error handling middleware)
-  handleSimpleError: errorTypes.handleSimpleError //(simplified error response handler for basic scenarios)
+  handleSimpleError: errorTypes.handleSimpleError, //(simplified error response handler for basic scenarios)
+
+  // Enhanced logging utilities with security and performance monitoring
+  logDebug: logger.logDebug, //(enhanced debug logging with sanitization)
+  logInfo: logger.logInfo, //(enhanced info logging with sanitization)
+  logWarn: logger.logWarn, //(enhanced warn logging with performance monitoring)
+  logError: logger.logError, //(enhanced error logging with performance monitoring)
+  logFatal: logger.logFatal, //(enhanced fatal logging with performance monitoring)
+  logAudit: logger.logAudit, //(enhanced audit logging for compliance)
+  createPerformanceTimer: logger.createPerformanceTimer, //(performance timer utility for operation monitoring)
+  sanitizeMessage: logger.sanitizeMessage, //(message sanitization utility for security)
+  sanitizeContext: logger.sanitizeContext, //(context sanitization utility for security)
+  createEnhancedLogEntry: logger.createEnhancedLogEntry, //(enhanced log entry creator with metadata)
+  LOG_LEVELS: logger.LOG_LEVELS //(log level constants with priorities and colors)
 };
 
 module.exports.default = qerrors; //(default export for backward compatibility allowing both 'const qerrors = require("qerrors")' and destructuring patterns, dual strategy accommodates different developer preferences)
