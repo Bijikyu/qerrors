@@ -6,6 +6,7 @@
  * and structured logging capabilities.
  */
 
+const { test } = require('node:test'); //node test framework
 const assert = require('assert'); //node assert for test validation
 const qtests = require('qtests'); //qerrors test utilities for mocking and stubbing
 const logger = require('../lib/logger'); //enhanced logger module
@@ -95,7 +96,7 @@ test('sanitizeContext handles simple objects', () => {
     const result = logger.sanitizeContext(context);
     assert.equal(result.user, 'john'); //non-sensitive data preserved
     assert.equal(result.amount, 100); //numeric data preserved
-    assert.ok(result.cardNumber.includes('[CARD-REDACTED]')); //sensitive data masked
+    assert.equal(result.cardNumber, '[REDACTED]'); //sensitive key completely masked for security
 });
 
 test('sanitizeContext masks sensitive keys', () => {
@@ -122,7 +123,7 @@ test('sanitizeContext handles nested objects recursively', () => {
             }
         },
         payment: {
-            card: SENSITIVE_DATA.creditCard,
+            cardInfo: SENSITIVE_DATA.creditCard,
             amount: 100
         }
     };
@@ -131,7 +132,7 @@ test('sanitizeContext handles nested objects recursively', () => {
     assert.equal(result.user.credentials.password, '[REDACTED]'); //nested sensitive key masked
     assert.equal(result.user.credentials.apiKey, '[REDACTED]'); //nested sensitive key masked
     assert.equal(result.payment.amount, 100); //normal nested field preserved
-    assert.ok(result.payment.card.includes('[CARD-REDACTED]')); //nested sensitive data masked
+    assert.ok(result.payment.cardInfo.includes('[CARD-REDACTED]')); //nested sensitive data sanitized in string
 });
 
 test('sanitizeContext handles arrays', () => {
@@ -140,15 +141,15 @@ test('sanitizeContext handles arrays', () => {
             { name: 'john', password: 'secret1' },
             { name: 'jane', password: 'secret2' }
         ],
-        cards: [SENSITIVE_DATA.creditCard, '5555-4444-3333-2222']
+        paymentInfo: [SENSITIVE_DATA.creditCard, '5555-4444-3333-2222']
     };
     const result = logger.sanitizeContext(context);
     assert.equal(result.users[0].name, 'john'); //array item field preserved
     assert.equal(result.users[0].password, '[REDACTED]'); //array item sensitive key masked
     assert.equal(result.users[1].name, 'jane'); //array item field preserved
     assert.equal(result.users[1].password, '[REDACTED]'); //array item sensitive key masked
-    assert.ok(result.cards[0].includes('[CARD-REDACTED]')); //array sensitive data masked
-    assert.ok(result.cards[1].includes('[CARD-REDACTED]')); //array sensitive data masked
+    assert.ok(result.paymentInfo[0].includes('[CARD-REDACTED]')); //array sensitive data masked
+    assert.ok(result.paymentInfo[1].includes('[CARD-REDACTED]')); //array sensitive data masked
 });
 
 test('sanitizeContext handles null and undefined values', () => {
