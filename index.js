@@ -39,7 +39,9 @@ module.exports = { //(primary export object allows destructuring imports like { 
   createTypedError: errorTypes.createTypedError, //(typed error factory for consistent error classification)
   createStandardError: errorTypes.createStandardError, //(standardized error object factory)
   ErrorTypes: errorTypes.ErrorTypes, //(error type constants for classification)
-  ErrorSeverity: errorTypes.ErrorSeverity //(severity level constants for monitoring)
+  ErrorSeverity: errorTypes.ErrorSeverity, //(severity level constants for monitoring)
+  ErrorFactory: errorTypes.ErrorFactory, //(convenient error creation utilities for common scenarios)
+  errorMiddleware: errorTypes.errorMiddleware //(Express global error handling middleware)
 };
 
 module.exports.default = qerrors; //(default export for backward compatibility allowing both 'const qerrors = require("qerrors")' and destructuring patterns, dual strategy accommodates different developer preferences)

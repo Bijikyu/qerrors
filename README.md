@@ -134,7 +134,9 @@ const {
   withErrorHandling, 
   createTypedError,
   ErrorTypes,
-  ErrorSeverity 
+  ErrorSeverity,
+  ErrorFactory,
+  errorMiddleware
 } = require('qerrors');
 ```
 
@@ -168,6 +170,23 @@ ErrorTypes.NETWORK         // 502 - External service errors
 ErrorTypes.DATABASE        // 500 - Database errors
 ErrorTypes.SYSTEM          // 500 - Internal system errors
 ErrorTypes.CONFIGURATION   // 500 - Config/setup errors
+```
+
+### Convenient Error Factory
+
+```javascript
+// Use ErrorFactory for common error scenarios with consistent formatting
+const validationError = ErrorFactory.validation('Email is required', 'email');
+const authError = ErrorFactory.authentication('Invalid credentials');
+const notFoundError = ErrorFactory.notFound('User');
+const dbError = ErrorFactory.database('Connection failed', 'INSERT');
+
+// All factory methods accept optional context
+const networkError = ErrorFactory.network(
+  'API timeout', 
+  'payment-service', 
+  { timeout: 5000, retries: 3 }
+);
 ```
 
 ### Controller Error Handling
@@ -222,6 +241,32 @@ ErrorSeverity.LOW       // Expected errors, user mistakes
 ErrorSeverity.MEDIUM    // Operational issues, recoverable  
 ErrorSeverity.HIGH      // Service degradation, requires attention
 ErrorSeverity.CRITICAL  // Service disruption, immediate response needed
+```
+
+### Global Error Middleware
+
+```javascript
+// Add global error handling to your Express app
+const express = require('express');
+const app = express();
+
+// Your routes here...
+app.get('/api/users/:id', async (req, res) => {
+  const user = await getUserById(req.params.id);
+  if (!user) {
+    throw ErrorFactory.notFound('User');
+  }
+  res.json(user);
+});
+
+// Add error middleware as the last middleware
+app.use(errorMiddleware);
+
+// The middleware will automatically:
+// - Log errors with qerrors AI analysis
+// - Send standardized JSON responses
+// - Map error types to appropriate HTTP status codes
+// - Include request context for debugging
 ```
 
 ## Basic Usage

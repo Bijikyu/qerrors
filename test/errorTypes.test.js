@@ -180,3 +180,155 @@ test('createTypedError uses defaults when optional parameters omitted', () => {
   assert.equal(error.statusCode, 400); //should map status from validation type
   assert.equal(error.severity, errorTypes.ErrorSeverity.LOW); //should map severity from validation type
 });
+
+test('ErrorFactory.validation creates properly formatted validation error', () => {
+  const error = errorTypes.ErrorFactory.validation('Email is required', 'email', { userId: 123 });
+  
+  assert.equal(error.code, 'VALIDATION_ERROR'); //should use validation error code
+  assert.equal(error.message, 'Email is required'); //should use provided message
+  assert.equal(error.type, errorTypes.ErrorTypes.VALIDATION); //should be validation type
+  assert.equal(error.context.field, 'email'); //should include field context
+  assert.equal(error.context.userId, 123); //should preserve additional context
+  assert.equal(typeof error.timestamp, 'string'); //should include timestamp
+  assert.equal(typeof error.requestId, 'string'); //should include request ID
+});
+
+test('ErrorFactory.authentication creates auth error with default message', () => {
+  const error = errorTypes.ErrorFactory.authentication();
+  
+  assert.equal(error.code, 'AUTHENTICATION_ERROR'); //should use auth error code
+  assert.equal(error.message, 'Authentication required'); //should use default message
+  assert.equal(error.type, errorTypes.ErrorTypes.AUTHENTICATION); //should be auth type
+});
+
+test('ErrorFactory.authentication accepts custom message and context', () => {
+  const error = errorTypes.ErrorFactory.authentication('Invalid token', { token: 'abc123' });
+  
+  assert.equal(error.message, 'Invalid token'); //should use custom message
+  assert.equal(error.context.token, 'abc123'); //should include context
+});
+
+test('ErrorFactory.authorization creates authz error with default message', () => {
+  const error = errorTypes.ErrorFactory.authorization();
+  
+  assert.equal(error.code, 'AUTHORIZATION_ERROR'); //should use authz error code
+  assert.equal(error.message, 'Insufficient permissions'); //should use default message
+  assert.equal(error.type, errorTypes.ErrorTypes.AUTHORIZATION); //should be authz type
+});
+
+test('ErrorFactory.notFound creates resource-specific error', () => {
+  const error = errorTypes.ErrorFactory.notFound('User', { id: 456 });
+  
+  assert.equal(error.code, 'NOT_FOUND'); //should use not found error code
+  assert.equal(error.message, 'User not found'); //should include resource in message
+  assert.equal(error.type, errorTypes.ErrorTypes.NOT_FOUND); //should be not found type
+  assert.equal(error.context.id, 456); //should include context
+});
+
+test('ErrorFactory.rateLimit creates rate limit error with default message', () => {
+  const error = errorTypes.ErrorFactory.rateLimit();
+  
+  assert.equal(error.code, 'RATE_LIMIT_EXCEEDED'); //should use rate limit error code
+  assert.equal(error.message, 'Rate limit exceeded'); //should use default message
+  assert.equal(error.type, errorTypes.ErrorTypes.RATE_LIMIT); //should be rate limit type
+});
+
+test('ErrorFactory.network creates network error with service context', () => {
+  const error = errorTypes.ErrorFactory.network('Connection timeout', 'external-api', { timeout: 5000 });
+  
+  assert.equal(error.code, 'NETWORK_ERROR'); //should use network error code
+  assert.equal(error.message, 'Connection timeout'); //should use provided message
+  assert.equal(error.type, errorTypes.ErrorTypes.NETWORK); //should be network type
+  assert.equal(error.context.service, 'external-api'); //should include service context
+  assert.equal(error.context.timeout, 5000); //should preserve additional context
+});
+
+test('ErrorFactory.database creates database error with operation context', () => {
+  const error = errorTypes.ErrorFactory.database('Query failed', 'SELECT', { table: 'users' });
+  
+  assert.equal(error.code, 'DATABASE_ERROR'); //should use database error code
+  assert.equal(error.message, 'Query failed'); //should use provided message
+  assert.equal(error.type, errorTypes.ErrorTypes.DATABASE); //should be database type
+  assert.equal(error.context.operation, 'SELECT'); //should include operation context
+  assert.equal(error.context.table, 'users'); //should preserve additional context
+});
+
+test('ErrorFactory.system creates system error with component context', () => {
+  const error = errorTypes.ErrorFactory.system('Memory allocation failed', 'cache', { size: '1GB' });
+  
+  assert.equal(error.code, 'SYSTEM_ERROR'); //should use system error code
+  assert.equal(error.message, 'Memory allocation failed'); //should use provided message
+  assert.equal(error.type, errorTypes.ErrorTypes.SYSTEM); //should be system type
+  assert.equal(error.context.component, 'cache'); //should include component context
+  assert.equal(error.context.size, '1GB'); //should preserve additional context
+});
+
+test('errorMiddleware handles errors with proper response format', () => {
+  let capturedStatus; //capture status code
+  let capturedData; //capture response data
+  
+  const mockReq = { //mock Express request
+    url: '/api/test',
+    method: 'GET',
+    ip: '127.0.0.1',
+    headers: { 'user-agent': 'test-agent' }
+  };
+  
+  const mockRes = { //mock Express response
+    headersSent: false,
+    status(code) { 
+      capturedStatus = code; 
+      return this; 
+    },
+    json(data) { 
+      capturedData = data; 
+      return this; 
+    }
+  };
+  
+  const testError = errorTypes.createTypedError(
+    'Test error',
+    errorTypes.ErrorTypes.VALIDATION,
+    'TEST_ERROR'
+  ); //create typed error for middleware
+  
+  errorTypes.errorMiddleware(testError, mockReq, mockRes, () => {});
+  
+  assert.equal(capturedStatus, 400); //validation error should return 400
+  assert.ok(capturedData.error); //response should contain error object
+  assert.equal(capturedData.error.code, 'TEST_ERROR'); //error code should match
+  assert.equal(capturedData.error.message, 'Test error'); //error message should match
+  assert.equal(capturedData.error.type, errorTypes.ErrorTypes.VALIDATION); //type should match
+});
+
+test('errorMiddleware defaults untyped errors to system type', () => {
+  let capturedStatus; //capture status code
+  let capturedData; //capture response data
+  
+  const mockReq = { //mock Express request
+    url: '/api/test',
+    method: 'GET',
+    ip: '127.0.0.1',
+    headers: {}
+  };
+  
+  const mockRes = { //mock Express response
+    headersSent: false,
+    status(code) { 
+      capturedStatus = code; 
+      return this; 
+    },
+    json(data) { 
+      capturedData = data; 
+      return this; 
+    }
+  };
+  
+  const plainError = new Error('Plain error'); //untyped error
+  
+  errorTypes.errorMiddleware(plainError, mockReq, mockRes, () => {});
+  
+  assert.equal(capturedStatus, 500); //should default to 500 for system error
+  assert.equal(capturedData.error.type, errorTypes.ErrorTypes.SYSTEM); //should default to system type
+  assert.equal(capturedData.error.code, 'INTERNAL_ERROR'); //should use default error code
+});
