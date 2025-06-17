@@ -1,0 +1,84 @@
+const logEntry = this.createLogEntry(levelConfig, message, context, requestId);
+
+  // Console output with color coding for development
+  if (this.config.enableConsoleLogging) {
+    this.outputToConsole(logEntry, levelConfig);
+  }
+
+  // File output for persistence and monitoring
+  if (this.config.enableFileLogging) {
+    this.outputToFile(logEntry, levelConfig);
+  }
+
+  // Return log entry for testing purposes
+  return logEntry;
+}
+
+/**
+ * Structured Log Entry Creation
+ * 
+ * Purpose: Creates consistent log entry format for all log messages
+ * Ensures all logs contain necessary metadata for filtering and analysis.
+ */
+createLogEntry(levelConfig, message, context, requestId) {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    level: levelConfig.name,
+    message: this.sanitizeMessage(message, levelConfig.name),
+    service: 'scrooge-payment-api',
+    version: require('../package.json').version || '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    pid: process.pid
+  };
+
+  // Add request correlation ID if available
+  if (requestId) {
+    entry.requestId = requestId;
+  }
+
+  // Add context data if provided
+  if (context && Object.keys(context).length > 0) {
+    entry.context = this.sanitizeContext(context, levelConfig.name);
+  }
+
+  // Add memory usage for performance monitoring
+  if (levelConfig.priority >= LOG_LEVELS.WARN.priority) {
+    const memUsage = process.memoryUsage();
+    entry.memory = {
+      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
+      heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+      external: Math.round(memUsage.external / 1024 / 1024)
+    };
+  }
+
+  return entry;
+}
+
+/**
+ * Security-Aware Message Sanitization
+ * 
+ * Purpose: Removes or masks sensitive information from log messages
+ * Critical for payment applications to prevent logging of sensitive data.
+ */
+sanitizeMessage(message, level) {
+  if (typeof message !== 'string') {
+    message = JSON.stringify(message);
+  }
+
+  // Mask sensitive payment information
+  const sensitivePatterns = [
+    /(\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b)/g, // Credit card numbers
+    /(\b\d{3}[\s-]?\d{2}[\s-]?\d{4}\b)/g, // SSN patterns
+    /(cvv?[:=]\s*)\d{3,4}/gi, // CVV codes
+    /(password[:=]\s*)[\w\W]+/gi, // Passwords
+    /(api[_-]?key[:=]\s*)[\w\W]+/gi // API keys
+  ];
+
+  let sanitized = message;
+  sensitivePatterns.forEach(pattern => {
+    sanitized = sanitized.replace(pattern, (match, prefix) => {
+      return prefix ? prefix + '[REDACTED]' : '[REDACTED]';
+    });
+  });
+
+  return sanitized;

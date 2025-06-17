@@ -446,10 +446,10 @@ test('handleSimpleError handles meta-errors gracefully', () => {
   
   const restoreConsole = qtests.stubMethod(console, 'error', () => { consoleCalled = true; });
   
-  const mockRes = { //mock response that throws errors
+  const mockRes = { //mock response that throws errors during error response creation
     headersSent: false,
-    status() { throw new Error('Status error'); },
-    json() { fallbackCalled = true; return this; },
+    status() { return this; },
+    json() { throw new Error('JSON error'); }, //throw on json to trigger meta-error handling
     end() { fallbackCalled = true; }
   };
   
@@ -459,7 +459,8 @@ test('handleSimpleError handles meta-errors gracefully', () => {
     
     errorTypes.handleSimpleError(mockRes, testError, message);
     
-    assert.ok(consoleCalled); //console.error should be called for meta-error
+    assert.ok(consoleCalled); //console.error should be called for meta-error  
+    assert.ok(fallbackCalled); //fallback response should be attempted
   } finally {
     restoreConsole(); //restore console stub
   }
