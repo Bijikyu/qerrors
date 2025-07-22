@@ -59,6 +59,10 @@ module.exports = { //(primary export object allows destructuring imports like { 
   createPerformanceTimer: logger.createPerformanceTimer, //(performance timer utility for operation monitoring)
   createEnhancedLogEntry: logger.createEnhancedLogEntry, //(enhanced log entry creator with metadata)
   LOG_LEVELS: logger.LOG_LEVELS, //(log level constants with priorities and colors)
+  
+  // Simple Winston logger for basic logging needs
+  simpleLogger: logger.simpleLogger, //(basic Winston logger instance with console output)
+  createSimpleWinstonLogger: logger.createSimpleWinstonLogger, //(factory for creating simple Winston loggers)
 
   // Data sanitization utilities for security
   sanitizeMessage: sanitization.sanitizeMessage, //(message sanitization utility for security)
