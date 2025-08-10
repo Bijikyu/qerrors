@@ -8,11 +8,11 @@ function reloadQerrors() { //reload module to apply env vars
   return require('../lib/qerrors');
 }
 
-function withToken(token) { //temporarily set OPENAI_TOKEN
-  const orig = process.env.OPENAI_TOKEN; //save original
-  if (token === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = token; }
+function withToken(token) { //temporarily set OPENAI_API_KEY
+  const orig = process.env.OPENAI_API_KEY; //save original
+  if (token === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = token; }
   return () => { //restore previous value
-    if (orig === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = orig; }
+    if (orig === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = orig; }
   };
 }
 

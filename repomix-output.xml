@@ -205,8 +205,8 @@ test('qerrors integration logs error and analyzes context', async () => {
   const realLogger = await logger; //resolve logger promise
   const origLog = realLogger.error; //store original function
   realLogger.error = (...args) => { logArg = args[0]; return origLog.apply(realLogger, args); }; //wrap logger.error to capture call //(wrap to spy while preserving)
-  const origToken = process.env.OPENAI_TOKEN; //store token to restore after test
-  process.env.OPENAI_TOKEN = 'tkn'; //set token for analyzeError to run
+  const origToken = process.env.OPENAI_API_KEY; //store token to restore after test
+  process.env.OPENAI_API_KEY = 'tkn'; //set token for analyzeError to run
   const res = createRes(); //create mock res
   const err = new Error('boom'); //sample error
   try {
@@ -215,7 +215,7 @@ test('qerrors integration logs error and analyzes context', async () => {
   } finally {
     restoreAxios(); //restore axios.post
     realLogger.error = origLog; //restore logger.error
-    if (origToken === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = origToken; } //restore token after test
+    if (origToken === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = origToken; } //restore token after test
   }
   assert.ok(logArg.uniqueErrorName); //ensure log contains id
   assert.equal(logArg.uniqueErrorName, err.uniqueErrorName); //id matches error
@@ -2427,11 +2427,11 @@ function reloadQerrors() { //reload module to apply env vars
   return require('../lib/qerrors');
 }
 
-function withToken(token) { //temporarily set OPENAI_TOKEN
-  const orig = process.env.OPENAI_TOKEN; //save original
-  if (token === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = token; }
+function withToken(token) { //temporarily set OPENAI_API_KEY
+  const orig = process.env.OPENAI_API_KEY; //save original
+  if (token === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = token; }
   return () => { //restore previous value
-    if (orig === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = orig; }
+    if (orig === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = orig; }
   };
 }
 
@@ -2748,7 +2748,7 @@ test('getQueueLength reflects queued analyses', async () => {
   const origQueue = process.env.QERRORS_QUEUE_LIMIT; //backup env
   process.env.QERRORS_CONCURRENCY = '1'; //force single concurrency
   process.env.QERRORS_QUEUE_LIMIT = '2'; //allow one queued item
-  process.env.OPENAI_TOKEN = 'tkn'; //enable analyzeError path
+  process.env.OPENAI_API_KEY = 'tkn'; //enable analyzeError path
   const qerrors = reloadQerrors(); //reload to apply env
   const logger = await require('../lib/logger'); //logger instance
   const restoreWarn = qtests.stubMethod(logger, 'warn', () => {}); //silence warn
@@ -2769,7 +2769,7 @@ test('getQueueLength reflects queued analyses', async () => {
     restorePost(); //restore axios stub
     if (origConc === undefined) { delete process.env.QERRORS_CONCURRENCY; } else { process.env.QERRORS_CONCURRENCY = origConc; }
     if (origQueue === undefined) { delete process.env.QERRORS_QUEUE_LIMIT; } else { process.env.QERRORS_QUEUE_LIMIT = origQueue; }
-    delete process.env.OPENAI_TOKEN; //cleanup token
+    delete process.env.OPENAI_API_KEY; //cleanup token
     reloadQerrors(); //reset state
   }
 });
@@ -3181,10 +3181,10 @@ const test = require('node:test'); //node test runner
 const assert = require('node:assert/strict'); //strict assertions
 const qtests = require('qtests'); //helper for stubbing
 
-function withOpenAIToken(token) { //temporarily modify OPENAI_TOKEN
-  const orig = process.env.OPENAI_TOKEN; //remember current token
-  if (token === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = token; }
-  return () => { if (orig === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = orig; } };
+function withOpenAIToken(token) { //temporarily modify OPENAI_API_KEY
+  const orig = process.env.OPENAI_API_KEY; //remember current token
+  if (token === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = token; }
+  return () => { if (orig === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = orig; } };
 }
 
 function reloadQerrors() { //load qerrors fresh with current env
@@ -3336,11 +3336,11 @@ const qerrors = qerrorsModule; //default export used for call
 const { axiosInstance } = qerrorsModule; //axios instance for capture
 const logger = require('../lib/logger'); //promise resolving logger for capture
 
-function withOpenAIToken(token) { //temporarily set OPENAI_TOKEN
-  const orig = process.env.OPENAI_TOKEN; //save original value
-  if (token === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = token; } //apply new token
+function withOpenAIToken(token) { //temporarily set OPENAI_API_KEY
+  const orig = process.env.OPENAI_API_KEY; //save original value
+  if (token === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = token; } //apply new token
   return () => { //return restore function
-    if (orig === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = orig; } //restore saved token
+    if (orig === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = orig; } //restore saved token
   };
 }
 
@@ -3993,18 +3993,18 @@ const { postWithRetry } = qerrorsModule; //helper used for retrying requests
 const config = require('../lib/config'); //load env defaults for assertions //(new import)
 
 
-function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
-  const orig = process.env.OPENAI_TOKEN; //(capture existing value)
+function withOpenAIToken(token) { //(temporarily set OPENAI_API_KEY)
+  const orig = process.env.OPENAI_API_KEY; //(capture existing value)
   if (token === undefined) { //(check if token unset)
-    delete process.env.OPENAI_TOKEN; //(remove from env)
+    delete process.env.OPENAI_API_KEY; //(remove from env)
   } else {
-    process.env.OPENAI_TOKEN = token; //(assign token)
+    process.env.OPENAI_API_KEY = token; //(assign token)
   }
   return () => { //(return restore)
     if (orig === undefined) { //(restore by delete)
-      delete process.env.OPENAI_TOKEN; //(delete if absent before)
+      delete process.env.OPENAI_API_KEY; //(delete if absent before)
     } else {
-      process.env.OPENAI_TOKEN = orig; //(otherwise restore value)
+      process.env.OPENAI_API_KEY = orig; //(otherwise restore value)
     }
   };
 }
@@ -4042,7 +4042,7 @@ test('analyzeError handles AxiosError gracefully', async () => {
 
 // Scenario: return null when API token is missing
 test('analyzeError returns null without token', async () => {
-  const restoreToken = withOpenAIToken(undefined); //(unset OPENAI_TOKEN)
+  const restoreToken = withOpenAIToken(undefined); //(unset OPENAI_API_KEY)
   try {
     const err = new Error('no token');
     err.uniqueErrorName = 'NOTOKEN';
@@ -6353,9 +6353,9 @@ async function analyzeError(error, contextString) {
                 if (cached) { verboseLog(`cache hit for ${error.uniqueErrorName}`); return cached; } //return when present and valid
         }
 
-        if (!process.env.OPENAI_TOKEN) { //(graceful degradation when API token unavailable)
+        if (!process.env.OPENAI_API_KEY) { //(graceful degradation when API token unavailable)
                 if (!warnedMissingToken) { //(check if warning already logged to avoid console spam)
-                        console.error(`Missing OPENAI_TOKEN in environment variables.`); //(inform developer about missing token)
+                        console.error(`Missing OPENAI_API_KEY in environment variables.`); //(inform developer about missing token)
                         warnedMissingToken = true; //(set flag so we do not warn again on subsequent calls)
                 }
                 return null; //(skip analysis when token absent)
@@ -6386,7 +6386,7 @@ Stack: ${truncatedStack}`; //(JSON format prompt for structured response with ex
         try {
                 response = await module.exports.postWithRetry(config.getEnv('QERRORS_OPENAI_URL'), openaiBody, { //use env url for retry //(use new env)
                         headers: {
-                                'Authorization': `Bearer ${process.env.OPENAI_TOKEN}`,
+                                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
                                 'Content-Type': 'application/json'
                         }
                 });
@@ -6667,15 +6667,15 @@ Intelligent error handling middleware that combines traditional logging with AI-
 ## Environment Variables
 
 
-qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. Only `OPENAI_TOKEN` must be provided manually to enable AI analysis. Obtain your key from [OpenAI](https://openai.com) and set the variable in your environment.
+qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. Only `OPENAI_API_KEY` must be provided manually to enable AI analysis. Obtain your key from [OpenAI](https://openai.com) and set the variable in your environment.
 
-If `OPENAI_TOKEN` is omitted qerrors still logs errors, but AI-generated advice will be skipped.
+If `OPENAI_API_KEY` is omitted qerrors still logs errors, but AI-generated advice will be skipped.
 
 **Security Note**: Keep your OpenAI API key secure. Never commit it to version control or expose it in client-side code. Use environment variables or secure configuration management.
 
 **Dependencies**: This package includes production-grade security improvements with the `escape-html` library for safe HTML output.
 
-* `OPENAI_TOKEN` &ndash; your OpenAI API key.
+* `OPENAI_API_KEY` &ndash; your OpenAI API key.
 
 * `QERRORS_OPENAI_URL` &ndash; OpenAI API endpoint (default `https://api.openai.com/v1/chat/completions`).
 * `QERRORS_CONCURRENCY` &ndash; maximum concurrent analyses (default `5`, raise for high traffic, values over `1000` are clamped).
@@ -6778,7 +6778,7 @@ npm install qerrors
 
 First, set your OpenAI API key:
 ```bash
-export OPENAI_TOKEN="your-openai-api-key-here"
+export OPENAI_API_KEY="your-openai-api-key-here"
 ```
 
 Import the module:
@@ -6986,7 +6986,7 @@ Use the optional utilities in `lib/envUtils.js` to verify configuration before s
 ```javascript
 const { throwIfMissingEnvVars, warnIfMissingEnvVars, getMissingEnvVars } = require('qerrors/lib/envUtils');
 
-throwIfMissingEnvVars(['OPENAI_TOKEN']); // aborts if mandatory variables are missing
+throwIfMissingEnvVars(['OPENAI_API_KEY']); // aborts if mandatory variables are missing
 warnIfMissingEnvVars(['MY_OPTIONAL_VAR']); // logs a warning but continues
 const missing = getMissingEnvVars(['OPTIONAL_ONE', 'OPTIONAL_TWO']);
 ```

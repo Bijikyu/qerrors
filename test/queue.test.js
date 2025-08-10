@@ -68,7 +68,7 @@ test('getQueueLength reflects queued analyses', async () => {
   const origQueue = process.env.QERRORS_QUEUE_LIMIT; //backup env
   process.env.QERRORS_CONCURRENCY = '1'; //force single concurrency
   process.env.QERRORS_QUEUE_LIMIT = '2'; //allow one queued item
-  process.env.OPENAI_TOKEN = 'tkn'; //enable analyzeError path
+  process.env.OPENAI_API_KEY = 'tkn'; //enable analyzeError path
   const qerrors = reloadQerrors(); //reload to apply env
   const logger = await require('../lib/logger'); //logger instance
   const restoreWarn = qtests.stubMethod(logger, 'warn', () => {}); //silence warn
@@ -89,7 +89,7 @@ test('getQueueLength reflects queued analyses', async () => {
     restorePost(); //restore axios stub
     if (origConc === undefined) { delete process.env.QERRORS_CONCURRENCY; } else { process.env.QERRORS_CONCURRENCY = origConc; }
     if (origQueue === undefined) { delete process.env.QERRORS_QUEUE_LIMIT; } else { process.env.QERRORS_QUEUE_LIMIT = origQueue; }
-    delete process.env.OPENAI_TOKEN; //cleanup token
+    delete process.env.OPENAI_API_KEY; //cleanup token
     reloadQerrors(); //reset state
   }
 });

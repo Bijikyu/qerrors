@@ -11,18 +11,18 @@ const { postWithRetry } = qerrorsModule; //helper used for retrying requests
 const config = require('../lib/config'); //load env defaults for assertions //(new import)
 
 
-function withOpenAIToken(token) { //(temporarily set OPENAI_TOKEN)
-  const orig = process.env.OPENAI_TOKEN; //(capture existing value)
+function withOpenAIToken(token) { //(temporarily set OPENAI_API_KEY)
+  const orig = process.env.OPENAI_API_KEY; //(capture existing value)
   if (token === undefined) { //(check if token unset)
-    delete process.env.OPENAI_TOKEN; //(remove from env)
+    delete process.env.OPENAI_API_KEY; //(remove from env)
   } else {
-    process.env.OPENAI_TOKEN = token; //(assign token)
+    process.env.OPENAI_API_KEY = token; //(assign token)
   }
   return () => { //(return restore)
     if (orig === undefined) { //(restore by delete)
-      delete process.env.OPENAI_TOKEN; //(delete if absent before)
+      delete process.env.OPENAI_API_KEY; //(delete if absent before)
     } else {
-      process.env.OPENAI_TOKEN = orig; //(otherwise restore value)
+      process.env.OPENAI_API_KEY = orig; //(otherwise restore value)
     }
   };
 }
@@ -60,7 +60,7 @@ test('analyzeError handles AxiosError gracefully', async () => {
 
 // Scenario: return null when API token is missing
 test('analyzeError returns null without token', async () => {
-  const restoreToken = withOpenAIToken(undefined); //(unset OPENAI_TOKEN)
+  const restoreToken = withOpenAIToken(undefined); //(unset OPENAI_API_KEY)
   try {
     const err = new Error('no token');
     err.uniqueErrorName = 'NOTOKEN';

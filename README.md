@@ -5,15 +5,15 @@ Intelligent error handling middleware that combines traditional logging with AI-
 ## Environment Variables
 
 
-qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. Only `OPENAI_TOKEN` must be provided manually to enable AI analysis. Obtain your key from [OpenAI](https://openai.com) and set the variable in your environment.
+qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. Only `OPENAI_API_KEY` must be provided manually to enable AI analysis. Obtain your key from [OpenAI](https://openai.com) and set the variable in your environment.
 
-If `OPENAI_TOKEN` is omitted qerrors still logs errors, but AI-generated advice will be skipped.
+If `OPENAI_API_KEY` is omitted qerrors still logs errors, but AI-generated advice will be skipped.
 
 **Security Note**: Keep your OpenAI API key secure. Never commit it to version control or expose it in client-side code. Use environment variables or secure configuration management.
 
 **Dependencies**: This package includes production-grade security improvements with the `escape-html` library for safe HTML output.
 
-* `OPENAI_TOKEN` &ndash; your OpenAI API key.
+* `OPENAI_API_KEY` &ndash; your OpenAI API key.
 
 * `QERRORS_OPENAI_URL` &ndash; OpenAI API endpoint (default `https://api.openai.com/v1/chat/completions`).
 * `QERRORS_CONCURRENCY` &ndash; maximum concurrent analyses (default `5`, raise for high traffic, values over `1000` are clamped).
@@ -116,7 +116,7 @@ npm install qerrors
 
 First, set your OpenAI API key:
 ```bash
-export OPENAI_TOKEN="your-openai-api-key-here"
+export OPENAI_API_KEY="your-openai-api-key-here"
 ```
 
 Import the module:
@@ -324,7 +324,7 @@ Use the optional utilities in `lib/envUtils.js` to verify configuration before s
 ```javascript
 const { throwIfMissingEnvVars, warnIfMissingEnvVars, getMissingEnvVars } = require('qerrors/lib/envUtils');
 
-throwIfMissingEnvVars(['OPENAI_TOKEN']); // aborts if mandatory variables are missing
+throwIfMissingEnvVars(['OPENAI_API_KEY']); // aborts if mandatory variables are missing
 warnIfMissingEnvVars(['MY_OPTIONAL_VAR']); // logs a warning but continues
 const missing = getMissingEnvVars(['OPTIONAL_ONE', 'OPTIONAL_TWO']);
 ```

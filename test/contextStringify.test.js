@@ -7,11 +7,11 @@ const qerrors = qerrorsModule; //default export used for call
 const { axiosInstance } = qerrorsModule; //axios instance for capture
 const logger = require('../lib/logger'); //promise resolving logger for capture
 
-function withOpenAIToken(token) { //temporarily set OPENAI_TOKEN
-  const orig = process.env.OPENAI_TOKEN; //save original value
-  if (token === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = token; } //apply new token
+function withOpenAIToken(token) { //temporarily set OPENAI_API_KEY
+  const orig = process.env.OPENAI_API_KEY; //save original value
+  if (token === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = token; } //apply new token
   return () => { //return restore function
-    if (orig === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = orig; } //restore saved token
+    if (orig === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = orig; } //restore saved token
   };
 }
 

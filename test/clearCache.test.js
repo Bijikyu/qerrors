@@ -2,10 +2,10 @@ const test = require('node:test'); //node test runner
 const assert = require('node:assert/strict'); //strict assertions
 const qtests = require('qtests'); //helper for stubbing
 
-function withOpenAIToken(token) { //temporarily modify OPENAI_TOKEN
-  const orig = process.env.OPENAI_TOKEN; //remember current token
-  if (token === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = token; }
-  return () => { if (orig === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = orig; } };
+function withOpenAIToken(token) { //temporarily modify OPENAI_API_KEY
+  const orig = process.env.OPENAI_API_KEY; //remember current token
+  if (token === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = token; }
+  return () => { if (orig === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = orig; } };
 }
 
 function reloadQerrors() { //load qerrors fresh with current env

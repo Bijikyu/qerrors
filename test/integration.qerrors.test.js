@@ -23,8 +23,8 @@ test('qerrors integration logs error and analyzes context', async () => {
   const realLogger = await logger; //resolve logger promise
   const origLog = realLogger.error; //store original function
   realLogger.error = (...args) => { logArg = args[0]; return origLog.apply(realLogger, args); }; //wrap logger.error to capture call //(wrap to spy while preserving)
-  const origToken = process.env.OPENAI_TOKEN; //store token to restore after test
-  process.env.OPENAI_TOKEN = 'tkn'; //set token for analyzeError to run
+  const origToken = process.env.OPENAI_API_KEY; //store token to restore after test
+  process.env.OPENAI_API_KEY = 'tkn'; //set token for analyzeError to run
   const res = createRes(); //create mock res
   const err = new Error('boom'); //sample error
   try {
@@ -33,7 +33,7 @@ test('qerrors integration logs error and analyzes context', async () => {
   } finally {
     restoreAxios(); //restore axios.post
     realLogger.error = origLog; //restore logger.error
-    if (origToken === undefined) { delete process.env.OPENAI_TOKEN; } else { process.env.OPENAI_TOKEN = origToken; } //restore token after test
+    if (origToken === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = origToken; } //restore token after test
   }
   assert.ok(logArg.uniqueErrorName); //ensure log contains id
   assert.equal(logArg.uniqueErrorName, err.uniqueErrorName); //id matches error
