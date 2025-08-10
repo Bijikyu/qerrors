@@ -105,4 +105,5 @@ Changelog:
 ```
 Preferred communication style: Simple, everyday language.
 Testing policy: Don't report anything as fixed until you have tested it.
+Test suite requirement: Run the full test suite as step 3 and only after that also works report success.
 ```
