@@ -25,9 +25,12 @@
   "author": "Q",
   "license": "ISC",
   "dependencies": {
+    "@langchain/core": "^0.3.68",
+    "@langchain/openai": "^0.6.7",
     "axios": "^1.9.0",
     "denque": "^2.1.0",
     "escape-html": "^1.0.3",
+    "langchain": "^0.3.30",
     "lru-cache": "^10.0.0",
     "qtests": "^1.0.4",
     "winston": "^3.13.0",
