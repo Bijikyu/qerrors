@@ -33,19 +33,28 @@ async function stubLogger(fn) { //stub logger.error for capture
 
 test('qerrors stringifies object context for openai request', async () => {
   const restoreToken = withOpenAIToken('ctx-token'); //ensure token for analysis
-  const capture = {}; //capture axios body
-  const restoreAxios = stubAxiosPost({ ok: true }, capture); //stub axios
+  
+  // Mock the AI model manager to capture the prompt
+  const { getAIModelManager } = require('../lib/aiModelManager');
+  const aiManager = getAIModelManager();
+  const originalAnalyzeError = aiManager.analyzeError;
+  let capturedPrompt = '';
+  aiManager.analyzeError = async (prompt) => { 
+    capturedPrompt = prompt; 
+    return { ok: true }; 
+  };
+  
   const res = createRes(); //response mock
   const ctxObj = { foo: 'bar' }; //object context
   const err = new Error('boom'); //sample error
   try {
     await qerrors(err, ctxObj, {}, res); //invoke qerrors with object context
-    await new Promise(r => setTimeout(r, 0)); //wait for analysis queue
+    await new Promise(r => setTimeout(r, 100)); //wait for analysis queue
   } finally {
-    restoreAxios(); //restore stubbed axios
+    aiManager.analyzeError = originalAnalyzeError; //restore AI manager
     restoreToken(); //restore env token
   }
-  assert.ok(capture.body.messages[0].content.includes(JSON.stringify(ctxObj))); //ensure context stringified
+  assert.ok(capturedPrompt.includes(JSON.stringify(ctxObj))); //ensure context stringified
 });
 
 test('qerrors handles circular context without throwing', async () => {

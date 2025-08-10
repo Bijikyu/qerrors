@@ -18,26 +18,32 @@ test('clearAdviceCache empties cache', async () => {
   const origLimit = process.env.QERRORS_CACHE_LIMIT; //save env limit
   process.env.QERRORS_CACHE_LIMIT = '2'; //ensure caching enabled
   const qerrors = reloadQerrors(); //reload module
-  const { analyzeError, axiosInstance } = qerrors; //extract functions
-  const restoreAxios = qtests.stubMethod(axiosInstance, 'post', async () => ({ data: { choices: [{ message: { content: { info: 'one' } } }] } }));
+  
+  // Mock the AI model manager
+  const { getAIModelManager } = require('../lib/aiModelManager');
+  const aiManager = getAIModelManager();
+  const originalAnalyzeError = aiManager.analyzeError;
+  let callCount = 0;
+  aiManager.analyzeError = async () => {
+    callCount++;
+    return { info: callCount === 1 ? 'one' : 'two' };
+  };
+  
   try {
     const err = new Error('boom');
     err.stack = 'stack';
     err.uniqueErrorName = 'CACHECLR';
-    const first = await analyzeError(err, 'ctx');
+    const first = await qerrors.analyzeError(err, 'ctx');
     assert.equal(first.info, 'one'); //initial call fetches advice
-    restoreAxios(); //restore first stub
-    let calledAgain = false;
-    const restoreAxios2 = qtests.stubMethod(axiosInstance, 'post', async () => { calledAgain = true; return { data: { choices: [{ message: { content: { info: 'two' } } }] } }; });
-    await analyzeError(err, 'ctx');
-    assert.equal(calledAgain, false); //should use cache
+    await qerrors.analyzeError(err, 'ctx');
+    assert.equal(callCount, 1); //should use cache (no second call)
     qerrors.clearAdviceCache(); //reset cache
-    const afterClear = await analyzeError(err, 'ctx');
-    restoreAxios2();
-    assert.equal(afterClear.info, 'two'); //axios called again
-    assert.equal(calledAgain, true); //verify second stub ran
+    const afterClear = await qerrors.analyzeError(err, 'ctx');
+    assert.equal(afterClear.info, 'two'); //new analysis after cache clear
+    assert.equal(callCount, 2); //verify second call was made
   } finally {
     if (origLimit === undefined) { delete process.env.QERRORS_CACHE_LIMIT; } else { process.env.QERRORS_CACHE_LIMIT = origLimit; }
+    aiManager.analyzeError = originalAnalyzeError; //restore AI manager
     restoreToken();
     reloadQerrors();
   }

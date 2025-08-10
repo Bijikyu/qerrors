@@ -73,10 +73,15 @@ test('getQueueLength reflects queued analyses', async () => {
   const logger = await require('../lib/logger'); //logger instance
   const restoreWarn = qtests.stubMethod(logger, 'warn', () => {}); //silence warn
   const restoreError = qtests.stubMethod(logger, 'error', () => {}); //silence err
-  const capture = {}; //track axios args
-  const restorePost = qtests.stubMethod(qerrors.axiosInstance, 'post', async () => {
-    return new Promise((r) => setTimeout(() => r({ data: { choices: [{ message: { content: '{}' } }] } }), 20)); //simulate delay
-  });
+  
+  // Mock the AI model manager to simulate delayed analysis
+  const { getAIModelManager } = require('../lib/aiModelManager');
+  const aiManager = getAIModelManager();
+  const originalAnalyzeError = aiManager.analyzeError;
+  aiManager.analyzeError = async () => {
+    return new Promise((r) => setTimeout(() => r({ advice: 'test' }), 20)); //simulate delay
+  };
+  
   try {
     qerrors(new Error('one')); //consume concurrency slot
     qerrors(new Error('two')); //queued under limit
@@ -86,7 +91,7 @@ test('getQueueLength reflects queued analyses', async () => {
   } finally {
     restoreWarn(); //restore warn stub
     restoreError(); //restore error stub
-    restorePost(); //restore axios stub
+    aiManager.analyzeError = originalAnalyzeError; //restore AI manager
     if (origConc === undefined) { delete process.env.QERRORS_CONCURRENCY; } else { process.env.QERRORS_CONCURRENCY = origConc; }
     if (origQueue === undefined) { delete process.env.QERRORS_QUEUE_LIMIT; } else { process.env.QERRORS_QUEUE_LIMIT = origQueue; }
     delete process.env.OPENAI_API_KEY; //cleanup token

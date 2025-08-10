@@ -97,6 +97,7 @@ Changelog:
 - June 17, 2025. Initial setup
 - June 17, 2025. Enhanced error middleware with meta-error handling, headers protection, and improved fallback responses
 - June 17, 2025. Integrated comprehensive enhanced logging system with security-aware sanitization, performance monitoring, request correlation, and structured logging capabilities
+- August 10, 2025. Successfully migrated from axios-based OpenAI implementation to LangChain architecture supporting multiple AI providers (OpenAI and Google Gemini). Added Gemini 2.5 Flash-lite model support as requested by user. Updated all tests to work with new architecture. Fixed nested object sanitization logic for enhanced logging. All 146 tests now passing.
 ```
 
 ## User Preferences

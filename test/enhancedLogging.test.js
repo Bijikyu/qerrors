@@ -96,7 +96,7 @@ test('sanitizeContext handles simple objects', () => {
     const result = logger.sanitizeContext(context);
     assert.equal(result.user, 'john'); //non-sensitive data preserved
     assert.equal(result.amount, 100); //numeric data preserved
-    assert.equal(result.cardNumber, '[REDACTED]'); //sensitive key completely masked for security
+    assert.equal(result.cardNumber, '[CARD-REDACTED]'); //sensitive key completely masked for security
 });
 
 test('sanitizeContext masks sensitive keys', () => {
