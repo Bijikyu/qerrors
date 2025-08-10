@@ -104,4 +104,5 @@ Changelog:
 
 ```
 Preferred communication style: Simple, everyday language.
+Testing policy: Don't report anything as fixed until you have tested it.
 ```
