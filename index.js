@@ -23,6 +23,7 @@ const queueManager = require('./lib/queueManager'); //load queue management util
 const utils = require('./lib/utils'); //load common utility functions
 const config = require('./lib/config'); //load configuration utilities
 const envUtils = require('./lib/envUtils'); //load environment validation utilities
+const aiModelManager = require('./lib/aiModelManager'); //load AI model management utilities
 
 /**
  * Error logger middleware that logs errors and provides AI-powered suggestions.
@@ -90,7 +91,13 @@ module.exports = { //(primary export object allows destructuring imports like { 
   getInt: config.getInt, //(integer parsing with validation)
   getMissingEnvVars: envUtils.getMissingEnvVars, //(environment validation)
   throwIfMissingEnvVars: envUtils.throwIfMissingEnvVars, //(required environment validation)
-  warnIfMissingEnvVars: envUtils.warnIfMissingEnvVars //(optional environment validation)
+  warnIfMissingEnvVars: envUtils.warnIfMissingEnvVars, //(optional environment validation)
+
+  // AI model management utilities (LangChain integration)
+  getAIModelManager: aiModelManager.getAIModelManager, //(get AI model manager singleton)
+  resetAIModelManager: aiModelManager.resetAIModelManager, //(reset AI model manager for testing)
+  MODEL_PROVIDERS: aiModelManager.MODEL_PROVIDERS, //(available AI providers)
+  createLangChainModel: aiModelManager.createLangChainModel //(create LangChain model instances)
 };
 
 module.exports.default = qerrors; //(default export for backward compatibility allowing both 'const qerrors = require("qerrors")' and destructuring patterns, dual strategy accommodates different developer preferences)
