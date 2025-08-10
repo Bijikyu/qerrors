@@ -11,18 +11,29 @@ const { postWithRetry } = qerrorsModule; //helper used for retrying requests
 const config = require('../lib/config'); //load env defaults for assertions //(new import)
 
 
-function withOpenAIToken(token) { //(temporarily set OPENAI_API_KEY)
-  const orig = process.env.OPENAI_API_KEY; //(capture existing value)
-  if (token === undefined) { //(check if token unset)
-    delete process.env.OPENAI_API_KEY; //(remove from env)
+function withProviderToken(token) { //(temporarily remove provider-specific API key)
+  const currentProvider = process.env.QERRORS_AI_PROVIDER || 'openai';
+  let tokenKey, origValue;
+  
+  if (currentProvider === 'google') {
+    tokenKey = 'GOOGLE_API_KEY';
+    origValue = process.env.GOOGLE_API_KEY;
   } else {
-    process.env.OPENAI_API_KEY = token; //(assign token)
+    tokenKey = 'OPENAI_API_KEY'; 
+    origValue = process.env.OPENAI_API_KEY;
   }
-  return () => { //(return restore)
-    if (orig === undefined) { //(restore by delete)
-      delete process.env.OPENAI_API_KEY; //(delete if absent before)
+  
+  if (token === undefined) { //(check if token unset)
+    delete process.env[tokenKey]; //(remove from env)
+  } else {
+    process.env[tokenKey] = token; //(assign token)
+  }
+  
+  return () => { //(return restore function)
+    if (origValue === undefined) { //(restore by delete)
+      delete process.env[tokenKey]; //(delete if absent before)
     } else {
-      process.env.OPENAI_API_KEY = orig; //(otherwise restore value)
+      process.env[tokenKey] = origValue; //(otherwise restore value)
     }
   };
 }
@@ -60,7 +71,7 @@ test('analyzeError handles AxiosError gracefully', async () => {
 
 // Scenario: return null when API token is missing
 test('analyzeError returns null without token', async () => {
-  const restoreToken = withOpenAIToken(undefined); //(unset OPENAI_API_KEY)
+  const restoreToken = withProviderToken(undefined); //(unset current provider's API key)
   try {
     const err = new Error('no token');
     err.uniqueErrorName = 'NOTOKEN';
@@ -73,7 +84,7 @@ test('analyzeError returns null without token', async () => {
 
 // Scenario: handle successful API response with JSON content
 test('analyzeError processes JSON response from API', async () => {
-  const restoreToken = withOpenAIToken('test-token'); //(set valid token)
+  const restoreToken = withProviderToken('test-token'); //(set valid token)
   
   // Mock the AI model manager to return a successful response
   const { getAIModelManager } = require('../lib/aiModelManager');
@@ -95,7 +106,7 @@ test('analyzeError processes JSON response from API', async () => {
 
 // Scenario: handle API response parsing errors gracefully
 test('analyzeError handles JSON parse errors', async () => {
-  const restoreToken = withOpenAIToken('test-token'); //(set valid token)
+  const restoreToken = withProviderToken('test-token'); //(set valid token)
   
   // Mock the AI model manager to return null (simulating parse failure)
   const { getAIModelManager } = require('../lib/aiModelManager');
@@ -116,7 +127,7 @@ test('analyzeError handles JSON parse errors', async () => {
 
 // Scenario: reuse cached advice when same error repeats
 test('analyzeError returns cached advice on repeat call', async () => {
-  const restoreToken = withOpenAIToken('cache-token'); //(set token for analysis)
+  const restoreToken = withProviderToken('cache-token'); //(set token for analysis)
   
   // Mock the AI model manager
   const { getAIModelManager } = require('../lib/aiModelManager');
@@ -149,7 +160,7 @@ test('analyzeError returns cached advice on repeat call', async () => {
 
 // Scenario: reuse provided qerrorsKey without rehashing
 test('analyzeError reuses error.qerrorsKey when present', async () => {
-  const restoreToken = withOpenAIToken('reuse-token'); //(set token for test)
+  const restoreToken = withProviderToken('reuse-token'); //(set token for test)
   
   // Mock the AI model manager
   const { getAIModelManager } = require('../lib/aiModelManager');
@@ -178,7 +189,7 @@ test('analyzeError reuses error.qerrorsKey when present', async () => {
 });
 
 test('analyzeError handles AI analysis failures gracefully', async () => {
-  const restoreToken = withOpenAIToken('retry-token'); //(set token for test)
+  const restoreToken = withProviderToken('retry-token'); //(set token for test)
   
   // Mock the AI model manager to simulate failure and recovery
   const { getAIModelManager } = require('../lib/aiModelManager');
@@ -202,7 +213,7 @@ test('analyzeError handles AI analysis failures gracefully', async () => {
 });
 
 test('analyzeError uses postWithRetry helper', async () => {
-  const restoreToken = withOpenAIToken('helper-token'); //(set token for test)
+  const restoreToken = withProviderToken('helper-token'); //(set token for test)
   
   // Mock the AI model manager to simulate successful analysis
   const { getAIModelManager } = require('../lib/aiModelManager');
@@ -228,7 +239,7 @@ function reloadQerrors() { //helper to reload module with current env for cache 
 
 // Scenario: disable caching when limit is zero
 test('analyzeError bypasses cache when limit is zero', async () => {
-  const restoreToken = withOpenAIToken('zero-token'); //(set token for api)
+  const restoreToken = withProviderToken('zero-token'); //(set token for api)
   const origLimit = process.env.QERRORS_CACHE_LIMIT; //(store existing cache limit)
   process.env.QERRORS_CACHE_LIMIT = '0'; //(env value to disable cache)
   const fresh = reloadQerrors(); //(reload module with new cache limit env)
@@ -265,7 +276,7 @@ test('analyzeError bypasses cache when limit is zero', async () => {
 
 // Scenario: ensure hashing skipped when cache disabled
 test('analyzeError does not hash when cache limit is zero', async () => {
-  const restoreToken = withOpenAIToken('nohash-token'); //(set token for api)
+  const restoreToken = withProviderToken('nohash-token'); //(set token for api)
   const origLimit = process.env.QERRORS_CACHE_LIMIT; //(store current limit)
   process.env.QERRORS_CACHE_LIMIT = '0'; //(disable caching)
   const fresh = reloadQerrors(); //(reload module with new env)

@@ -8,11 +8,21 @@ function reloadQerrors() { //reload module to apply env vars
   return require('../lib/qerrors');
 }
 
-function withToken(token) { //temporarily set OPENAI_API_KEY
-  const orig = process.env.OPENAI_API_KEY; //save original
-  if (token === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = token; }
+function withToken(token) { //temporarily set current provider's API key
+  const currentProvider = process.env.QERRORS_AI_PROVIDER || 'openai';
+  let tokenKey, orig;
+  
+  if (currentProvider === 'google') {
+    tokenKey = 'GOOGLE_API_KEY';
+    orig = process.env.GOOGLE_API_KEY;
+  } else {
+    tokenKey = 'OPENAI_API_KEY';
+    orig = process.env.OPENAI_API_KEY;
+  }
+  
+  if (token === undefined) { delete process.env[tokenKey]; } else { process.env[tokenKey] = token; }
   return () => { //restore previous value
-    if (orig === undefined) { delete process.env.OPENAI_API_KEY; } else { process.env.OPENAI_API_KEY = orig; }
+    if (orig === undefined) { delete process.env[tokenKey]; } else { process.env[tokenKey] = orig; }
   };
 }
 
@@ -33,7 +43,8 @@ test('analyzeError uses QERRORS_MAX_TOKENS', async () => {
   try {
     // Verify the model is configured with the correct maxTokens value
     // This tests that the environment variable is being read correctly
-    assert.equal(modelInfo.provider, 'openai'); //verify provider
+    const expectedProvider = process.env.QERRORS_AI_PROVIDER || 'openai';
+    assert.equal(modelInfo.provider, expectedProvider); //verify current provider
     
     // The actual verification that maxTokens is used happens at model creation
     // We can test this by checking that the environment variable is respected

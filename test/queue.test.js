@@ -149,6 +149,13 @@ test('queue never exceeds limit under high concurrency', async () => {
 test('metrics stop when queue drains then restart on new analysis', async () => {
   const origConc = process.env.QERRORS_CONCURRENCY; //backup concurrency
   const origInterval = process.env.QERRORS_METRIC_INTERVAL_MS; //backup metric interval
+  
+  // Ensure we have the right API key for the current provider
+  const currentProvider = process.env.QERRORS_AI_PROVIDER || 'openai';
+  const tokenKey = currentProvider === 'google' ? 'GOOGLE_API_KEY' : 'OPENAI_API_KEY';
+  const origToken = process.env[tokenKey];
+  process.env[tokenKey] = 'test-token'; //ensure token exists for analysis path
+  
   const realSet = global.setInterval; //save original setInterval
   const realClear = global.clearInterval; //save original clearInterval
   let startCount = 0; //track interval creation
@@ -162,7 +169,13 @@ test('metrics stop when queue drains then restart on new analysis', async () => 
   const restoreInfo = qtests.stubMethod(logger, 'info', (m) => { if (String(m).startsWith('metrics')) metrics++; });
   const restoreWarn = qtests.stubMethod(logger, 'warn', () => {}); //silence warn
   const restoreError = qtests.stubMethod(logger, 'error', () => {}); //silence error
-  const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', async () => new Promise(r => setTimeout(r, 10))); //simulate work
+  
+  // Mock the AI model manager to avoid actual API calls
+  const { getAIModelManager } = require('../lib/aiModelManager');
+  const aiManager = getAIModelManager();
+  const originalAnalyzeError = aiManager.analyzeError;
+  aiManager.analyzeError = async () => new Promise(r => setTimeout(() => r({ advice: 'test' }), 10));
+  
   try {
     qerrors(new Error('one')); //start first analysis
     await new Promise(r => setTimeout(r, 20)); //wait for completion
@@ -178,9 +191,10 @@ test('metrics stop when queue drains then restart on new analysis', async () => 
     restoreInfo();
     restoreWarn();
     restoreError();
-    restoreAnalyze();
+    aiManager.analyzeError = originalAnalyzeError; //restore AI manager
     if (origConc === undefined) { delete process.env.QERRORS_CONCURRENCY; } else { process.env.QERRORS_CONCURRENCY = origConc; }
     if (origInterval === undefined) { delete process.env.QERRORS_METRIC_INTERVAL_MS; } else { process.env.QERRORS_METRIC_INTERVAL_MS = origInterval; }
+    if (origToken === undefined) { delete process.env[tokenKey]; } else { process.env[tokenKey] = origToken; } //restore token
     reloadQerrors();
   }
 });
