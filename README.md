@@ -379,15 +379,21 @@ readability.
 
 The test suite uses Node's built-in test runner with custom stubs for offline testing.
 Tests include comprehensive coverage of error handling, AI integration, and middleware functionality.
-Current test status: 87/87 tests passing (100% success rate).
+Current test status: 157/157 tests passing (100% success rate).
 
 Run tests from the project directory:
 ```bash
 npm test
 ```
-Or directly:
+
+Use the dedicated test runner for enhanced output:
 ```bash
-node -r ./setup.js --test
+node test-runner.js
+```
+
+Or run tests directly:
+```bash
+node -r ./setup.js --test test/
 ```
 
 **Test Coverage Includes:**
