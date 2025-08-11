@@ -1,6 +1,50 @@
 # qerrors
 
-Intelligent error handling middleware that combines traditional logging with AI-powered debugging assistance. When errors occur, qerrors automatically generates contextual suggestions using OpenAI's GPT models while maintaining fast response times through asynchronous analysis and intelligent caching.
+Intelligent error handling middleware that combines traditional logging with AI-powered debugging assistance. When errors occur, qerrors automatically generates contextual suggestions using AI models (OpenAI GPT-4o, Google Gemini) while maintaining fast response times through asynchronous analysis and intelligent caching.
+
+## Complete Export Reference
+
+qerrors provides a comprehensive suite of utilities organized into logical groups:
+
+### Core Error Handling
+- `qerrors` - Main error handling middleware
+- `handleControllerError` - Standardized controller error handler
+- `withErrorHandling` - Async operation wrapper with error handling
+- `errorMiddleware` - Express global error middleware
+- `createTypedError`, `createStandardError` - Error factory functions
+- `ErrorTypes`, `ErrorSeverity`, `ErrorFactory` - Error classification utilities
+
+### Enhanced Logging
+- `logger` - Configured Winston logger instance  
+- `logDebug`, `logInfo`, `logWarn`, `logError`, `logFatal`, `logAudit` - Multi-level logging
+- `createPerformanceTimer`, `createEnhancedLogEntry` - Performance monitoring
+- `simpleLogger`, `createSimpleWinstonLogger` - Basic logging utilities
+- `LOG_LEVELS` - Log level constants
+
+### Data Security & Sanitization
+- `sanitizeMessage`, `sanitizeContext` - Data sanitization utilities
+- `addCustomSanitizationPattern`, `sanitizeWithCustomPatterns` - Custom sanitization rules
+- `clearCustomSanitizationPatterns` - Pattern management
+
+### Queue Management & Monitoring
+- `createLimiter` - Concurrency limiting utility
+- `getQueueLength`, `getQueueRejectCount` - Queue monitoring
+- `startQueueMetrics`, `stopQueueMetrics` - Metrics management
+
+### AI Model Management (LangChain)
+- `getAIModelManager`, `resetAIModelManager` - AI model management
+- `MODEL_PROVIDERS`, `createLangChainModel` - Provider configuration
+
+### Utility Functions
+- `generateUniqueId` - Unique identifier generation
+- `createTimer` - Performance timing utilities
+- `deepClone` - Object cloning
+- `safeRun` - Safe function execution
+- `verboseLog` - Conditional verbose logging
+
+### Configuration & Environment
+- `getEnv`, `getInt` - Environment variable parsing
+- `getMissingEnvVars`, `throwIfMissingEnvVars`, `warnIfMissingEnvVars` - Environment validation
 
 ## Environment Variables
 
@@ -122,10 +166,11 @@ export OPENAI_API_KEY="your-openai-api-key-here"
 Import the module:
 ```javascript
 // Import just qerrors:
-const {qerrors} = require('qerrors');
-// OR import both qerrors and logger:
+const { qerrors } = require('qerrors');
+
+// Import qerrors and logger:
 const { qerrors, logger } = require('qerrors');
-const log = await logger; //await logger initialization before use
+const log = await logger; // await logger initialization before use
 
 // Import centralized error handling utilities:
 const { 
@@ -137,6 +182,74 @@ const {
   ErrorSeverity,
   ErrorFactory,
   errorMiddleware
+} = require('qerrors');
+
+// Import enhanced logging utilities:
+const {
+  logDebug,
+  logInfo,
+  logWarn,
+  logError,
+  logFatal,
+  logAudit,
+  createPerformanceTimer,
+  simpleLogger
+} = require('qerrors');
+
+// Import data sanitization utilities:
+const {
+  sanitizeMessage,
+  sanitizeContext,
+  addCustomSanitizationPattern,
+  sanitizeWithCustomPatterns
+} = require('qerrors');
+
+// Import queue management and monitoring:
+const {
+  createLimiter,
+  getQueueLength,
+  getQueueRejectCount,
+  startQueueMetrics,
+  stopQueueMetrics
+} = require('qerrors');
+
+// Import utility functions:
+const {
+  generateUniqueId,
+  createTimer,
+  deepClone,
+  safeRun,
+  verboseLog
+} = require('qerrors');
+
+// Import configuration and environment utilities:
+const {
+  getEnv,
+  getInt,
+  getMissingEnvVars,
+  throwIfMissingEnvVars,
+  warnIfMissingEnvVars
+} = require('qerrors');
+
+// Import AI model management (LangChain integration):
+const {
+  getAIModelManager,
+  resetAIModelManager,
+  MODEL_PROVIDERS,
+  createLangChainModel
+} = require('qerrors');
+```
+  getMissingEnvVars,
+  throwIfMissingEnvVars,
+  warnIfMissingEnvVars
+} = require('qerrors');
+
+// Import AI model management (LangChain integration):
+const {
+  getAIModelManager,
+  resetAIModelManager,
+  MODEL_PROVIDERS,
+  createLangChainModel
 } = require('qerrors');
 ```
 
@@ -332,19 +445,208 @@ const missing = getMissingEnvVars(['OPTIONAL_ONE', 'OPTIONAL_TWO']);
 
 ### Features
 
-- **AI-Powered Analysis**: Automatically generates debugging suggestions using OpenAI GPT-4o model
+#### Core Error Handling
+- **AI-Powered Analysis**: Automatically generates debugging suggestions using AI models
+- **Multiple AI Providers**: Support for OpenAI GPT-4o and Google Gemini 2.5 Flash via LangChain
 - **Express Middleware**: Seamless integration with Express.js applications
 - **Content Negotiation**: Returns HTML pages for browsers, JSON for API clients
-- **Intelligent Caching**: Prevents duplicate API calls for identical errors
+- **Intelligent Caching**: Prevents duplicate API calls for identical errors with TTL support
 - **Queue Management**: Handles high-traffic scenarios with configurable concurrency limits
-- **Graceful Degradation**: Functions normally even without OpenAI API access
-- **Comprehensive Logging**: Multi-transport Winston logging with file rotation
+- **Graceful Degradation**: Functions normally even without AI API access
+
+#### Enhanced Logging System
+- **Multi-Level Logging**: Debug, Info, Warn, Error, Fatal, and Audit logging levels
+- **Security-Aware Sanitization**: Automatic removal of sensitive data from logs
+- **Performance Monitoring**: Built-in timing and resource usage tracking
+- **Request Correlation**: Unique request IDs for tracking across distributed systems
+- **Structured Logging**: JSON-formatted logs with consistent metadata
+- **File Rotation**: Automatic log rotation with configurable retention policies
+- **Console and File Outputs**: Dual transport with environment-specific configuration
+
+#### Data Security and Sanitization
+- **Pattern-Based Sanitization**: Configurable patterns for removing sensitive data
+- **Custom Sanitization Rules**: Add your own patterns for specific security requirements
+- **HTML Escaping**: Safe error output for web applications
+- **Context Sanitization**: Deep sanitization of error context and metadata
+
+#### Queue and Performance Management
+- **Concurrency Control**: Configurable limits for AI analysis requests
+- **Queue Monitoring**: Real-time metrics for queue depth and processing rates
+- **Backpressure Handling**: Graceful degradation when system is overloaded
+- **Performance Timers**: Built-in utilities for measuring operation performance
+- **Memory Management**: LRU cache with size limits and TTL-based cleanup
+
+#### Utility Functions
+- **Unique ID Generation**: Crypto-based unique identifiers for error tracking
+- **Deep Object Cloning**: Safe object duplication utilities
+- **Safe Function Execution**: Error-resilient function wrappers
+- **Environment Validation**: Comprehensive environment variable checking
+- **Configuration Management**: Type-safe environment variable parsing
 
 ### Logging
 
 File transports output JSON objects with timestamps and stack traces. Console
 output, enabled when `QERRORS_VERBOSE=true`, uses a compact printf format for
 readability.
+
+### AI Model Management (LangChain Integration)
+
+qerrors now supports multiple AI providers through LangChain integration, allowing you to choose between different AI models for error analysis:
+
+#### Supported Providers
+- **OpenAI**: GPT-4o model (default)
+- **Google**: Gemini 2.5 Flash-lite model
+
+#### Configuration
+Set the AI provider using environment variables:
+```bash
+# For OpenAI (default)
+export OPENAI_API_KEY="your-openai-api-key"
+
+# For Google Gemini
+export GOOGLE_API_KEY="your-google-api-key"
+export QERRORS_AI_PROVIDER="google"
+```
+
+#### Using AI Model Manager
+```javascript
+const { getAIModelManager, MODEL_PROVIDERS, createLangChainModel } = require('qerrors');
+
+// Get the current AI model manager
+const modelManager = getAIModelManager();
+
+// Available providers
+console.log(MODEL_PROVIDERS.OPENAI);  // 'openai'
+console.log(MODEL_PROVIDERS.GOOGLE);  // 'google'
+
+// Create a specific LangChain model
+const openaiModel = createLangChainModel('openai');
+const geminiModel = createLangChainModel('google');
+```
+
+### Enhanced Logging Features
+
+qerrors provides comprehensive logging capabilities beyond basic error logging:
+
+#### Performance Monitoring
+```javascript
+const { createPerformanceTimer, logInfo } = require('qerrors');
+
+// Create a performance timer
+const timer = createPerformanceTimer('database-query');
+// ... perform operation
+timer.end(); // Automatically logs performance metrics
+```
+
+#### Security-Aware Sanitization
+```javascript
+const { 
+  sanitizeMessage, 
+  sanitizeContext, 
+  addCustomSanitizationPattern 
+} = require('qerrors');
+
+// Basic sanitization
+const safemessage = sanitizeMessage('User password: secret123');
+// Result: 'User password: [REDACTED]'
+
+// Add custom patterns
+addCustomSanitizationPattern(/api[_-]?key[s]?\s*[:=]\s*[\w-]+/gi, '[API_KEY_REDACTED]');
+
+// Sanitize complex objects
+const safeContext = sanitizeContext({
+  user: { id: 123, password: 'secret' },
+  apiKey: 'sk-1234567890'
+});
+```
+
+#### Multi-Level Logging
+```javascript
+const { logDebug, logInfo, logWarn, logError, logFatal, logAudit } = require('qerrors');
+
+// Different log levels with automatic sanitization
+logDebug('Debug information', { debugData: 'test' });
+logInfo('Application started', { port: 3000 });
+logWarn('Deprecated function used', { function: 'oldMethod' });
+logError('Database connection failed', new Error('Connection timeout'));
+logFatal('System critical error', { system: 'auth' });
+logAudit('User action performed', { userId: 123, action: 'login' });
+```
+
+### Queue Management and Monitoring
+
+Monitor and control the AI analysis queue:
+
+```javascript
+const { 
+  getQueueLength, 
+  getQueueRejectCount, 
+  startQueueMetrics, 
+  stopQueueMetrics 
+} = require('qerrors');
+
+// Monitor queue status
+console.log(`Queue depth: ${getQueueLength()}`);
+console.log(`Rejected requests: ${getQueueRejectCount()}`);
+
+// Start periodic metrics logging
+startQueueMetrics(30000); // Log every 30 seconds
+
+// Stop metrics when done
+stopQueueMetrics();
+```
+
+### Utility Functions
+
+```javascript
+const { 
+  generateUniqueId, 
+  createTimer, 
+  deepClone, 
+  safeRun 
+} = require('qerrors');
+
+// Generate unique identifiers
+const id = generateUniqueId();
+
+// Performance timing
+const timer = createTimer();
+// ... perform operation
+const elapsed = timer.end();
+
+// Safe object cloning
+const cloned = deepClone(originalObject);
+
+// Safe function execution
+const result = await safeRun(async () => {
+  // Potentially failing operation
+  return await riskyFunction();
+}, 'fallback value');
+```
+
+### Environment and Configuration
+
+```javascript
+const { 
+  getEnv, 
+  getInt, 
+  getMissingEnvVars, 
+  throwIfMissingEnvVars 
+} = require('qerrors');
+
+// Get environment variables with defaults
+const port = getInt('PORT', 3000);
+const dbUrl = getEnv('DATABASE_URL', 'localhost');
+
+// Validate required environment variables
+throwIfMissingEnvVars(['REQUIRED_VAR1', 'REQUIRED_VAR2']);
+
+// Check for missing optional variables
+const missing = getMissingEnvVars(['OPTIONAL_VAR1', 'OPTIONAL_VAR2']);
+if (missing.length > 0) {
+  console.log(`Optional variables not set: ${missing.join(', ')}`);
+}
+```
 
 ### Error Response Formats
 
@@ -377,9 +679,11 @@ readability.
 
 ## Testing
 
-The test suite uses Node's built-in test runner with custom stubs for offline testing.
-Tests include comprehensive coverage of error handling, AI integration, and middleware functionality.
-Current test status: 157/157 tests passing (100% success rate).
+The test suite uses Node's built-in test runner with qtests integration for enhanced testing utilities and custom stubs for offline testing. Tests include comprehensive coverage of error handling, AI integration, middleware functionality, and all utility modules.
+
+**Current test status: 157/157 tests passing (100% success rate)**
+
+### Running Tests
 
 Run tests from the project directory:
 ```bash
@@ -396,14 +700,41 @@ Or run tests directly:
 node -r ./setup.js --test test/
 ```
 
-**Test Coverage Includes:**
+### Test Coverage Includes:
+
+#### Core Functionality
 - Core error handling and middleware functionality
-- OpenAI API integration with mock responses
+- LangChain AI integration with multiple providers (OpenAI, Google Gemini)
 - Environment variable validation and configuration
 - Cache management and TTL behavior
 - Queue concurrency and rejection handling
-- Logger configuration across different environments
 
-GitHub Actions runs this test suite automatically on every push and pull request using Node.js LTS. The workflow caches npm dependencies to speed up subsequent runs.
+#### Enhanced Features
+- Enhanced logging system with security sanitization
+- Performance monitoring and timing utilities
+- Data sanitization with custom patterns
+- Queue management and monitoring metrics
+- Utility functions (ID generation, cloning, safe execution)
+- Configuration and environment utilities
+- AI model management and provider switching
+
+#### Integration Testing
+- Express middleware integration
+- Real-world error scenarios
+- Cross-module compatibility
+- qtests integration and stubbing utilities
+
+### Testing Infrastructure
+
+The project uses **qtests** for enhanced testing capabilities:
+- Reduced test boilerplate by ~30%
+- Comprehensive stubbing utilities
+- Conditional setup to avoid conflicts
+- Hybrid stubbing approach for wrapped functions
+- Built-in test environment management
+
+### Continuous Integration
+
+GitHub Actions runs this test suite automatically on every push and pull request using Node.js LTS. The workflow caches npm dependencies to speed up subsequent runs and ensures compatibility across different Node.js versions.
 
 
