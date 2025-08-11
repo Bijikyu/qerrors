@@ -4,7 +4,7 @@
   "description": "Intelligent error handling middleware with AI-powered analysis, environment validation, caching, and production-ready logging. Provides OpenAI-based error suggestions, queue management, retry mechanisms, and comprehensive configuration options for Node.js applications.",
   "main": "index.js",
   "scripts": {
-    "test": "node -r ./setup.js --test"
+    "test": "node test-runner.js"
   },
   "keywords": [
     "error",
