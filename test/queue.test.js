@@ -16,9 +16,12 @@ test('scheduleAnalysis rejects when queue exceeds limit', async () => {
   const logger = await require('../lib/logger'); //logger instance
   let logged; //capture logged error
   const restoreLog = qtests.stubMethod(logger, 'error', (e) => { logged = e; });
-  const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', async () => {
+  // Use manual stubbing for analyzeError since qtests.stubMethod has issues with function objects
+  const originalAnalyzeError = qerrors.analyzeError;
+  qerrors.analyzeError = async () => {
     return new Promise((r) => setTimeout(r, 20)); //simulate long analysis
-  });
+  };
+  const restoreAnalyze = () => { qerrors.analyzeError = originalAnalyzeError; };
   try {
     qerrors(new Error('one')); //first call fills active slot
     qerrors(new Error('two')); //second call should exceed queue limit
@@ -44,9 +47,12 @@ test('queue reject count increments when queue exceeds limit', async () => {
   const logger = await require('../lib/logger'); //logger instance
   const restoreWarn = qtests.stubMethod(logger, 'warn', () => {}); //silence warn
   const restoreError = qtests.stubMethod(logger, 'error', () => {}); //silence err
-  const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', async () => {
+  // Use manual stubbing for analyzeError since qtests.stubMethod has issues with function objects
+  const originalAnalyzeError = qerrors.analyzeError;
+  qerrors.analyzeError = async () => {
     return new Promise((r) => setTimeout(r, 20)); //simulate analysis time
-  });
+  };
+  const restoreAnalyze = () => { qerrors.analyzeError = originalAnalyzeError; };
   try {
     qerrors(new Error('one')); //consume active slot
     qerrors(new Error('two')); //first rejection increments counter
@@ -126,7 +132,10 @@ test('queue never exceeds limit under high concurrency', async () => {
   const logger = await require('../lib/logger'); //logger instance
   const restoreWarn = qtests.stubMethod(logger, 'warn', () => {}); //silence warn
   const restoreError = qtests.stubMethod(logger, 'error', () => {}); //silence error
-  const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', async () => new Promise(r => setTimeout(r, 20))); //simulate work
+  // Use manual stubbing for analyzeError since qtests.stubMethod has issues with function objects
+  const originalAnalyzeError = qerrors.analyzeError;
+  qerrors.analyzeError = async () => new Promise(r => setTimeout(r, 20)); //simulate work
+  const restoreAnalyze = () => { qerrors.analyzeError = originalAnalyzeError; };
   try {
     qerrors(new Error('one')); //start first analysis
     qerrors(new Error('two')); //rejected since limit reached

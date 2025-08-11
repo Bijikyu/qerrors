@@ -127,10 +127,13 @@ test('console mocking with enhanced utilities', async () => {
       console.log('This is captured');
       console.log('Multiple', 'arguments', { test: true });
       
-      // Verify console capture
-      assert.equal(consoleSpy.mock.calls.length, 2);
-      assert.equal(consoleSpy.mock.calls[0][0], 'This is captured');
-      assert.deepEqual(consoleSpy.mock.calls[1], ['Multiple', 'arguments', { test: true }]);
+      // Verify console capture (qtests adds its own log, so filter for our calls)
+      const ourCalls = consoleSpy.mock.calls.filter(call => 
+        !call[0]?.includes('mockConsole is returning')
+      );
+      assert.equal(ourCalls.length, 2);
+      assert.equal(ourCalls[0][0], 'This is captured');
+      assert.deepEqual(ourCalls[1], ['Multiple', 'arguments', { test: true }]);
     },
     async () => {
       // Test function with clean console

@@ -21,7 +21,12 @@ function createRes() { //construct minimal Express-like response mock
 async function stubDeps(loggerFn, analyzeFn) { //create combined stub utility for tests using qtests
   const realLogger = await logger; //wait for logger instance
   const restoreLogger = qtests.stubMethod(realLogger, 'error', loggerFn); //stub logger.error with qtests
-  const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', analyzeFn); //stub analyzeError with qtests
+  
+  // Use manual stubbing for analyzeError since qtests.stubMethod has issues with function objects
+  const originalAnalyzeError = qerrors.analyzeError;
+  qerrors.analyzeError = analyzeFn;
+  const restoreAnalyze = () => { qerrors.analyzeError = originalAnalyzeError; };
+  
   return () => { //return unified restore
     restoreLogger(); //restore logger.error after each test
     restoreAnalyze(); //restore analyzeError after each test

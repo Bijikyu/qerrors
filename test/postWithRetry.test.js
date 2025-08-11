@@ -22,11 +22,14 @@ function withRetryEnv(retry, base, max) { //temporarily set retry env vars
 test('postWithRetry adds jitter to wait time', async () => {
   const restoreEnv = withRetryEnv(1, 100); //set small base for test
   let callCount = 0; //track axios.post calls
-  const restoreAxios = qtests.stubMethod(axiosInstance, 'post', async () => { //stub axios
+  // Use manual stubbing since qtests.stubMethod has issues with wrapped functions
+  const originalPost = axiosInstance.post;
+  axiosInstance.post = async () => { //stub axios
     callCount++; //increment on each call
     if (callCount === 1) { throw new Error('fail'); } //fail first
     return { ok: true }; //succeed second
-  });
+  };
+  const restoreAxios = () => { axiosInstance.post = originalPost; };
   let waited; //capture wait duration
   const restoreTimeout = qtests.stubMethod(global, 'setTimeout', (fn, ms) => { waited = ms; fn(); }); //capture delay and run immediately
   const origRandom = Math.random; //keep original random
@@ -47,11 +50,14 @@ test('postWithRetry adds jitter to wait time', async () => {
 test('postWithRetry uses defaults with invalid env', async () => { //invalid values fallback to defaults
   const restoreEnv = withRetryEnv('abc', 'abc'); //set invalid strings
   let callCount = 0; //track axios calls
-  const restoreAxios = qtests.stubMethod(axiosInstance, 'post', async () => { //stub post
+  // Use manual stubbing since qtests.stubMethod has issues with wrapped functions
+  const originalPost = axiosInstance.post;
+  axiosInstance.post = async () => { //stub post
     callCount++; //increment each time
     if (callCount === 1) { throw new Error('fail'); } //first call fails
     return { ok: true }; //success second
-  });
+  };
+  const restoreAxios = () => { axiosInstance.post = originalPost; };
   let waited; //capture delay used
   const restoreTimeout = qtests.stubMethod(global, 'setTimeout', (fn, ms) => { waited = ms; fn(); }); //intercept timeout
   const origRandom = Math.random; //save random
@@ -72,11 +78,14 @@ test('postWithRetry uses defaults with invalid env', async () => { //invalid val
 test('postWithRetry enforces backoff cap', async () => { //cap ensures wait time not excessive
   const restoreEnv = withRetryEnv(1, 300, 400); //set base and cap
   let callCount = 0; //track axios calls
-  const restoreAxios = qtests.stubMethod(axiosInstance, 'post', async () => { //stub post
+  // Use manual stubbing since qtests.stubMethod has issues with wrapped functions
+  const originalPost = axiosInstance.post;
+  axiosInstance.post = async () => { //stub post
     callCount++; //increment each time
     if (callCount === 1) { throw new Error('fail'); } //fail first
     return { ok: true }; //succeed second
-  });
+  };
+  const restoreAxios = () => { axiosInstance.post = originalPost; };
   let waited; //capture capped wait
   const restoreTimeout = qtests.stubMethod(global, 'setTimeout', (fn, ms) => { waited = ms; fn(); }); //capture delay
   const origRandom = Math.random; //save random
@@ -98,11 +107,14 @@ test('postWithRetry uses Retry-After header for rate limit', async () => { //hea
   const err = new Error('rate'); //error for first attempt
   err.response = { status: 429, headers: { 'retry-after': '1' } }; //429 with header
   let count = 0; //track calls
-  const restoreAxios = qtests.stubMethod(axiosInstance, 'post', async () => { //stub axios
+  // Use manual stubbing since qtests.stubMethod has issues with wrapped functions
+  const originalPost = axiosInstance.post;
+  axiosInstance.post = async () => { //stub axios
     count++; //increment each call
     if (count === 1) { throw err; } //fail first attempt
     return { ok: true }; //succeed second
-  });
+  };
+  const restoreAxios = () => { axiosInstance.post = originalPost; };
   let waited; //capture wait time
   const restoreTimeout = qtests.stubMethod(global, 'setTimeout', (fn, ms) => { waited = ms; fn(); }); //capture delay
   try {
@@ -121,11 +133,14 @@ test('postWithRetry doubles delay when rate limit header missing', async () => {
   const err = new Error('unavail'); //error for first attempt
   err.response = { status: 503, headers: {} }; //503 without header
   let count = 0; //track calls
-  const restoreAxios = qtests.stubMethod(axiosInstance, 'post', async () => { //stub axios
+  // Use manual stubbing since qtests.stubMethod has issues with wrapped functions
+  const originalPost = axiosInstance.post;
+  axiosInstance.post = async () => { //stub axios
     count++; //increment each call
     if (count === 1) { throw err; } //fail first
     return { ok: true }; //succeed second
-  });
+  };
+  const restoreAxios = () => { axiosInstance.post = originalPost; };
   let waited; //capture backoff
   const restoreTimeout = qtests.stubMethod(global, 'setTimeout', (fn, ms) => { waited = ms; fn(); }); //capture delay
   const origRandom = Math.random; //store random

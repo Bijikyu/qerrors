@@ -115,7 +115,12 @@ test('qtests offline mode demonstration', async () => {
 async function stubDepsWithQtests(loggerFn, analyzeFn) {
   const realLogger = await logger;
   const restoreLogger = qtests.stubMethod(realLogger, 'error', loggerFn);
-  const restoreAnalyze = qtests.stubMethod(qerrors, 'analyzeError', analyzeFn);
+  
+  // Use manual stubbing for analyzeError since qtests.stubMethod has issues with function objects
+  const originalAnalyzeError = qerrors.analyzeError;
+  qerrors.analyzeError = analyzeFn;
+  const restoreAnalyze = () => { qerrors.analyzeError = originalAnalyzeError; };
+  
   return () => {
     restoreLogger();
     restoreAnalyze();
