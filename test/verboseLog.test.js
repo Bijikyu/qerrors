@@ -77,15 +77,15 @@ test('verboseLog skips console when QERRORS_VERBOSE=false', async () => {
   }
 });
 
-test('verboseLog skips console when QERRORS_VERBOSE unset', async () => {
+test('verboseLog uses console when QERRORS_VERBOSE unset (defaults to true)', async () => {
   const orig = process.env.QERRORS_VERBOSE; //capture original value
-  delete process.env.QERRORS_VERBOSE; //unset variable
+  delete process.env.QERRORS_VERBOSE; //unset variable to test default behavior
   let logged = false; //track usage
   const restoreLog = quietStubMethod(console, 'log', () => { logged = true; });
   const restoreError = quietStubMethod(console, 'error', () => {}); // Also stub console.error to avoid interference
   try {
     await runAnalyze(); //execute analyzeError
-    assert.equal(logged, false); //expect no console output
+    assert.equal(logged, true); //expect console output by default
   } finally {
     restoreLog(); //restore log stub
     restoreError(); //restore error stub

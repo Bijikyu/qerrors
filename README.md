@@ -40,13 +40,13 @@ If `OPENAI_API_KEY` is omitted qerrors still logs errors, but AI-generated advic
 * `QERRORS_LOG_MAXSIZE` &ndash; logger rotation size in bytes (default `1048576`).
 * `QERRORS_LOG_MAXFILES` &ndash; number of rotated log files (default `5`).
   * `QERRORS_LOG_MAX_DAYS` &ndash; days to retain daily logs (default `0`). A value of `0` keeps all logs forever and emits a startup warning; set a finite number in production to manage disk usage.
-* `QERRORS_VERBOSE` &ndash; enable console logging (`false` by default). Set `QERRORS_VERBOSE=false` for production deployments to keep logs from flooding the console and rely on file output instead.
+* `QERRORS_VERBOSE` &ndash; control console logging (`true` by default). Set `QERRORS_VERBOSE=false` for production deployments to suppress console output and rely on file logging only.
 * `QERRORS_LOG_DIR` &ndash; directory for logger output (default `logs`).
 * `QERRORS_DISABLE_FILE_LOGS` &ndash; disable file transports when set.
 * `QERRORS_LOG_LEVEL` &ndash; logger output level (default `info`).
 * `QERRORS_SERVICE_NAME` &ndash; service name added to logger metadata (default `qerrors`).
 
-For high traffic scenarios raise `QERRORS_CONCURRENCY`, `QERRORS_QUEUE_LIMIT`, `QERRORS_MAX_SOCKETS`, and `QERRORS_MAX_FREE_SOCKETS`. Set `QERRORS_VERBOSE=false` in production to reduce console overhead.
+For high traffic scenarios raise `QERRORS_CONCURRENCY`, `QERRORS_QUEUE_LIMIT`, `QERRORS_MAX_SOCKETS`, and `QERRORS_MAX_FREE_SOCKETS`. Set `QERRORS_VERBOSE=false` in production to reduce console overhead and rely on file logging.
 
 
 Set QERRORS_CONCURRENCY to adjust how many analyses run simultaneously;
