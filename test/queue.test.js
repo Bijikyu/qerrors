@@ -161,7 +161,7 @@ test('metrics stop when queue drains then restart on new analysis', async () => 
   
   // Ensure we have the right API key for the current provider
   const currentProvider = process.env.QERRORS_AI_PROVIDER || 'openai';
-  const tokenKey = currentProvider === 'google' ? 'GOOGLE_API_KEY' : 'OPENAI_API_KEY';
+  const tokenKey = currentProvider === 'google' ? 'GEMINI_API_KEY' : 'OPENAI_API_KEY';
   const origToken = process.env[tokenKey];
   process.env[tokenKey] = 'test-token'; //ensure token exists for analysis path
   

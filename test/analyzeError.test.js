@@ -16,8 +16,8 @@ function withProviderToken(token) { //(temporarily remove provider-specific API 
   let tokenKey, origValue;
   
   if (currentProvider === 'google') {
-    tokenKey = 'GOOGLE_API_KEY';
-    origValue = process.env.GOOGLE_API_KEY;
+    tokenKey = 'GEMINI_API_KEY';
+    origValue = process.env.GEMINI_API_KEY;
   } else {
     tokenKey = 'OPENAI_API_KEY'; 
     origValue = process.env.OPENAI_API_KEY;

@@ -504,7 +504,7 @@ Set the AI provider using environment variables:
 export OPENAI_API_KEY="your-openai-api-key"
 
 # For Google Gemini
-export GOOGLE_API_KEY="your-google-api-key"
+export GEMINI_API_KEY="your-gemini-api-key"
 export QERRORS_AI_PROVIDER="google"
 ```
 
