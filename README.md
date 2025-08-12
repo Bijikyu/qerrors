@@ -1,6 +1,6 @@
 # qerrors
 
-Intelligent error handling middleware that combines traditional logging with AI-powered debugging assistance. When errors occur, qerrors automatically generates contextual suggestions using AI models (OpenAI GPT-4o, Google Gemini) while maintaining fast response times through asynchronous analysis and intelligent caching.
+Intelligent error handling middleware that combines traditional logging with AI-powered debugging assistance. When errors occur, qerrors automatically generates contextual suggestions using Google Gemini AI models (with optional OpenAI support) while maintaining fast response times through asynchronous analysis and intelligent caching.
 
 ## Complete Export Reference
 
@@ -49,16 +49,18 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 ## Environment Variables
 
 
-qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. Only `OPENAI_API_KEY` must be provided manually to enable AI analysis. Obtain your key from [OpenAI](https://openai.com) and set the variable in your environment.
+qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. The `GEMINI_API_KEY` must be provided to enable AI analysis with Google Gemini (default provider). Alternatively, you can use `OPENAI_API_KEY` for OpenAI models.
 
-If `OPENAI_API_KEY` is omitted qerrors still logs errors, but AI-generated advice will be skipped.
+If both API keys are omitted, qerrors still logs errors, but AI-generated advice will be skipped.
 
-**Security Note**: Keep your OpenAI API key secure. Never commit it to version control or expose it in client-side code. Use environment variables or secure configuration management.
+**Security Note**: Keep your API keys secure. Never commit them to version control or expose them in client-side code. Use environment variables or secure configuration management.
 
 **Dependencies**: This package includes production-grade security improvements with the `escape-html` library for safe HTML output.
 
-* `OPENAI_API_KEY` &ndash; your OpenAI API key.
+* `GEMINI_API_KEY` &ndash; your Google Gemini API key (primary AI provider).
+* `OPENAI_API_KEY` &ndash; your OpenAI API key (optional alternative provider).
 
+* `QERRORS_AI_PROVIDER` &ndash; AI provider selection: 'google' (default) or 'openai'.
 * `QERRORS_OPENAI_URL` &ndash; OpenAI API endpoint (default `https://api.openai.com/v1/chat/completions`).
 * `QERRORS_CONCURRENCY` &ndash; maximum concurrent analyses (default `5`, raise for high traffic, values over `1000` are clamped).
 
@@ -158,9 +160,14 @@ npm install qerrors
 
 ### Basic Setup
 
-First, set your OpenAI API key:
+First, set your Google Gemini API key (or OpenAI as alternative):
 ```bash
+# Primary provider - Google Gemini (recommended)
+export GEMINI_API_KEY="your-gemini-api-key-here"
+
+# Alternative provider - OpenAI
 export OPENAI_API_KEY="your-openai-api-key-here"
+export QERRORS_AI_PROVIDER="openai"
 ```
 
 Import the module:
@@ -446,8 +453,8 @@ const missing = getMissingEnvVars(['OPTIONAL_ONE', 'OPTIONAL_TWO']);
 ### Features
 
 #### Core Error Handling
-- **AI-Powered Analysis**: Automatically generates debugging suggestions using AI models
-- **Multiple AI Providers**: Support for OpenAI GPT-4o and Google Gemini 2.5 Flash via LangChain
+- **AI-Powered Analysis**: Automatically generates debugging suggestions using Google Gemini AI models
+- **Multiple AI Providers**: Primary support for Google Gemini 2.5 Flash-lite with optional OpenAI GPT-4o via LangChain
 - **Express Middleware**: Seamless integration with Express.js applications
 - **Content Negotiation**: Returns HTML pages for browsers, JSON for API clients
 - **Intelligent Caching**: Prevents duplicate API calls for identical errors with TTL support
@@ -491,21 +498,21 @@ readability.
 
 ### AI Model Management (LangChain Integration)
 
-qerrors now supports multiple AI providers through LangChain integration, allowing you to choose between different AI models for error analysis:
+qerrors supports multiple AI providers through LangChain integration, with Google Gemini as the primary provider for error analysis:
 
 #### Supported Providers
-- **OpenAI**: GPT-4o model (default)
-- **Google**: Gemini 2.5 Flash-lite model
+- **Google Gemini**: Gemini 2.5 Flash-lite model (default, recommended)
+- **OpenAI**: GPT-4o model (optional alternative)
 
 #### Configuration
 Set the AI provider using environment variables:
 ```bash
-# For OpenAI (default)
-export OPENAI_API_KEY="your-openai-api-key"
-
-# For Google Gemini
+# For Google Gemini (default, recommended)
 export GEMINI_API_KEY="your-gemini-api-key"
-export QERRORS_AI_PROVIDER="google"
+
+# For OpenAI (alternative provider)
+export OPENAI_API_KEY="your-openai-api-key"
+export QERRORS_AI_PROVIDER="openai"
 ```
 
 #### Using AI Model Manager
@@ -516,12 +523,12 @@ const { getAIModelManager, MODEL_PROVIDERS, createLangChainModel } = require('qe
 const modelManager = getAIModelManager();
 
 // Available providers
-console.log(MODEL_PROVIDERS.OPENAI);  // 'openai'
-console.log(MODEL_PROVIDERS.GOOGLE);  // 'google'
+console.log(MODEL_PROVIDERS.GOOGLE);  // 'google' (primary)
+console.log(MODEL_PROVIDERS.OPENAI);  // 'openai' (alternative)
 
 // Create a specific LangChain model
-const openaiModel = createLangChainModel('openai');
-const geminiModel = createLangChainModel('google');
+const geminiModel = createLangChainModel('google'); // Primary provider
+const openaiModel = createLangChainModel('openai'); // Alternative provider
 ```
 
 ### Enhanced Logging Features
@@ -638,13 +645,14 @@ const {
 const port = getInt('PORT', 3000);
 const dbUrl = getEnv('DATABASE_URL', 'localhost');
 
-// Validate required environment variables
-throwIfMissingEnvVars(['REQUIRED_VAR1', 'REQUIRED_VAR2']);
+// Validate required API keys for AI providers
+throwIfMissingEnvVars(['GEMINI_API_KEY']); // Primary AI provider
+// or alternatively: throwIfMissingEnvVars(['OPENAI_API_KEY']);
 
 // Check for missing optional variables
-const missing = getMissingEnvVars(['OPTIONAL_VAR1', 'OPTIONAL_VAR2']);
+const missing = getMissingEnvVars(['GEMINI_API_KEY', 'OPENAI_API_KEY']);
 if (missing.length > 0) {
-  console.log(`Optional variables not set: ${missing.join(', ')}`);
+  console.log(`AI provider keys not set: ${missing.join(', ')}`);
 }
 ```
 
@@ -704,7 +712,7 @@ node -r ./setup.js --test test/
 
 #### Core Functionality
 - Core error handling and middleware functionality
-- LangChain AI integration with multiple providers (OpenAI, Google Gemini)
+- LangChain AI integration with multiple providers (Google Gemini, OpenAI)
 - Environment variable validation and configuration
 - Cache management and TTL behavior
 - Queue concurrency and rejection handling
