@@ -49,7 +49,13 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 ## Environment Variables
 
 
-qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. The `GEMINI_API_KEY` must be provided to enable AI analysis with Google Gemini (default provider). Alternatively, you can use `OPENAI_API_KEY` for OpenAI models.
+qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. 
+
+**Default Configuration (when no environment variables are set):**
+- **AI Provider**: Google Gemini (`QERRORS_AI_PROVIDER='google'`)  
+- **AI Model**: Gemini 2.5 Flash-lite (`QERRORS_AI_MODEL='gemini-2.5-flash-lite'`)
+
+The `GEMINI_API_KEY` must be provided to enable AI analysis with Google Gemini (default provider). Alternatively, you can use `OPENAI_API_KEY` for OpenAI models.
 
 If both API keys are omitted, qerrors still logs errors, but AI-generated advice will be skipped.
 
