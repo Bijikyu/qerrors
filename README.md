@@ -61,6 +61,9 @@ If both API keys are omitted, qerrors still logs errors, but AI-generated advice
 * `OPENAI_API_KEY` &ndash; your OpenAI API key (optional alternative provider).
 
 * `QERRORS_AI_PROVIDER` &ndash; AI provider selection: 'google' (default) or 'openai'.
+* `QERRORS_AI_MODEL` &ndash; specific AI model to use (optional, uses provider default if not set):
+  - Google Gemini models: 'gemini-2.5-flash-lite' (default), 'gemini-2.0-flash-exp', 'gemini-pro', 'gemini-1.5-pro', 'gemini-1.5-flash'
+  - OpenAI models: 'gpt-4o' (default), 'gpt-4o-mini', 'gpt-4', 'gpt-3.5-turbo'
 * `QERRORS_OPENAI_URL` &ndash; OpenAI API endpoint (default `https://api.openai.com/v1/chat/completions`).
 * `QERRORS_CONCURRENCY` &ndash; maximum concurrent analyses (default `5`, raise for high traffic, values over `1000` are clamped).
 
@@ -164,10 +167,14 @@ First, set your Google Gemini API key (or OpenAI as alternative):
 ```bash
 # Primary provider - Google Gemini (recommended)
 export GEMINI_API_KEY="your-gemini-api-key-here"
+# Optional: specify specific model (defaults to gemini-2.5-flash-lite)
+export QERRORS_AI_MODEL="gemini-2.5-flash-lite"
 
 # Alternative provider - OpenAI
 export OPENAI_API_KEY="your-openai-api-key-here"
 export QERRORS_AI_PROVIDER="openai"
+# Optional: specify specific model (defaults to gpt-4o)
+export QERRORS_AI_MODEL="gpt-4o"
 ```
 
 Import the module:
@@ -505,14 +512,18 @@ qerrors supports multiple AI providers through LangChain integration, with Googl
 - **OpenAI**: GPT-4o model (optional alternative)
 
 #### Configuration
-Set the AI provider using environment variables:
+Set the AI provider and model using environment variables:
 ```bash
 # For Google Gemini (default, recommended)
 export GEMINI_API_KEY="your-gemini-api-key"
+# Optional: specify a specific Gemini model
+export QERRORS_AI_MODEL="gemini-2.5-flash-lite"
 
 # For OpenAI (alternative provider)
 export OPENAI_API_KEY="your-openai-api-key"
 export QERRORS_AI_PROVIDER="openai"
+# Optional: specify a specific OpenAI model
+export QERRORS_AI_MODEL="gpt-4o"
 ```
 
 #### Using AI Model Manager
@@ -529,7 +540,35 @@ console.log(MODEL_PROVIDERS.OPENAI);  // 'openai' (alternative)
 // Create a specific LangChain model
 const geminiModel = createLangChainModel('google'); // Primary provider
 const openaiModel = createLangChainModel('openai'); // Alternative provider
+
+// Create models with specific model names
+const specificGeminiModel = createLangChainModel('google', 'gemini-2.5-flash-lite');
+const specificOpenAIModel = createLangChainModel('openai', 'gpt-4o');
+
+// Get current model information
+const currentInfo = modelManager.getCurrentModelInfo();
+console.log(`Using provider: ${currentInfo.provider}, model: ${currentInfo.model}`);
 ```
+
+#### Complete Configuration Examples
+
+**Using Google Gemini with specific model:**
+```bash
+export GEMINI_API_KEY="your-gemini-api-key"
+export QERRORS_AI_PROVIDER="google"          # Optional (default)
+export QERRORS_AI_MODEL="gemini-2.5-flash-lite"  # Optional (default)
+```
+
+**Using OpenAI with specific model:**
+```bash
+export OPENAI_API_KEY="your-openai-api-key"
+export QERRORS_AI_PROVIDER="openai"
+export QERRORS_AI_MODEL="gpt-4o"             # Optional (default for OpenAI)
+```
+
+**Available Models by Provider:**
+- **Google Gemini**: `gemini-2.5-flash-lite` (default), `gemini-2.0-flash-exp`, `gemini-pro`, `gemini-1.5-pro`, `gemini-1.5-flash`
+- **OpenAI**: `gpt-4o` (default), `gpt-4o-mini`, `gpt-4`, `gpt-3.5-turbo`
 
 ### Enhanced Logging Features
 
