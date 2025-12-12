@@ -113,8 +113,8 @@ A Codex CLI agent can:
 **Example prompt Codex could execute:**
 
 ```bash
-!./scripts/spawn-agent.sh unit-tester ./src/utils --plan "write tests for string helpers"
-!./scripts/send-to-agent.sh unit-tester "Test for edge case in cleanString()"
+!./scripts/spawn-agent.sh unit-tester ./src/utils --plan "implement string helpers"
+!./scripts/send-to-agent.sh unit-tester "Add edge case handling to cleanString()"
 ```
 
 ---

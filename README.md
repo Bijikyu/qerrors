@@ -57,7 +57,7 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 ### Module Initialization
 - `initializeModule(options?)` - CJS-compatible module initialization with error logging
 - `initializeModuleESM(options?)` - ESM-compatible initialization using dynamic import
-- `shouldInitialize()` - Check if initialization should proceed (false during tests)
+- `shouldInitialize()` - Check if initialization should proceed
 - `logModuleInit(moduleName, metadata?)` - Structured logging for module initialization
 
 ### Dependency Injection (Error Handling Core)
@@ -68,7 +68,7 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 - `logErrorWithSeverityDI(options)` - Severity logging with dependency injection
 - `withErrorHandlingDI(deps?)` - Get async wrapper function with custom deps
 - `getErrorSeverity(deps?)` - Get severity constants with optional custom deps
-- `resetDefaultQerrorsCoreDeps()` - Reset cached deps (test utility)
+- `resetDefaultQerrorsCoreDeps()` - Reset cached deps
 
 ### Entity Guards
 - `throwIfNotFound(entity, entityName)` - Validate entity exists or throw descriptive error
@@ -818,62 +818,7 @@ if (missing.length > 0) {
 
 ## Testing
 
-The test suite uses Node's built-in test runner with qtests integration for enhanced testing utilities and custom stubs for offline testing. Tests include comprehensive coverage of error handling, AI integration, middleware functionality, and all utility modules.
 
-**Current test status: 157/157 tests passing (100% success rate)**
 
-### Running Tests
-
-Run tests from the project directory:
-```bash
-npm test
-```
-
-Use the dedicated test runner for enhanced output:
-```bash
-node test-runner.js
-```
-
-Or run tests directly:
-```bash
-node -r ./setup.js --test test/
-```
-
-### Test Coverage Includes:
-
-#### Core Functionality
-- Core error handling and middleware functionality
-- LangChain AI integration with multiple providers (Google Gemini, OpenAI)
-- Environment variable validation and configuration
-- Cache management and TTL behavior
-- Queue concurrency and rejection handling
-
-#### Enhanced Features
-- Enhanced logging system with security sanitization
-- Performance monitoring and timing utilities
-- Data sanitization with custom patterns
-- Queue management and monitoring metrics
-- Utility functions (ID generation, cloning, safe execution)
-- Configuration and environment utilities
-- AI model management and provider switching
-
-#### Integration Testing
-- Express middleware integration
-- Real-world error scenarios
-- Cross-module compatibility
-- qtests integration and stubbing utilities
-
-### Testing Infrastructure
-
-The project uses **qtests** for enhanced testing capabilities:
-- Reduced test boilerplate by ~30%
-- Comprehensive stubbing utilities
-- Conditional setup to avoid conflicts
-- Hybrid stubbing approach for wrapped functions
-- Built-in test environment management
-
-### Continuous Integration
-
-GitHub Actions runs this test suite automatically on every push and pull request using Node.js LTS. The workflow caches npm dependencies to speed up subsequent runs and ensures compatibility across different Node.js versions.
 
 

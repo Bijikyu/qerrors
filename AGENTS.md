@@ -86,11 +86,7 @@ Expected behaviors for agents:
 - The module must never require external databases or persistent storage beyond file system logs
 - AI prompt engineering should prioritize actionable debugging advice over generic error descriptions
 
-**Testing Requirements:**
-- Every new feature must include tests for both success and failure scenarios
-- API integration tests must work with stubbed responses to avoid external dependencies
-- Cache behavior must be tested for both hit and miss scenarios
-- Queue limits and concurrency controls must be verified under load
+
 
 **Security Considerations:**
 - Environment variables containing API keys must never be logged or exposed in error messages

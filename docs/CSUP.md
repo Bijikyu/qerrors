@@ -151,20 +151,8 @@ Share representative log snippets or status summaries with the user during long 
 ### Step 7. Architect Evaluation
 Use your evaluation tool (e.g., `architect(responsibility="evaluate_task")`) after the agents finish. If gaps remain, return to Step 2 or Step 6 with revised prompts; otherwise proceed.
 
-### Step 8. Testing Loop
-1. Ensure all implementation windows are idle.
-2. Spawn or reuse a dedicated test window, send:
-   ``
-   "Run `npm test` and report results. Do not fix anything."
-   ``
-3. If tests fail:
-   - Read `DEBUG_TESTS.md` (or test output).
-   - Decide whether to launch 1 or multiple agents to address failures.
-   - Repeat Steps 6–7 focused on test fixes.
-4. Loop until tests pass.
-
-### Step 9. Completion
-Once the architect confirms and tests pass, summarise outcomes, tidy logs (optional `./scripts/kill-all-agents.sh --purge-logs`), and mark tasks complete.
+### Step 8. Completion
+Once the architect confirms, summarise outcomes, tidy logs (optional `./scripts/kill-all-agents.sh --purge-logs`), and mark tasks complete.
 
 ---
 
