@@ -182,6 +182,7 @@ declare module 'qerrors' {
     getFailureRate(): number;
     reset(): void;
     forceOpen(): void;
+    isRequestAllowed(): boolean;
   }
 
   class ServiceError extends Error {
@@ -301,6 +302,7 @@ export interface ErrorFactoryInterface {
   database(operation?: string, context?: object): StandardError;
   system(message?: string, component?: string, context?: object): StandardError;
   configuration(message?: string, context?: object): StandardError;
+  from(error: unknown, meta?: object): Error;
 }
 
 export interface PerformanceTimer {
