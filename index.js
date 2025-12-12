@@ -173,7 +173,7 @@ module.exports = { //(primary export object allows destructuring imports like { 
   handleError: responseHelpers.handleError, //(async error handler with dynamic import and fallback)
   
   // Circuit breaker
-  CircuitBreaker: circuitBreaker.CircuitBreaker, //(circuit breaker class)
+  CircuitBreaker: circuitBreaker.CircuitBreakerWrapper, //(circuit breaker class)
   CircuitState: circuitBreaker.CircuitState, //(circuit state enum)
   createCircuitBreaker: circuitBreaker.createCircuitBreaker, //(factory with defaults)
   
