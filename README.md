@@ -80,6 +80,9 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 
 ### Utilities
 - `safeErrorMessage(error, fallback)` - Safely extract error message from unknown error types
+- `safeLogError(error, context, metadata?)` - Unified structured error logger that never throws
+- `safeLogInfo(message, metadata?)` - Unified structured info logger that never throws
+- `safeLogWarn(message, metadata?)` - Unified structured warning logger that never throws
 
 ### TypeScript Support
 - Complete TypeScript type definitions available in `lib/types.d.ts`

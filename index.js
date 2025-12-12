@@ -135,7 +135,10 @@ module.exports = { //(primary export object allows destructuring imports like { 
   assertEntityExists: entityGuards.assertEntityExists, //(typed error validation for qerrors integration)
 
   // Utility functions
-  safeErrorMessage: utils.safeErrorMessage //(safe error message extraction from unknown types)
+  safeErrorMessage: utils.safeErrorMessage, //(safe error message extraction from unknown types)
+  safeLogError: utils.logError, //(unified structured error logger that never throws)
+  safeLogInfo: utils.logInfo, //(unified structured info logger that never throws)
+  safeLogWarn: utils.logWarn //(unified structured warning logger that never throws)
 };
 
 module.exports.default = qerrors; //(default export for backward compatibility allowing both 'const qerrors = require("qerrors")' and destructuring patterns, dual strategy accommodates different developer preferences)

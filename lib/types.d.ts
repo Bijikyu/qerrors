@@ -87,6 +87,9 @@ declare module 'qerrors' {
     entityExists: <T>(entity: T | null | undefined) => boolean;
     assertEntityExists: <T>(entity: T | null | undefined, entityName: string, errorType?: string) => T;
     safeErrorMessage: (error: unknown, fallback: string) => string;
+    safeLogError: (error: unknown, context: string, metadata?: Record<string, unknown>) => void;
+    safeLogInfo: (message: string, metadata?: Record<string, unknown>) => void;
+    safeLogWarn: (message: string, metadata?: Record<string, unknown>) => void;
   }
 
   interface ModuleInitOptions {
