@@ -3,10 +3,6 @@
   "version": "1.2.7",
   "description": "Intelligent error handling middleware with AI-powered analysis, environment validation, caching, and production-ready logging. Provides OpenAI-based error suggestions, queue management, retry mechanisms, and comprehensive configuration options for Node.js applications.",
   "main": "index.js",
-  "scripts": {
-    "test": "node qtests-runner.mjs",
-    "pretest": "node scripts/clean-dist.mjs && node scripts/ensure-runner.mjs"
-  },
   "keywords": [
     "error",
     "logger",
@@ -59,11 +55,10 @@
     "babel-jest": "^30.2.0",
     "commoncontext": "^1.0.3",
     "fileflows": "^1.0.3",
-    "jest": "^29.7.0",
     "loqatevars": "^1.0.6",
     "madge": "^8.0.0",
     "npmcontext": "^1.0.4",
-    "opencode-ai": "^1.0.134",
+    "opencode-ai": "1.0.142",
     "qtests": "^2.0.0",
     "quantumagent": "^1.0.5",
     "ts-jest": "^29.4.4",

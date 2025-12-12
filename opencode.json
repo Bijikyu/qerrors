@@ -2,18 +2,18 @@
   "$schema": "https://opencode.ai/config.json",
   "provider": {
     "zen": {
-      "npm": "@ai-sdk/openai",
-      "name": "OpenCode Zen",
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Big Pickle",
       "options": {
         "baseURL": "https://opencode.ai/zen/v1",
         "apiKey": "{env:OPENCODE_ZEN_API_KEY}"
       },
       "models": {
-        "gpt-5-nano": {
-          "name": "GPT 5 Nano"
+        "big-pickle": {
+          "name": "Big Pickle"
         }
       }
     }
   },
-  "model": "zen/gpt-5-nano"
+  "model": "zen/big-pickle"
 }
