@@ -109,6 +109,19 @@ declare module 'qerrors' {
     ServiceError: typeof ServiceError;
     errorUtils: ErrorUtils;
     safeUtils: SafeUtils;
+    createSafeAsyncWrapper: <T extends any[], R>(options: SafeAsyncWrapperOptions<T, R>) => (...args: T) => Promise<R | void>;
+    createSafeLogger: (functionName: string, fallbackLevel?: 'error' | 'warn' | 'log' | 'info') => (message: string, details?: Record<string, unknown>) => Promise<void>;
+    createSafeOperation: <T extends any[], R>(asyncFn: (...args: T) => Promise<R>, fallbackValue?: R, onError?: (error: unknown, ...args: T) => void) => (...args: T) => Promise<R | undefined>;
+    safeJsonParse: <T = any>(text: string, fallback?: T | null) => T | null;
+    safeJsonStringify: (value: any, fallback?: string) => string;
+  }
+
+  interface SafeAsyncWrapperOptions<T extends any[], R> {
+    modulePath?: string;
+    functionName?: string;
+    fallbackFn?: (...args: T) => R | Promise<R>;
+    silent?: boolean;
+    errorMessage?: string;
   }
 
   interface ExecuteWithQerrorsOptions<T> {

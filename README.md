@@ -121,6 +121,13 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 - `safeUtils.execute(operation)` - Execute async operation, return `{success, data}` or `{success, error}`
 - `safeUtils.validate(value, validator, field)` - Validate input with Result pattern
 
+### Safe Async Wrappers
+- `createSafeAsyncWrapper(options)` - Create wrapper with module fallback behavior
+- `createSafeLogger(functionName, fallbackLevel?)` - Create logger with console fallback
+- `createSafeOperation(asyncFn, fallbackValue?, onError?)` - Wrap async function with error protection
+- `safeJsonParse(text, fallback?)` - Safe JSON parsing with fallback
+- `safeJsonStringify(value, fallback?)` - Safe JSON stringify with fallback
+
 ### TypeScript Support
 - Complete TypeScript type definitions available in `lib/types.d.ts`
 

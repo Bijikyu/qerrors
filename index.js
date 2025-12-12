@@ -150,6 +150,13 @@ module.exports = { //(primary export object allows destructuring imports like { 
   executeWithQerrors: utils.executeWithQerrors, //(async operation wrapper with comprehensive error handling)
   formatErrorMessage: utils.formatErrorMessage, //(standardized error message formatting)
   
+  // Safe async wrappers
+  createSafeAsyncWrapper: utils.createSafeAsyncWrapper, //(create safe async wrapper with module fallback)
+  createSafeLogger: utils.createSafeLogger, //(create safe logger with console fallback)
+  createSafeOperation: utils.createSafeOperation, //(wrap async function with error protection)
+  safeJsonParse: utils.safeJsonParse, //(safe JSON parsing with fallback)
+  safeJsonStringify: utils.safeJsonStringify, //(safe JSON stringify with fallback)
+  
   // Express response helpers
   sendJsonResponse: responseHelpers.sendJsonResponse, //(core JSON response sender)
   sendSuccessResponse: responseHelpers.sendSuccessResponse, //(200 success response)
