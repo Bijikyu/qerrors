@@ -132,7 +132,10 @@ module.exports = { //(primary export object allows destructuring imports like { 
   throwIfNotFoundMany: entityGuards.throwIfNotFoundMany, //(batch entity validation)
   throwIfNotFoundWithMessage: entityGuards.throwIfNotFoundWithMessage, //(custom error message validation)
   entityExists: entityGuards.entityExists, //(check existence without throwing)
-  assertEntityExists: entityGuards.assertEntityExists //(typed error validation for qerrors integration)
+  assertEntityExists: entityGuards.assertEntityExists, //(typed error validation for qerrors integration)
+
+  // Utility functions
+  safeErrorMessage: utils.safeErrorMessage //(safe error message extraction from unknown types)
 };
 
 module.exports.default = qerrors; //(default export for backward compatibility allowing both 'const qerrors = require("qerrors")' and destructuring patterns, dual strategy accommodates different developer preferences)

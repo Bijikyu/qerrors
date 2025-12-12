@@ -78,6 +78,9 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 - `entityExists(entity)` - Check existence without throwing
 - `assertEntityExists(entity, entityName, errorType?)` - Typed error validation for qerrors integration
 
+### Utilities
+- `safeErrorMessage(error, fallback)` - Safely extract error message from unknown error types
+
 ### TypeScript Support
 - Complete TypeScript type definitions available in `lib/types.d.ts`
 

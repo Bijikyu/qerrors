@@ -86,6 +86,7 @@ declare module 'qerrors' {
     throwIfNotFoundWithMessage: <T>(entity: T | null | undefined, errorMessage: string) => T;
     entityExists: <T>(entity: T | null | undefined) => boolean;
     assertEntityExists: <T>(entity: T | null | undefined, entityName: string, errorType?: string) => T;
+    safeErrorMessage: (error: unknown, fallback: string) => string;
   }
 
   interface ModuleInitOptions {
