@@ -1,0 +1,56 @@
+Testing
+@qerrors-mock/testing
+Purpose: Jest mock for error handling utilities with minimal surface area for tests. Explanation:
+This is a CommonJS-friendly Jest mock for the qerrors module that provides a minimal testing surface without ESM parse issues. It solves the critical problem of testing applications that use qerrors by providing a compatible mock that prevents ESM-related test runner failures. The mock includes the essential qerrors function, error factory for creating test errors, controller error helper for Express route testing, and error middleware for testing error handling flows.
+
+Key features include CommonJS module structure to avoid ESM issues, minimal API surface that covers core qerrors functionality, error factory methods for creating validation/not found errors, Express controller error helper that returns formatted error responses, and error middleware for testing Express error handling. The utility is specifically designed for testing environments and provides a stable foundation for unit and integration tests that need to mock error handling behavior.
+
+/**
+ * CommonJS-friendly Jest mock for qerrors to avoid ESM parse issues in the runner.
+ * Provides minimal surface area used across tests without side effects.
+ */
+function qerrors() {
+  return undefined;
+}
+function handleControllerError(res, error, context = `test`, meta = {}) {
+  const status = (error && (error.status || error.statusCode)) || 400;
+  const message = (error && (error.message || String(error))) || `Error`;
+  if (res && typeof res.status === `function` && typeof res.json === `function`) {
+    return res.status(status).json({ error: message, context, meta });
+  }
+  return undefined;
+}
+class ErrorFactory {
+  static validation(message = `Validation error`, field = `field`) {
+    const err = new Error(message);
+    err.name = `ValidationError`;
+    err.status = 400;
+    err.field = field;
+    return err;
+  }
+  static notFound(entity = `Resource`) {
+    const err = new Error(`${entity} not found`);
+    err.name = `NotFoundError`;
+    err.status = 404;
+    return err;
+  }
+  static from(error, _meta = {}) {
+    if (error instanceof Error) return error;
+    const err = new Error(String(error));
+    err.status = 500;
+    return err;
+  }
+}
+function errorMiddleware(err, _req, res, _next) {
+  const status = (err && (err.status || err.statusCode)) || 500;
+  const message = (err && (err.message || String(err))) || `Error`;
+  return res.status(status).json({ error: message });
+}
+module.exports = {
+  __esModule: true,
+  default: qerrors,
+  qerrors,
+  handleControllerError,
+  ErrorFactory,
+  errorMiddleware,
+};
