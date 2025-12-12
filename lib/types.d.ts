@@ -80,6 +80,12 @@ declare module 'qerrors' {
     logErrorWithSeverityDI: (options: LogErrorWithSeverityDIOptions) => Promise<void>;
     withErrorHandlingDI: (deps?: QerrorsCoreDeps) => Function;
     resetDefaultQerrorsCoreDeps: () => void;
+    throwIfNotFound: <T>(entity: T | null | undefined, entityName: string) => T;
+    throwIfNotFoundObj: <T>(input: ThrowIfNotFoundInput<T>) => ThrowIfNotFoundOutput<T>;
+    throwIfNotFoundMany: (entities: Array<{ entity: any; entityName: string }>) => any[];
+    throwIfNotFoundWithMessage: <T>(entity: T | null | undefined, errorMessage: string) => T;
+    entityExists: <T>(entity: T | null | undefined) => boolean;
+    assertEntityExists: <T>(entity: T | null | undefined, entityName: string, errorType?: string) => T;
   }
 
   interface ModuleInitOptions {
@@ -101,6 +107,16 @@ declare module 'qerrors' {
     context?: Record<string, unknown>;
     severity?: string;
     deps?: QerrorsCoreDeps;
+  }
+
+  interface ThrowIfNotFoundInput<T> {
+    entity: T | null | undefined;
+    entityName: string;
+  }
+
+  interface ThrowIfNotFoundOutput<T> {
+    entity: T | null;
+    found: boolean;
   }
 
   const qerrorsModule: QErrorsModule;

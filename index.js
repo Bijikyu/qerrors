@@ -26,6 +26,7 @@ const envUtils = require('./lib/envUtils'); //load environment validation utilit
 const aiModelManager = require('./lib/aiModelManager'); //load AI model management utilities
 const moduleInitializer = require('./lib/moduleInitializer'); //load module initialization utilities
 const dependencyInterfaces = require('./lib/dependencyInterfaces'); //load dependency injection utilities
+const entityGuards = require('./lib/entityGuards'); //load entity validation utilities
 
 /**
  * Error logger middleware that logs errors and provides AI-powered suggestions.
@@ -123,7 +124,15 @@ module.exports = { //(primary export object allows destructuring imports like { 
   getErrorSeverity: dependencyInterfaces.getErrorSeverity, //(get severity constants with DI)
   logErrorWithSeverityDI: dependencyInterfaces.logErrorWithSeverityDI, //(severity logging with DI)
   withErrorHandlingDI: dependencyInterfaces.withErrorHandlingDI, //(async wrapper with DI)
-  resetDefaultQerrorsCoreDeps: dependencyInterfaces.resetDefaultQerrorsCoreDeps //(test helper to reset cached deps)
+  resetDefaultQerrorsCoreDeps: dependencyInterfaces.resetDefaultQerrorsCoreDeps, //(test helper to reset cached deps)
+
+  // Entity validation utilities (@qutils/entity-guards)
+  throwIfNotFound: entityGuards.throwIfNotFound, //(validate entity exists or throw)
+  throwIfNotFoundObj: entityGuards.throwIfNotFoundObj, //(object-based validation with found flag)
+  throwIfNotFoundMany: entityGuards.throwIfNotFoundMany, //(batch entity validation)
+  throwIfNotFoundWithMessage: entityGuards.throwIfNotFoundWithMessage, //(custom error message validation)
+  entityExists: entityGuards.entityExists, //(check existence without throwing)
+  assertEntityExists: entityGuards.assertEntityExists //(typed error validation for qerrors integration)
 };
 
 module.exports.default = qerrors; //(default export for backward compatibility allowing both 'const qerrors = require("qerrors")' and destructuring patterns, dual strategy accommodates different developer preferences)

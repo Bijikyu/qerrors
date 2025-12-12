@@ -70,6 +70,14 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 - `getErrorSeverity(deps?)` - Get severity constants with optional custom deps
 - `resetDefaultQerrorsCoreDeps()` - Reset cached deps (test utility)
 
+### Entity Guards
+- `throwIfNotFound(entity, entityName)` - Validate entity exists or throw descriptive error
+- `throwIfNotFoundObj(input)` - Object-based validation returning { entity, found }
+- `throwIfNotFoundMany(entities)` - Batch validate multiple entities
+- `throwIfNotFoundWithMessage(entity, errorMessage)` - Custom error message validation
+- `entityExists(entity)` - Check existence without throwing
+- `assertEntityExists(entity, entityName, errorType?)` - Typed error validation for qerrors integration
+
 ### TypeScript Support
 - Complete TypeScript type definitions available in `lib/types.d.ts`
 
