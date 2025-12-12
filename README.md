@@ -84,6 +84,12 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 - `safeLogInfo(message, metadata?)` - Unified structured info logger that never throws
 - `safeLogWarn(message, metadata?)` - Unified structured warning logger that never throws
 
+### Async Operation Wrappers
+- `attempt(fn)` - Result-type pattern for safe operation execution without throwing
+- `executeWithQerrors(options)` - Comprehensive async wrapper with error handling, logging, and optional fallback
+- `formatErrorMessage(error, context)` - Standardized error message formatting
+- `handleControllerError(res, error, functionName, context?, userMessage?)` - Express controller error handler
+
 ### TypeScript Support
 - Complete TypeScript type definitions available in `lib/types.d.ts`
 

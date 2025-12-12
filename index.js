@@ -138,7 +138,12 @@ module.exports = { //(primary export object allows destructuring imports like { 
   safeErrorMessage: utils.safeErrorMessage, //(safe error message extraction from unknown types)
   safeLogError: utils.logError, //(unified structured error logger that never throws)
   safeLogInfo: utils.logInfo, //(unified structured info logger that never throws)
-  safeLogWarn: utils.logWarn //(unified structured warning logger that never throws)
+  safeLogWarn: utils.logWarn, //(unified structured warning logger that never throws)
+  
+  // Async operation wrappers
+  attempt: utils.attempt, //(Result-type pattern for safe operation execution)
+  executeWithQerrors: utils.executeWithQerrors, //(async operation wrapper with comprehensive error handling)
+  formatErrorMessage: utils.formatErrorMessage //(standardized error message formatting)
 };
 
 module.exports.default = qerrors; //(default export for backward compatibility allowing both 'const qerrors = require("qerrors")' and destructuring patterns, dual strategy accommodates different developer preferences)

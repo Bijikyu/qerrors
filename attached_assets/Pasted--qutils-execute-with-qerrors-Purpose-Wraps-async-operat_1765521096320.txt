@@ -1,0 +1,70 @@
+@qutils/execute-with-qerrors
+Purpose: Wraps async operations with comprehensive error handling and logging.
+
+Explanation:
+This utility provides a standardized way to execute async operations with robust error handling, logging, and optional fallback mechanisms. It solves the common problem of duplicated try/catch blocks and inconsistent error handling across services and utilities by centralizing error processing logic. The module is broadly applicable to any Node.js application that needs consistent error handling, particularly microservices, API integrations, and background job processors. It integrates with the qerrors framework for enhanced logging and typed error generation, while also providing graceful degradation when qerrors is unavailable. The utility supports operation naming, context enrichment, custom error types, retry logic, and fallback values.
+
+/**
+ * @file executeWithQerrors.ts
+ * @description Shared utility for wrapping async operations with qerrors, used by non-/lib code.
+ */
+import{loadQerrors,formatErrorMessage}from'./qerrorsCommon.js';
+import{executeWithQerrorsCore}from'./executeWithQerrorsCore.js';
+/**
+ * @file executeWithQerrors.ts
+ * @description Helper for wrapping async operations with qerrors error handling.
+ *
+ * Rationale:
+ * - Consolidates qerrors usage so services/utilities do not duplicate try/catch logic.
+ * - Ensures AI-enhanced logging and typed error generation are applied consistently.
+ * - Provides optional graceful-degradation when a caller wants to continue after logging.
+ */
+export interface ExecuteWithQerrorsOptions<T>{opName:string;operation:()=>Promise<T>;context?:Record<string,unknown>;failureMessage:string;errorCode?:string;errorType?:string;logMessage?:string;rethrow?:boolean;fallbackValue?:T;}
+export const executeWithQerrors=async<T>(options:ExecuteWithQerrorsOptions<T>):Promise<T>=>executeWithQerrorsCore(options);
+export{loadQerrors,formatErrorMessage};
+
+@qutils/express-error-handler
+Purpose: Provides standardized error handling for Express.js controllers.
+
+Explanation:
+This utility offers consistent error handling for Express.js applications, integrating with the qerrors framework for enhanced logging and error processing. It solves the problem of inconsistent error responses across controllers by providing a unified error handling function that formats errors appropriately and sends standardized HTTP error responses. The module is broadly applicable to any Express.js application that needs consistent error handling, particularly APIs and web applications with multiple controllers. It handles unknown errors gracefully, provides fallback error responses when qerrors is unavailable, and ensures proper HTTP status codes and error message formatting across the application.
+
+/**
+ * @file Error handling utilities using qerrors framework
+ * @description Provides consistent error handling for controllers and services
+ * 
+ * Rationale:
+ * - Centralizes error handling logic using qerrors
+ * - Provides typed error handling for Express controllers
+ * - Ensures consistent error responses across the application
+ */
+import type{Response}from'express';
+import { loadQerrors } from './qerrorsCommon.js';
+export const handleError=async(error:unknown,context:string,res:Response,next?:any):Promise<void>=>{
+	try{
+		const qerrors=await loadQerrors();
+		const message=error instanceof Error?error.message:'Unknown error';
+		qerrors?.handleControllerError?qerrors.handleControllerError(res,error as Error,context,{}):res.status(500).json({error:message,context});
+	}catch{
+		const message=error instanceof Error?error.message:'Unknown error';
+		res.status(500).json({error:message,context});
+	}
+}
+
+@qutils/try-utils
+Purpose: Provides safe operation execution without throwing exceptions.
+
+Explanation:
+A lightweight utility for safely attempting operations that might fail, returning result objects instead of throwing exceptions. This solves the common problem of unpredictable exceptions in async operations by providing a consistent Result-type pattern that distinguishes between success and failure cases. The module is broadly applicable to any Node.js application where predictable error handling is needed, particularly data processing, external API calls, and file operations. It provides a simple, composable primitive that can be used to chain operations safely, avoid nested try/catch blocks, and implement more robust error handling patterns throughout an application.
+
+/**
+ * @file tryUtils.ts
+ * @description Utilities for safely attempting operations without throwing.
+ * Provides a small, reusable primitive to replace repeated try/catch blocks
+ * across the codebase while preserving precise control flow semantics.
+ */
+export type AttemptResult<T>={ok:true;value:T}|{ok:false;error:unknown};
+export const attempt=async<T>(fn:()=>T|Promise<T>):Promise<AttemptResult<T>>=>{
+	try{const value=await Promise.resolve().then(fn);return{ok:true,value};}catch(error){return{ok:false,error};}
+}
+export default attempt;

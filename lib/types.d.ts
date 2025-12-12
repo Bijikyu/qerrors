@@ -90,6 +90,21 @@ declare module 'qerrors' {
     safeLogError: (error: unknown, context: string, metadata?: Record<string, unknown>) => void;
     safeLogInfo: (message: string, metadata?: Record<string, unknown>) => void;
     safeLogWarn: (message: string, metadata?: Record<string, unknown>) => void;
+    attempt: <T>(fn: () => T | Promise<T>) => Promise<{ ok: true; value: T } | { ok: false; error: unknown }>;
+    executeWithQerrors: <T>(options: ExecuteWithQerrorsOptions<T>) => Promise<T>;
+    formatErrorMessage: (error: unknown, context: string) => string;
+  }
+
+  interface ExecuteWithQerrorsOptions<T> {
+    opName: string;
+    operation: () => Promise<T>;
+    context?: Record<string, unknown>;
+    failureMessage: string;
+    errorCode?: string;
+    errorType?: string;
+    logMessage?: string;
+    rethrow?: boolean;
+    fallbackValue?: T;
   }
 
   interface ModuleInitOptions {
