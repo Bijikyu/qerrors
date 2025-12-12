@@ -72,12 +72,35 @@ declare module 'qerrors' {
     initializeModuleESM: (options?: ModuleInitOptions) => Promise<null>;
     shouldInitialize: () => boolean;
     logModuleInit: (moduleName: string, metadata?: object) => void;
+    createQerrorsCoreDeps: (qerrorsModule: object) => QerrorsCoreDeps;
+    getDefaultQerrorsCoreDeps: () => QerrorsCoreDeps;
+    createDefaultErrorHandlingDeps: () => QerrorsCoreDeps;
+    qerr: (e: unknown, context: string, meta?: Record<string, unknown>, deps?: QerrorsCoreDeps) => Promise<void>;
+    getErrorSeverity: (deps?: QerrorsCoreDeps) => Record<string, string>;
+    logErrorWithSeverityDI: (options: LogErrorWithSeverityDIOptions) => Promise<void>;
+    withErrorHandlingDI: (deps?: QerrorsCoreDeps) => Function;
+    resetDefaultQerrorsCoreDeps: () => void;
   }
 
   interface ModuleInitOptions {
     module?: string;
     version?: string;
     environment?: string;
+  }
+
+  interface QerrorsCoreDeps {
+    qerrors: Function;
+    logErrorWithSeverity: Function;
+    withErrorHandling: Function;
+    ErrorSeverity: Record<string, string>;
+  }
+
+  interface LogErrorWithSeverityDIOptions {
+    error: unknown;
+    functionName: string;
+    context?: Record<string, unknown>;
+    severity?: string;
+    deps?: QerrorsCoreDeps;
   }
 
   const qerrorsModule: QErrorsModule;

@@ -60,6 +60,16 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 - `shouldInitialize()` - Check if initialization should proceed (false during tests)
 - `logModuleInit(moduleName, metadata?)` - Structured logging for module initialization
 
+### Dependency Injection (Error Handling Core)
+- `createQerrorsCoreDeps(qerrorsModule)` - Create deps object from qerrors instance for DI
+- `getDefaultQerrorsCoreDeps()` - Get/create default deps lazily (avoids circular requires)
+- `createDefaultErrorHandlingDeps()` - Alias matching @qutils API
+- `qerr(e, context, meta?, deps?)` - Quick error logging with optional custom deps
+- `logErrorWithSeverityDI(options)` - Severity logging with dependency injection
+- `withErrorHandlingDI(deps?)` - Get async wrapper function with custom deps
+- `getErrorSeverity(deps?)` - Get severity constants with optional custom deps
+- `resetDefaultQerrorsCoreDeps()` - Reset cached deps (test utility)
+
 ### TypeScript Support
 - Complete TypeScript type definitions available in `lib/types.d.ts`
 

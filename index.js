@@ -25,6 +25,7 @@ const config = require('./lib/config'); //load configuration utilities
 const envUtils = require('./lib/envUtils'); //load environment validation utilities
 const aiModelManager = require('./lib/aiModelManager'); //load AI model management utilities
 const moduleInitializer = require('./lib/moduleInitializer'); //load module initialization utilities
+const dependencyInterfaces = require('./lib/dependencyInterfaces'); //load dependency injection utilities
 
 /**
  * Error logger middleware that logs errors and provides AI-powered suggestions.
@@ -112,7 +113,17 @@ module.exports = { //(primary export object allows destructuring imports like { 
   initializeModule: moduleInitializer.initializeModule, //(CJS-compatible module initialization)
   initializeModuleESM: moduleInitializer.initializeModuleESM, //(ESM-compatible initialization with dynamic import)
   shouldInitialize: moduleInitializer.shouldInitialize, //(check if initialization should proceed)
-  logModuleInit: moduleInitializer.logModuleInit //(structured logging for module initialization)
+  logModuleInit: moduleInitializer.logModuleInit, //(structured logging for module initialization)
+
+  // Dependency injection utilities (@qutils/error-handling-core)
+  createQerrorsCoreDeps: dependencyInterfaces.createQerrorsCoreDeps, //(factory for creating deps from qerrors instance)
+  getDefaultQerrorsCoreDeps: dependencyInterfaces.getDefaultQerrorsCoreDeps, //(get/create default deps lazily)
+  createDefaultErrorHandlingDeps: dependencyInterfaces.createDefaultErrorHandlingDeps, //(alias matching @qutils API)
+  qerr: dependencyInterfaces.qerr, //(quick error logging with DI)
+  getErrorSeverity: dependencyInterfaces.getErrorSeverity, //(get severity constants with DI)
+  logErrorWithSeverityDI: dependencyInterfaces.logErrorWithSeverityDI, //(severity logging with DI)
+  withErrorHandlingDI: dependencyInterfaces.withErrorHandlingDI, //(async wrapper with DI)
+  resetDefaultQerrorsCoreDeps: dependencyInterfaces.resetDefaultQerrorsCoreDeps //(test helper to reset cached deps)
 };
 
 module.exports.default = qerrors; //(default export for backward compatibility allowing both 'const qerrors = require("qerrors")' and destructuring patterns, dual strategy accommodates different developer preferences)
