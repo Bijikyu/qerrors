@@ -54,6 +54,9 @@ module.exports = { //(primary export object allows destructuring imports like { 
   ErrorFactory: errorTypes.ErrorFactory, //(convenient error creation utilities for common scenarios)
   errorMiddleware: errorTypes.errorMiddleware, //(Express global error handling middleware)
   handleSimpleError: errorTypes.handleSimpleError, //(simplified error response handler for basic scenarios)
+  ServiceError: errorTypes.ServiceError, //(enhanced error class with type, context, and cause chaining)
+  errorUtils: errorTypes.errorUtils, //(common error handling utilities for creating and wrapping errors)
+  safeUtils: errorTypes.safeUtils, //(result-type pattern for error-safe operations)
 
   // Enhanced logging utilities with security and performance monitoring
   logDebug: logger.logDebug, //(enhanced debug logging with sanitization)

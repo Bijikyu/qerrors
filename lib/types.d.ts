@@ -106,6 +106,9 @@ declare module 'qerrors' {
     CircuitBreaker: typeof CircuitBreaker;
     CircuitState: { CLOSED: 'CLOSED'; OPEN: 'OPEN'; HALF_OPEN: 'HALF_OPEN' };
     createCircuitBreaker: <T extends (...args: any[]) => Promise<any>>(operation: T, serviceName: string, overrides?: Partial<CircuitBreakerOptions>) => CircuitBreaker<T>;
+    ServiceError: typeof ServiceError;
+    errorUtils: ErrorUtils;
+    safeUtils: SafeUtils;
   }
 
   interface ExecuteWithQerrorsOptions<T> {
@@ -164,6 +167,36 @@ declare module 'qerrors' {
     getFailureRate(): number;
     reset(): void;
     forceOpen(): void;
+  }
+
+  class ServiceError extends Error {
+    constructor(message: string, type: string, context?: Record<string, unknown>, cause?: Error | null);
+    type: string;
+    context: Record<string, unknown>;
+    cause: Error | null;
+    statusCode: number;
+    severity: string;
+    timestamp: string;
+    toJSON(): Record<string, unknown>;
+  }
+
+  type Result<T, E = ServiceError> = 
+    | { success: true; data: T }
+    | { success: false; error: E };
+
+  interface ErrorUtils {
+    validation: (field: string, value?: unknown) => ServiceError;
+    authentication: (serviceName: string) => ServiceError;
+    authorization: (action: string) => ServiceError;
+    externalApi: (serviceName: string, originalError: Error) => ServiceError;
+    internal: (message: string, context?: Record<string, unknown>) => ServiceError;
+    wrap: (error: unknown, defaultMessage: string) => ServiceError;
+    asyncHandler: <T>(operation: () => Promise<T>, errorMessage: string) => Promise<T>;
+  }
+
+  interface SafeUtils {
+    execute: <T>(operation: () => Promise<T>) => Promise<Result<T>>;
+    validate: <T>(value: unknown, validator: (v: unknown) => T, field: string) => Result<T>;
   }
 
   interface ModuleInitOptions {

@@ -107,6 +107,20 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 - `CircuitState` - State constants (CLOSED, OPEN, HALF_OPEN)
 - `createCircuitBreaker(operation, serviceName, options?)` - Factory with sensible defaults
 
+### ServiceError & Error Utilities
+- `ServiceError` - Enhanced error class with type, context, and cause chaining
+- `errorUtils.validation(field, value?)` - Create validation error
+- `errorUtils.authentication(serviceName)` - Create authentication error
+- `errorUtils.authorization(action)` - Create authorization error
+- `errorUtils.externalApi(serviceName, originalError)` - Create external API error with cause
+- `errorUtils.internal(message, context?)` - Create internal service error
+- `errorUtils.wrap(error, defaultMessage)` - Wrap unknown error in ServiceError
+- `errorUtils.asyncHandler(operation, errorMessage)` - Handle async errors consistently
+
+### Safe Execution (Result Pattern)
+- `safeUtils.execute(operation)` - Execute async operation, return `{success, data}` or `{success, error}`
+- `safeUtils.validate(value, validator, field)` - Validate input with Result pattern
+
 ### TypeScript Support
 - Complete TypeScript type definitions available in `lib/types.d.ts`
 
