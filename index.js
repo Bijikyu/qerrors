@@ -29,6 +29,7 @@ const dependencyInterfaces = require('./lib/dependencyInterfaces'); //load depen
 const entityGuards = require('./lib/entityGuards'); //load entity validation utilities
 const responseHelpers = require('./lib/responseHelpers'); //load Express response helper utilities
 const circuitBreaker = require('./lib/circuitBreaker'); //load circuit breaker utilities
+const testing = require('./lib/testing'); //load Jest-compatible testing mocks
 
 /**
  * Error logger middleware that logs errors and provides AI-powered suggestions.
@@ -174,7 +175,13 @@ module.exports = { //(primary export object allows destructuring imports like { 
   // Circuit breaker
   CircuitBreaker: circuitBreaker.CircuitBreaker, //(circuit breaker class)
   CircuitState: circuitBreaker.CircuitState, //(circuit state enum)
-  createCircuitBreaker: circuitBreaker.createCircuitBreaker //(factory with defaults)
+  createCircuitBreaker: circuitBreaker.createCircuitBreaker, //(factory with defaults)
+  
+  // Testing utilities (Jest mocks)
+  testing, //(Jest-compatible testing mocks for unit tests)
+  MockErrorFactory: testing.MockErrorFactory, //(mock error factory for tests)
+  createMockResponse: testing.createMockResponse, //(mock Express response factory)
+  createMockRequest: testing.createMockRequest //(mock Express request factory)
 };
 
 module.exports.default = qerrors; //(default export for backward compatibility allowing both 'const qerrors = require("qerrors")' and destructuring patterns, dual strategy accommodates different developer preferences)

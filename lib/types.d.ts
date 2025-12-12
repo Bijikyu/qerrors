@@ -321,3 +321,40 @@ export interface EnhancedLogEntry {
   environment: string;
   memoryUsage: NodeJS.MemoryUsage;
 }
+
+export interface MockResponse {
+  statusCode: number;
+  body: any;
+  status(code: number): MockResponse;
+  json(data: any): MockResponse;
+  send(data: any): MockResponse;
+}
+
+export interface MockRequest {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  body: any;
+  params: Record<string, string>;
+  query: Record<string, string>;
+  ip: string;
+}
+
+export interface MockErrorFactoryInterface {
+  validation(message?: string, field?: string): Error;
+  notFound(entity?: string): Error;
+  authentication(message?: string): Error;
+  authorization(message?: string): Error;
+  from(error: unknown, meta?: object): Error;
+}
+
+export interface TestingModule {
+  qerrors(): undefined;
+  handleControllerError(res: any, error: Error, context?: string, meta?: object): any;
+  ErrorFactory: MockErrorFactoryInterface;
+  MockErrorFactory: MockErrorFactoryInterface;
+  errorMiddleware(err: Error, req: any, res: any, next: Function): any;
+  mockErrorMiddleware(err: Error, req: any, res: any, next: Function): any;
+  createMockResponse(): MockResponse;
+  createMockRequest(overrides?: Partial<MockRequest>): MockRequest;
+}
