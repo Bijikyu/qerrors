@@ -15,3 +15,40 @@ language = "nodejs"
 run = ["sh", "-c", "node index.js"]
 deploymentTarget = "cloudrun"
 ignorePorts = false
+
+[[workflows.workflow]]
+name = "Codex Task 1"
+author = "agent"
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./run-codex.sh"
+[[workflows.workflow]]
+name = "Codex Task 2"
+author = "agent"
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./run-codex.sh"
+[[workflows.workflow]]
+name = "Codex Task 3"
+author = "agent"
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./run-codex.sh"
+[[workflows.workflow]]
+name = "Codex Task 4"
+author = "agent"
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./run-codex.sh"
+[[workflows.workflow]]
+name = "Codex Task 5"
+author = "agent"
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./run-codex.sh"
+[[workflows.workflow]]
+name = "Codex Task 6"
+author = "agent"
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./run-codex.sh"

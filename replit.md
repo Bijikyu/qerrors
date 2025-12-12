@@ -1,114 +1,904 @@
-# qerrors - Intelligent Error Handling Middleware
+I) Read all the rules and guidance and cli usage from the files referenced here and place those rules and guidance in replit.md: 
+node_modules/commoncontext/00-AGENTS.md
+node_modules/npmcontext/01-STACK_RULES.md
+node_modules/npmcontext/02-NPM_architecture.md
+node_modules/commoncontext/ReplitCodexUse.md
 
-## Overview
+II) Take this following text (including comments) and paste it once at the top and once at the bottom of replit.md:
 
-qerrors is a Node.js middleware library that combines traditional error logging with AI-powered debugging assistance. It provides intelligent error analysis using OpenAI's GPT models while maintaining production-ready reliability through graceful degradation, caching, and queue management.
+<!--AI Can write above this line-->
+<!--┌── �� PROTECTED: DO NOT EDIT (READ ONLY) BELOW THIS LINE-->
+ Reference Patch
+For comprehensive agent development rules and guidelines, please refer to the documentation located at node_modules/commoncontext/00-AGENTS.md. This file contains detailed instructions for agent behavior, CLI tool usage, coding standards, and workflow procedures that should be followed throughout the development process.
 
-The system is designed with a "never break the application" philosophy - all AI features are optional and the middleware will continue functioning even when external services fail.
+Additional project-specific guidance can be found in:
+node_modules/npmcontext/01-STACK_RULES.md - NPM & JavaScript development rules and policies
+node_modules/npmcontext/02-NPM_architecture.md - Architecture patterns and Single Responsibility Principle guidelines
+FILE_FLOWS.md- File & Data Workflow information. Read this before deciding the scope of file changes and where you need to work.
+IMPLEMENT_META.md- Information for metadata support for npm modules so that client apps can better use this module.
+node_modules/commoncontext/ReplitCodexUse.md - details Replit Codex Use Protocol (RCUP), the main development workflow for non-trivial tasks.
 
-## System Architecture
+Here is a high level guide for RCUP:
+=================
+Replit Agent Development Workflow (RCUP)
+RCUP = Replit Codex Use Protocol
+This workflow uses 6 parallel codex workflows (Codex Task 1-6) for cost-effective, high-quality implementation.
 
-### Core Components
-- **Error Handling Middleware**: Express.js compatible middleware for capturing and processing errors
-- **AI Analysis Engine**: OpenAI GPT-4o integration for generating contextual debugging advice
-- **Caching Layer**: LRU cache with TTL for cost-effective AI advice storage
-- **Queue Management**: Concurrency-limited queue system for managing AI analysis requests
-- **Logging System**: Winston-based structured logging with file rotation
+IMPORTANT: Always communicate your workflow decisions to the user for transparency.
 
-### Technology Stack
-- **Runtime**: Node.js 18+
-- **HTTP Client**: Axios with custom retry logic and connection pooling
-- **Caching**: Custom LRU cache with time-to-live support
-- **Queue**: Denque-based double-ended queue for O(1) operations
-- **Logging**: Enhanced Winston with security-aware sanitization, performance monitoring, and structured logging
-- **Security**: HTML escaping for safe error output plus comprehensive data sanitization
+1. Tell user: "This is a non-trivial task requiring the full workflow"
+2. Launch single codex workflow to create CURRENTPLAN.md
+3. Create task list based on plan
+4. Check FILE_FLOWS.md: Review file organization to determine parallelization strategy
+         - Can parallelize by logical divisions (features, components)
+         - Can parallelize by file index (even/odd, quarters, etc.) for tasks like bug checks, commenting, refactoring
+         - Decide optimal division based on task type and file structure
+5. Tell user: "I'll run [N] codex workflow(s) [division strategy] because [reason]" 
+6. Implementation via codex with explicit file assignments:
+         - CRITICAL: Create prompt.txt, and write prompt to prompt.txt before launching each workflow
+         - Launch workflows sequentially (brief delay between each):
+         - Write full prompt to prompt.txt (this is rewritten over with the prompt for each workflow, it is just the staging area, the codex workflows pull the prompt from here)
+         - Start workflow (e.g., "Codex Task 1")
+         - Wait 100ms
+         - Repeat for next workflow
+         - Workflows execute in parallel once started
+         - 1 codex workflow for sequential/single cohesive tasks
+         - 2-6 parallel codex workflows for independent tasks (divided by feature, component, file index, or other logical grouping)
+         - Each prompt MUST include: 
+                        - (a) CURRENTPLAN.md section this workflow implements, 
+                        - (b) Explicit list of files to modify, 
+                        - (c) Files to avoid (handled by other workflows)
+                        - This prevents merge conflicts by ensuring distinct code areas
+7. Architect evaluation: Use architect(responsibility="evaluate_task") to verify CURRENTPLAN.md was fully implemented
+         - If architect finds plan NOT implemented: RESTART workflow from step 2 (create new plan for shortcomings → parallel codex execution)
+         - If architect finds plan IS implemented: proceed to testing
+8. Testing loop (codex runs tests since Replit Agent cannot):
+         - Launch single codex: "Run `npm test` and report all results. Do not begin fixing test failures. Do nothing else."
+         - Tests pass → Continue to step 9 (Mark tasks complete)
+         - Tests fail → DEBUG_TESTS.md auto-generated by qtests module (not codex)
+                 - Read DEBUG_TESTS.md to analyze failures
+                 - RESTART from step 3 (Create task list based on plan) with DEBUG_TESTS.md instead of CURRENTPLAN.md as work to be addressed (parallel codex fixes test failures)
+         - After codex fixes, run npm test again, repeat until test are passing
+9. Mark tasks complete (only after tests all pass)
 
-## Key Components
+For trivial tasks (comments, single-line fixes):
+Announce classification: Tell user this is a trivial task you'll implement directly
+Implement directly
 
-### Error Processing Pipeline
-1. **Error Capture**: Middleware intercepts errors from Express applications
-2. **Unique Identification**: Generates crypto-based unique identifiers for error tracking
-3. **Context Analysis**: Extracts and processes error context including stack traces
-4. **Security Sanitization**: Removes sensitive data from logs using pattern-based detection
-5. **AI Analysis**: Queues errors for OpenAI analysis with caching and retry logic
-6. **Enhanced Logging**: Structured logging with performance monitoring and request correlation
-7. **Response Generation**: Returns structured JSON or HTML responses based on Accept headers
+Transparency Requirements:
+Always state whether task is "trivial" or "non-trivial" and explain why
+Always state how many codex workflows you'll run (0, 1, or 2-6) and the reasoning
+This gives the user visibility into your decision-making process
+Rationale: Codex uses GPT-5 model (more intelligent and cheaper than Replit Agent's default). Use codex for heavy lifting, Replit Agent for orchestration.
 
-### Configuration System
-- **Environment Variables**: 20+ configurable parameters for fine-tuning behavior
-- **Defaults**: Production-ready defaults with conservative resource limits
-- **Validation**: Built-in environment variable validation with helpful error messages
-- **Dynamic Configuration**: Runtime configuration changes without restarts
+Available Workflows: Codex Task 1, Codex Task 2, Codex Task 3, Codex Task 4, Codex Task 5, Codex Task 6
+=====================
 
-### Queue and Concurrency Management
-- **Concurrency Limiting**: Configurable concurrent AI analysis requests (default: 5)
-- **Queue Management**: Bounded queue with overflow protection (default: 100 pending)
-- **Metrics**: Built-in queue health monitoring and logging
-- **Backpressure**: Graceful degradation when system is overloaded
+While replit.md is the source of truth for replit agent, it often becomes out of date, 
+with these being the maintained rules files. Check these for up to date information and 
+copy their guidance to replit.md.
+<!--└── END PROTECTED RANGE ��-->
+<!--AI Can write from here on-->
 
-## Data Flow
+(End patch text)\n\n<file>\n00001| I) Read all the rules and guidance and cli usage from the files referenced here and place those rules and guidance in replit.md: \n00002| node_modules/commoncontext/00-AGENTS.md\n00003| node_modules/npmcontext/01-STACK_RULES.md\n00004| node_modules/npmcontext/02-NPM_architecture.md\n00005| node_modules/commoncontext/ReplitCodexUse.md\n00006| \n00007| II) Take this following text (including comments) and paste it once at the top and once at the bottom of replit.md:\n... 
 
-1. **Error Occurrence**: Application error triggers middleware
-2. **Error Enrichment**: Unique ID generation and context extraction
-3. **Immediate Response**: HTTP response sent to client without waiting for AI analysis
-4. **Background Analysis**: Error queued for AI processing with concurrency control
-5. **Cache Check**: System checks for existing advice before API call
-6. **AI Analysis**: OpenAI API call with retry logic and timeout protection
-7. **Cache Storage**: Results stored in LRU cache for future identical errors
-8. **Logging**: Structured logs written to rotating files
+# AGENTS.md
 
-## External Dependencies
+<!--┌── 🚫 PROTECTED: DO NOT EDIT (READ ONLY) BELOW THIS LINE-->
+## ADDITIONAL SPECIFIC GUIDANCE
+- **File & Data Workflow information** → see `FILE_FLOWS.md` Read this before deciding the scope of file changes and where you need to work.
+- When trying to diagnose a dataflow or caching issue, always check `FILE_FLOWS.md` first.
 
-### Required Services
-- **OpenAI API**: GPT-4o model for error analysis (optional - graceful degradation when unavailable)
+## AGENT CLI TOOLS
+You can and must use the command line to activate scripts that will assist you:
+```bash
+# AGENTSQRIPTS: If npm module agentsqripts is installed (it almost always is, see node_modules/agentsqripts/README.md):
+# Use these to scout or doublecheck
+npx analyze-static-bugs . # Detect real bug code smells
+npx analyze-security . # Security vulnerability code smell scan
+npx analyze-wet-code . # Find duplicate code
+npx analyze-performance . # Performance bottleneck detection
+npx analyze-srp . # Check single responsibility violations
+npx analyze-scalability . # Find scalability bottlenecks
+npx analyze-ui-problems . # Detect UI/UX issue code smells
+npx analyze-frontend-backend . # Check API Frontend/Backend integration issues
 
-### NPM Dependencies
-- **axios**: HTTP client with retry and connection pooling
-- **winston**: Structured logging framework
-- **winston-daily-rotate-file**: Log rotation management
-- **denque**: High-performance queue implementation
-- **lru-cache**: Memory-efficient caching with TTL support
-- **escape-html**: Security-focused HTML escaping
-- **qtests**: Testing utilities for mocking and stubbing
+# FILEFLOWS: If npm module fileflows is installed (it almost always is, see node_modules/fileflows/README.md):
+npx fileflows # Creates FILE_FLOWS.md which shows data workflow through the app, run after changes or to see the files & data flow in the app.
+```
 
-## Deployment Strategy
+## POLICIES
 
-### Environment Configuration
-- **Development**: Verbose logging enabled, reduced cache sizes, immediate error feedback
-- **Production**: File-only logging, optimized cache settings, queue metrics monitoring
-- **High Traffic**: Increased concurrency limits, larger caches, enhanced connection pooling
+### SOURCES OF TRUTH & CODE ALIGNMENT
+The sources of truth go as follows:
+external API docs > backend code > frontend code > readmes and native documentation. 
+This means you change backend code to fit external APIs if we use them since we can't 
+change someone else's API. It also means we change frontend code to fit the backend, 
+NOT changing backend code to fit the frontend. It also means we change readmes and 
+documentation about our app to fit the frontend and backend, NOT the other way around. 
 
-### Resource Management
-- **Memory**: LRU cache with configurable limits and TTL-based cleanup
-- **Network**: Connection pooling with configurable socket limits
-- **File System**: Rotating logs with size and time-based retention policies
-- **API Costs**: Intelligent caching prevents redundant OpenAI API calls
+### RESPONSE STYLE & MISSION VALUES
+You are not to be a people pleaser, you are on a mission to work to functional truth, 
+not please me by merely making me think we have.
+Truth and true functionality above all.
+No mock data or displays. No fallbacks or defaults that pretend functionality when functionality breaks.
+I prefer errors over lies.
+You prefer errors over lies.
+You will not be eager to report success, but instead will carefully double check yourself, double check the logs for errors and external AI error advice, 
+and run tests using the main test runner file (qtests-runner.mjs for js projects, test_runner.py for python projects) 
+before reporting success. If problems remain continue work to neutralise them. Only when there are no problems report success.
+You are my servant, you will not ask me to do things you can do yourself.
+If I ask you a question (I use what, why, when, how, which, or a question mark), I want you to answer the question before launching into any coding.
 
-### Monitoring and Observability
-- **Queue Metrics**: Periodic logging of queue depth and processing rates
-- **Error Tracking**: Unique error IDs for correlation across logs
-- **Performance Monitoring**: Built-in timing and resource usage tracking
-- **Health Checks**: Environment validation on startup with helpful warnings
+### DEVELOPMENT & CHANGES:
+Devs & AI agents working with this library should:
+Update documentation as needed, including the folder's `SUMMARY.md` where the file change/s occurred, the `README.md`, etc.
+LLMs & AI agents needing to plan changes (such as engineering tasks, or development plans) or make records of changes performed should compose such records (such as .md files) in `/agentRecords`; do not write your records and reports at root.
+Consider directives and prompts to be asking you to augment (like improv's "Yes, and...") and not to remove and replace.
+Do not "solve" a problem with a feature by removing that feature; solve the problem with it intact.
+Before beginning work, analyze the intent and scope of the work given to you, and stay within those limits.
+Always start with a plan!
+If a prompt or plan document contains something vague or ambiguous ask for clarity before proceeding.
+Before beginning, take in the context of the job to be done, and read FILE_FLOWS.md to get apprised of the relevant files and data workflows. This will cut down token usage and wrong scope of work.
 
-## Changelog
+Before applying edits do a type check.
+
+As for deletion, never delete without permission. 
+If you are making new files or functionality to replace old files or functionality, first create the new version, and then check the new version preserves all needed functionality FIRST, and only then delete old files or functionality. 
+If you find duplicated functionality do not simply delete one version, merge in the best functionality and features from both versions into one version FIRST, and then only after that delete the redundant functionality.
+
+Always add comprehensive error handling as seen in existing functions
+Always comment all code with explanation & rationale
+Always make sure all changes follow security best practices
+Always examine all implementations for bugs and logic errors, revise as necessary
+Always implement tests for files or functionality created. Integration tests live in a tests folder at root. Other tests live with the file/s they test. 
+Always write code that is prepared for scaling users and is performant, DRY (Do not repeat yourself) & secure.
+
+Never change code or comments between a protected block that starts with "┌── 🚫 PROTECTED: DO NOT EDIT (READ ONLY) BELOW THIS LINE" and ends at "└── END PROTECTED RANGE 🚫"
+Never remove routing just because it isn't used (unless instructed to).
+Never remove functions just because there is no route to them or they are unused.
+Never rename route URIs or endpoints.
+Never change AI models without being directed by me to do so, if a model seems wrongly specified, it is probable your training date data is out of date, research the internet to see I am correct in my model names.
+
+After every change:
+- review your implementation for problems, bugs and logic errors.
+- monitor the logs for errors and external AI error advice.
+- run tests using the main test runner file (qtests-runner.mjs for js/ts projects, test_runner.py for python projects).
+- If problems remain continue work to neutralise them.
+- Only when there are no problems report success.
+- In your success message also report qerrors advice listened to, as I want verification you are using the tool. 
+
+- **Scope Transparency**: When fixing issues beyond the explicit request (e.g., test failures, build errors), explain why this work is necessary for technical integrity
+
+### DOCUMENTATION:
+Document all function parameters & return values.
+Comment all code with both explanation & rationale.
+I prefer inline comments, rather than above the line.
+Never comment JSON.
+Use the correct commenting style for the language (html, js/ts, python, etc).
+A SUMMARY.md per feature & folder, listing all files roles, req/res flows, known side effects, edge cases & caveats, & using machine-readable headings
+AI-Agent task anchors in comments like:
+// 🚩AI: ENTRY_POINT_FOR_PAYMENT_CREATION
+// 🚩AI: MUST_UPDATE_IF_SUBSCRIPTION_SCHEMA_CHANGES
+These let LLM agents quickly locate dependencies or update points when editing.
+
+### TESTING:
+Integration tests live at root in their own folder `./tests`.
+Unit tests & other such tests live with the files they test.
+Tests need to match code, don't ever change code to match tests, change tests to match code.
+Tests must not make actual API calls to external services, mock these.
+
+### FRONTEND
+- All forms must validate inputs client- and server-side.
+- All interactive elements must be accessible (WCAG 2.1 AA).
+ - All UI should follow UX/UI best practices.
+ - Use AJAX to handle data exchange with the backend server without reloading the page. 
+
+### UTILITIES
+Functionality that assists & centralizes code across multiple files should be made into utilities. 
+For any utility consider if there is an existing module we should use instead. 
+Use the module dependencies if they're useful! 
+Don't duplicate modules' exported functionality - if a module provides functionality use that to keep our code DRY & lean.
+
+### CODE WRITING
+I like functions declared via function declaration. 
+I like code with one line per functional operation to aid debugging. 
+When writing code or functions to interact with an API you will write as generic as possible to be able 
+to accept different parameters which enable all functionality for use with a given endpoint. 
+I prefer the smallest practical number of lines, combining similar branches with concise checks.
+Code should be as DRY as possible.
+
+Naming Conventions: Function & variable names should describe their use and reveal their purpose;
+A function's name should preferably consist of an action & a noun, action first, to say what it does, not what it is a doer of, 
+A variable's name should consist of two or more relevant words, the first describing context of use, & the others what it is. 
+Name folders clearly as to what they are for and organize them so that LLMs and developers can understand what they are for.
+
+### DEPLOYMENT: Assume app will be deployed to Replit, Render, Netlify.
+
+   
+<!--└── END PROTECTED RANGE 🚫-->
+
+<!--AI Can write from here on-->
+# NPM & JAVASCRIPT STACK RULES
+
+<!--┌── 🚫 PROTECTED: DO NOT EDIT (READ ONLY) BELOW THIS LINE-->
+## ADDITIONAL SPECIFIC GUIDANCE
+Beyond the general rules here, rules and guidance for specific areas can be found at these locations.
+- **Architecture patterns** → see `node_modules/npmcontext/02-NPM_architecture.md` for details on SRP, etc
+
+## AGENT JS ONLY CLI COMMANDS
+You can (and should) use the command line to activate scripts that will assist you:
+```bash
+#QTESTS If npm module qtests is installed (it almost always is see node_modules/qtests/README.md)
+# a test failure will trigger the creation of DEBUG_TESTS.md which details what went wrong.
+# To generate tests for entire project, or any new files or functionality you add, use:
+npx qtests-generate # call instead of, or to augment your test writing, this also generate the test runner above
+```
+Follow this systematic troubleshooting checklist when encountering "command not found" errors for npm dependencies:
+Try npx first: For any npm dependency, always try npx <command> before assuming it's unavailable
+Check package structure: Run ls node_modules/.bin/ and npm list <package> to verify installation and binary names
+Verify package.json: Check the package's bin entries to see what commands it actually exports
+
+## POLICIES
+
+### DEVELOPMENT & CHANGES:
+Devs & AI agents working with this library should:
+Include detailed JSDoc/TSDoc with clear @param/@returns tags and TypeScript interfaces.
+Implement tests for files or functionality created. Integration tests live in a tests folder at root. Other tests live with the file/s they test. All tests are ran by `qtests-runner.js`.
+
+### ERROR HANDLING:
+Use the npm module named "qerrors" for error logging in try/catch blocks:
+qerrors(error, 'error context', req, res, next);, if it is not an express req/res function use 
+qerrors(error, 'error context', {param1, param2, etc}); 
+Include error type in JSDoc `@throws` declarations
+
+### TESTING:
+Use the exported functionality of npm module qtests in testing.
+A top level test file `qtests-runner.mjs` should discover all these tests & run them via test script in package.json (npm test for node qtests-runner.mjs).
+qtests-runner.mjs is auto generated using npx qtests-generate
+In each *.test.ts[x], include a test-to-function mapping comment at the top:
+```
+// 🔗 Tests: createUserCtrl → createUserSvc → userMdl
+```
+This lets an LLM quickly reason about test coverage and impact.
+
+### DEPENDENCY UTILIZATION & DEDUPLICATION
+Use the module dependencies if they're useful! 
+Don't duplicate modules' exported functionality - if an npm module provides functionality use that to keep our code DRY & lean.
+Do not duplicate files to meet ES module or Common JS compatibility, implement smart fixes instead of file duplication with different file endings (.cjs & .ejs)
+
+### CODE WRITING
+Other than in locarVars.js, all module exports at the bottom of a file, separate from function definitions. 
+Naming Conventions: Function & variable names should describe their use and reveal their purpose; use js camelCase. 
+
+## CONSTRAINTS
+
+**Modules & Libraries**:
+	 - I prefer axios to node fetch, use that always instead.
+	 - I prefer isomorphic-git to simple-git, use that always instead.
+	 - Do not remove repomix, loqatevars, unqommented or madge, they are CLI tools.
+
+**You will not ever implement**:
+	 - JQuery.
+	 - p-limit.
+
+<!--└── END PROTECTED RANGE 🚫-->
+
+<!--AI Can write contraints from here on-->
+
+# Architecture Overview
+
+## Stack
+npm ESM Module using Typescript.
+
+## Single Responsibility Principle
+The module architecture obeys SRP (Single Responsibility Principle),
+each file encapsulates one concrete responsibility:
+* One function per file so that any change in that behavior only ever touches that one file.
+* Clear naming.
+* Minimal imports/exports so that a file’s public interface is singular and dependencies stay tight.
+* Easier reasoning for devs and LLM agents.
+* Simpler testing (one test per file).
+* Lower coupling (changes in “createUser” never ripple into “sendEmail”).
+* Better AI‐friendliness (LLMs only load the 30 lines they need, not a 500-line blob), lowering token use.
+* Easier assignment of parallel LLM editing that avoids merge conflicts
+
+## Global Constants & Environment Variable Exporting
+Theres a file `/config/localVars.js`, this file stores all hardcoded constants in the app so we have a single source of truth for variable names, 
+and LLMs cannot mutate variable names. New values may be added, but existing values must not be modified, deleted, or moved. 
+Values are grouped by category when first introduced. They are grouped under existing categories if they exists, or a new section 
+(with a new comment header) if it’s a new category. Do not move or re-categorize existing values. 
+Ensure that no duplicates or slight variations of existing values are added. All environment variables are defined here 
+(example: export const envVar = process.env.ENV_VAR) and exported for use from here on the same line using the export keyword. 
+No where else in the codebase should cite and use environment variables directly but should import them from here. 
+Don't move or re-categorize existing values. If a variable/value is a duplicate or unused you may not delete it but may flag it & uncomment with a comment "REMOVE?". 
+Remember in all this, never edit a constant once it resides in localVars.js; never create a section whose header already exists. 
+When importing these variables into other files that use them, import the entire object and not just the variable needed 
+(What I mean is import as: const localVars = require('../config/localVars'); and use as localVars.variable in context that use a variable. 
+DO NOT import as: require const { variable } = require('../config/localVars'); as this becomes a huge and messy list.); 
+this avoids merge conflicts that are huge and confusing to analyze the many imported variables from localVars.js. 
+When you use a value in a file, doublecheck what that value is called in localVars.js EXACTLY to avoid hallucinating the variable name.
+
+## Universal I/O
+If a function needs to use parameters/arguments, the first is an object named data, which is the main input for passing in information.
+Functions regardless of what there output is will return results as a result object.
+
+## Exports
+In order to enable ESM module treeshaking, each function is exported by itself from index and not as part of an object that must be 
+destructured or imported wholesale.
+
+## Architectural Components
+This architecture consists of:
+1. **Entry Point**: `index.js`
+	 - Exports public functions from the library
+2. **Core Library**: `lib/` directory
+	 - Contains utility implementations
+	 - `index.js`: Aggregates exports from library files
+3. **Configuration**: `config/` directory
+	 - `localVars.js`: Environment variables loader and Constants definer
+
+The module follows a simple export pattern where all public functionality is exposed through the main `index.js` file.# Replit Codex Use Protocol (RCUP)
+**RCUP = Replit Codex Use Protocol**
+
+This protocol uses a parallel execution system to run multiple Codex CLI instances simultaneously through Replit workflows. 
+This accelerates development work by allowing multiple coding tasks to be performed in parallel rather than sequentially, 
+leveraging the GPT-5 model for cost-effective, high-quality implementation.
+
+
+
+
+
+## SYSTEM COMPONENTS
+
+### 1. Workflows (6 Total)
+- **Codex Task 1** through **Codex Task 6**
+- All execute the same command: `./run-codex.sh`
+- Replit enforces a ~6 workflow concurrency limit, which is why we cap at 6
+- Workflows 1-6 run in parallel; any beyond 6 will queue and run serially
+
+### 2. run-codex.sh Script
+```bash
+#!/bin/bash
+codex exec --full-auto "$(cat prompt.txt)"
+```
+- Uses `--full-auto` flag for non-interactive execution (critical for workflows)
+- Reads instructions from `prompt.txt`
+- Non-interactive mode ensures workflows don't hang waiting for user input
+
+### 3. prompt.txt Coordination File
+- **CRITICAL**: Single shared file that gets recreated or rewritten before each workflow launch
+- Contains the specific task/prompt for each Codex instance
+- Acts as the coordination mechanism for parallel execution
+- **Workflow Launch Sequence**:
+	1. Write prompt to prompt.txt
+	2. Start workflow (it reads prompt.txt immediately)
+	3. Wait 100ms (0.1 seconds)
+	4. Rewrite prompt.txt for next workflow
+	5. Start next workflow
+	6. Repeat until all workflows launched
+	7. **IMMEDIATELY clear and delete prompt.txt** (write empty string) to prevent auto-restarts
+- All workflows then execute in parallel with their respective prompts
+- **CRITICAL SAFEGUARD**: Never leave content in prompt.txt while workflows are running or idle - this causes mass auto-restart
+
+
+
+
+
+## HOW PARALLEL EXECUTION WORKS
+
+### Sequential Start, Parallel Execution
+While workflows are **started sequentially** with millisecond delays (to rewrite `prompt.txt` between each), they **execute in parallel** once launched. The brief sequential startup doesn't matter because:
+- Each Codex instance reads its prompt and begins work immediately
+- All instances run simultaneously after startup
+- The parallel working of Codex is the goal, not perfectly simultaneous launch
+
+### Timing Pattern
+Based on testing with 10 workflows:
+- Workflows 1-6: Complete in ~3 minutes (parallel execution)
+- Workflows 7+: Queue and wait for slots to free up (serial execution)
+- **Optimal configuration: 6 parallel workflows**
+
+
+
+
+
+## NORMATIVE WORKFLOW FOR REPLIT AGENT
+
+### CRITICAL: Communicate Workflow Decisions
+
+**Always tell the user:**
+1. **Task classification**: "This is a [trivial/non-trivial] task because..."
+2. **Execution plan**: "I'll run [0/1/2-6] Codex workflow(s) because..."
+
+This provides visibility into your decision-making and working process.
+
+### Decision Tree
+
+**Trivial Tasks** (comments, single-line fixes, tiny changes):
+```
+1. Tell user: "This is a trivial task - I'll implement it directly"
+2. Implement directly → Done
+```
+
+**Non-Trivial Tasks** (3+ steps, complex changes):
+```
+1. Tell user: "This is a non-trivial task requiring the full workflow"
+2. Launch single Codex workflow to create CURRENTPLAN.md
+3. Create task list based on plan
+4. Check FILE_FLOWS.md: Review file organization to determine parallelization strategy
+	 - Can parallelize by logical divisions (features, components)
+	 - Can parallelize by file index (even/odd, quarters, etc.) for tasks like bug checks, commenting, refactoring
+	 - Decide optimal division based on task type and file structure
+5. Tell user: "I'll run [N] Codex workflow(s) [division strategy] because [reason]"
+6. Implementation via Codex with explicit file assignments:
+	 - CRITICAL: Create prompt.txt, and write prompt to prompt.txt before launching each workflow
+	 - Launch workflows sequentially (brief delay between each):
+	 - Write full prompt to prompt.txt (this is rewritten over with the prompt for each workflow, it is just the staging area, the Codex workflows pull the prompt from here)
+	 - Start workflow (e.g., "Codex Task 1")
+	 - Wait 100ms
+	 - Repeat for next workflow
+	 - Workflows execute in parallel once started
+	 - 1 Codex workflow for sequential/single cohesive tasks
+	 - 2-6 parallel Codex workflows for independent tasks (divided by feature, component, file index, or other logical grouping)
+	 - Each prompt MUST include: 
+	 		- (a) CURRENTPLAN.md section this workflow implements, 
+			- (b) Explicit list of files to modify, 
+			- (c) Files to avoid (handled by other workflows)
+			- This prevents merge conflicts by ensuring distinct code areas
+7. Architect evaluation: Use architect(responsibility="evaluate_task") to verify CURRENTPLAN.md was fully implemented
+	 - If architect finds plan NOT implemented: RESTART workflow from step 2 (create new plan for shortcomings → parallel Codex execution)
+	 - If architect finds plan IS implemented: proceed to testing
+8. Testing loop (Codex runs tests since Replit Agent cannot):
+	 - Launch a single Codex: "Run `npm test` and report all results. Do not begin fixing test failures. Do nothing else."
+	 - Tests pass → Continue to step 9 (Mark tasks complete)
+	 - Tests fail → DEBUG_TESTS.md auto-generated by qtests module (not Codex)
+		 - Read DEBUG_TESTS.md to analyze failures
+		 - RESTART from step 3 (Create task list based on plan) with DEBUG_TESTS.md instead of CURRENTPLAN.md as work to be addressed (parallel Codex fixes test failures)
+	 - After Codex fixes, run npm test again, repeat until test are passing
+9. Mark tasks complete (only after tests all pass)
+```
+
+### Step-by-Step Process
+
+#### Step 1: Classify and Communicate
+**Tell the user:**
+```
+"This is a [trivial/non-trivial] task because [brief explanation]."
+```
+
+If non-trivial, proceed with full workflow. If trivial, implement directly.
+
+#### Step 2: Create Plan 
+Output: CURRENTPLAN.md
+
+- Analyze requirements and codebase
+- Create implementation plan for implementing user's prompt/instruction with task breakdown
+- Document approach and dependencies
+- Launch ONE Codex workflow to create the plan:
 
 ```
-Changelog:
-- June 17, 2025. Initial setup
-- June 17, 2025. Enhanced error middleware with meta-error handling, headers protection, and improved fallback responses
-- June 17, 2025. Integrated comprehensive enhanced logging system with security-aware sanitization, performance monitoring, request correlation, and structured logging capabilities
-- August 10, 2025. Successfully migrated from axios-based OpenAI implementation to LangChain architecture supporting multiple AI providers (OpenAI and Google Gemini). Added Gemini 2.5 Flash-lite model support as requested by user. Updated all tests to work with new architecture. Fixed nested object sanitization logic for enhanced logging. All 146 tests now passing.
-- August 11, 2025. Successfully completed qtests module integration with ALL TESTS PASSING! Enhanced testing infrastructure with qtests utilities achieving ~30% reduction in test boilerplate code. Created lib/testUtils.js with QerrorsTestEnv and QerrorsStubbing classes. Implemented conditional qtests setup to avoid winston conflicts. Fixed 24 failing tests by resolving qtests.stubMethod compatibility issues with wrapped functions through hybrid stubbing approach. Added comprehensive analysis documentation (QTESTS_ANALYSIS.md) and demonstration tests. Created test-runner.js at root for unified test execution. Fixed verbose behavior: AI advice now prints to console by default, can be suppressed with QERRORS_VERBOSE=false. Test suite: 157/157 tests passing (100% success rate).
-- August 11, 2025. Updated environment variable naming for Google Gemini API from GOOGLE_API_KEY to GEMINI_API_KEY throughout codebase. Updated all references in README.md, lib/qerrors.js, lib/aiModelManager.js, and test files (analyzeError.test.js, queue.test.js, maxTokens.test.js). All 157 tests still passing after changes.
-- August 11, 2025. Repositioned Google Gemini as primary AI provider in documentation and code. Updated README.md to feature GEMINI_API_KEY as the primary provider with explicit secret key name references, positioned OpenAI as optional alternative. Changed default provider from OpenAI to Google Gemini in aiModelManager.js. Updated all documentation sections, configuration examples, and feature descriptions to prioritize Gemini. All 157 tests passing.
-- August 11, 2025. Added comprehensive documentation for QERRORS_AI_MODEL environment variable in README.md. Documented all available models for each provider: Google Gemini (gemini-2.5-flash-lite, gemini-2.0-flash-exp, gemini-pro, gemini-1.5-pro, gemini-1.5-flash) and OpenAI (gpt-4o, gpt-4o-mini, gpt-4, gpt-3.5-turbo). Added complete configuration examples, practical usage scenarios, and enhanced AI Model Manager documentation with model selection examples. All 157 tests passing.
-- August 11, 2025. Clarified default configuration in README.md with explicit section showing that when no environment variables are set, the system defaults to Google Gemini provider with gemini-2.5-flash-lite model. Verified actual runtime defaults match documentation through testing. All 157 tests passing.
+echo "Review against the codebase. Create the CURRENTPLAN.md to address any shortcomings, missing steps, or improvements needed." > prompt.txt
+Start Codex Task 1 workflow
+Wait for completion
 ```
 
-## User Preferences
+#### Step 3: Create Task List
+Based on CURRENTPLAN.md, create task list using `write_task_list` tool to track progress.
+
+#### Step 4: Check FILE_FLOWS.md for Parallelization Strategy
+Review FILE_FLOWS.md to understand file organization and determine optimal parallelization:
+
+**Logical Division (preferred when applicable):**
+- By features: "3 workflows for auth, dashboard, and API"
+- By components: "2 workflows for frontend and backend"
+- By layers: "4 workflows for UI, business logic, data layer, tests"
+
+**File Index Division (useful for cross-cutting tasks):**
+- Even/odd files: "2 workflows - one for even-indexed files, one for odd"
+- Quarters: "4 workflows - each handles 25% of files by index"
+- Customized: Any division that makes sense for the task
+
+**When to use file index division:**
+- Bug checks across entire codebase
+- Adding comments/documentation to all files
+- Refactoring patterns that apply everywhere
+- Type updates across multiple files
+- Any task that affects many files uniformly
+
+**Decision criteria:**
+- Natural logical groupings → Use logical division
+- Cross-cutting concerns → Use file index division
+- Single cohesive task → Use 1 workflow
+
+#### Step 5: Announce Codex Execution Plan
+**Tell the user:**
+```
+"I'll run [N] Codex workflow(s) [division strategy] because [reason]."
+```
+
+Examples:
+- "I'll run 1 Codex workflow since this is a single cohesive feature."
+- "I'll run 3 parallel Codex workflows - one for each component (auth, dashboard, API)."
+- "I'll run 4 parallel Codex workflows divided by file quarters to add documentation across the codebase."
+- "I'll run 2 parallel Codex workflows for even/odd indexed files to refactor the import patterns."
+
+#### Step 6: Codex Implementation with Explicit File Assignments
+
+**CRITICAL: Prevent merge conflicts by explicitly assigning files to each workflow**
+
+**MANDATORY SAFEGUARDS (DO NOT SKIP):**
+
+1. **VERIFY PROMPT WRITTEN** - After writing to prompt.txt, ALWAYS verify it contains content:
+	 ```bash
+	 cat prompt.txt  # Must show the actual prompt, not empty
+	 ```
+	 - If empty/missing → STOP and rewrite prompt
+	 - NEVER launch a workflow if prompt.txt is empty
+
+2. **VERIFY WORKFLOW IS WORKING** - Within 2 minutes of launch, check logs:
+	 ```bash
+	 refresh_all_logs  # Check workflow is executing the prompt
+	 ```
+	 - Look for actual work being done (file reads, commands, etc.)
+	 - If showing default greeting ("Hey! What can I help you build") → STOP, it got no prompt
+	 - If stuck/idle → STOP and restart with correct prompt
+
+**Option A: Single Sequential Task**
+```
+1. Write prompt to prompt.txt:
+
+	 Prompt structure:
+	 "Implement [section] from CURRENTPLAN.md
+
+	 Files to modify:
+	 - file1.ts
+	 - file2.ts
+	 - file3.ts
+
+	 [Full implementation instructions]"
+
+2. VERIFY prompt written:
+	 cat prompt.txt  # MUST show content
+
+3. Start workflow:
+	 Start Codex Task 1 workflow
+
+4. VERIFY workflow received prompt (within 2 minutes):
+	 refresh_all_logs  # Check it's working on the task
+
+5. Wait for completion
+```
+
+**Option B: Parallel Independent Tasks (2-6)**
+```
+For each independent task (launch sequentially, execute in parallel):
+
+	Step 1: Write prompt to prompt.txt
+	Prompt structure:
+	"Implement [section X] from CURRENTPLAN.md
+
+	Your assigned files to modify:
+	- fileA.ts
+	- fileB.ts
+
+	DO NOT modify these files (handled by other workflows):
+	- fileC.ts (Workflow 2)
+	- fileD.ts (Workflow 3)
+
+	[Specific implementation instructions for this section]"
+
+	Step 2: Execute launch sequence
+	1. echo "[prompt with file assignments]" > prompt.txt
+	2. Start workflow (e.g., "Codex Task 1")
+	3. Wait 100-500ms (allows workflow to read prompt.txt)
+	4. Rewrite prompt.txt for next task
+	5. Start next workflow (e.g., "Codex Task 2")
+	6. Repeat until all workflows launched (max 6)
+
+All Codex instances execute in parallel on distinct files
+```
+
+**Option C: Progressive Analyze→Fix Pattern (NEW)**
+```
+Use this pattern when workflows need to analyze first, then fix findings:
+
+Phase 1 - Launch Analysis Workflows:
+	For each stream (launch sequentially, execute in parallel):
+		1. echo "Analyze [stream] and document bugs in BUGS_STREAM_X.md" > prompt.txt
+		2. Start workflow (e.g., "Codex Task 1" for Stream A)
+		3. Wait 100-500ms
+		4. Repeat for remaining streams (Tasks 2-6)
+
+Phase 2 - Progressive Fix (NO PAUSE):
+	As EACH workflow completes analysis:
+		1. Parse its bug report (e.g., BUGS_STREAM_A.md)
+		2. Immediately reassign SAME workflow to fix those bugs:
+			 - echo "Fix all bugs documented in BUGS_STREAM_A.md" > prompt.txt
+			 - Restart Codex Task 1 (same workflow that did analysis)
+		3. Repeat for each completing workflow
+
+	Example flow:
+		- Task 1 completes analysis → immediately reassign Task 1 to fix
+		- Task 2 completes analysis → immediately reassign Task 2 to fix
+		- Task 3 completes analysis → immediately reassign Task 3 to fix
+
+	Each workflow owns its stream end-to-end (analyze → fix)
+	No waiting - continuous parallel execution
+```
+
+**File Assignment Examples:**
+
+*By Feature:*
+- Workflow 1: "Auth feature - Modify: auth.ts, authService.ts, authRoutes.ts. Avoid: dashboard files"
+- Workflow 2: "Dashboard feature - Modify: Dashboard.tsx, dashboardService.ts. Avoid: auth files"
+
+*By File Index:*
+- Workflow 1: "Even-indexed files from FILE_FLOWS.md (2, 4, 6, 8...)"
+- Workflow 2: "Odd-indexed files from FILE_FLOWS.md (1, 3, 5, 7...)"
+
+*By Analysis Stream (Progressive Pattern):*
+- Workflow 1: "Stream A analysis → Stream A fixes"
+- Workflow 2: "Stream B analysis → Stream B fixes"
+- Each workflow completes both phases on its assigned code area
+
+#### Step 7: Architect Evaluation & Restart Logic
+
+Use architect to validate CURRENTPLAN.md implementation:
+```
+architect(responsibility="evaluate_task", include_git_diff=true, relevant_files=[...])
+```
+
+**Two possible outcomes:**
+
+**A. Plan NOT Fully Implemented (shortcomings found):**
+```
+1. Tell user: "Architect found the plan wasn't fully implemented. Restarting workflow to address shortcomings."
+2. RESTART from Step 2:
+	 - Create new CURRENTPLAN.md addressing shortcomings
+	 - Launch parallel Codex workflows to fix issues
+	 - Architect evaluates again
+```
+
+**B. Plan IS Fully Implemented:**
+```
+1. Tell user: "Architect confirmed plan is fully implemented. Proceeding to testing."
+2. Continue to Step 8 (Testing Loop)
+```
+
+#### Step 8: Testing Loop
+
+**Run tests and iterate until green:**
+
+**⚠️ CRITICAL: Codex runs npm test, NOT Replit Agent or user.**
 
 ```
-Preferred communication style: Simple, everyday language.
-Testing policy: Don't report anything as fixed until you have tested it.
-Test suite requirement: Run the full test suite as step 3 and only after that also works report success.
+1. Wait for ALL workflows to complete their fixes
+
+2. Launch single Codex workflow: "Run `npm test` and report all results. Do not begin fixing test failures."
+
+3. Check result:
+
+	 A. Tests PASS:
+			- Tell user: "All tests passing. Ready to mark complete."
+			- Continue to Step 9
+
+	 B. Tests FAIL:
+				- DEBUG_TESTS.md is auto-generated by qtests module (not Codex)
+			- Read DEBUG_TESTS.md to analyze failures
+			- Determine parallelization strategy:
+					* Single file/cohesive fix (e.g., one test setup bug) → Use 1 Codex workflow
+					* Multiple independent failures (e.g., 5 different test files) → Use 2-6 parallel Codex workflows
+			- Tell user: "Tests failed. Using [N] Codex workflow(s) to fix [description]."
+			- RESTART from Step 2:
+				* Use DEBUG_TESTS.md as the new plan (instead of CURRENTPLAN.md)
+				* architect reviews DEBUG_TESTS.md
+				* Create task list for test fixes
+					* Launch Codex workflow(s) based on parallelization strategy
+				* architect evaluates fixes
+					* Launch Codex to run npm test again
+			- Repeat this loop until tests pass
+
+4. Loop continues until: npm test shows all green
 ```
+
+**Testing Loop Flow:**
+```
+All workflows complete → Codex runs npm test → FAIL → DEBUG_TESTS.md → parallel Codex fixes → Codex runs npm test → FAIL → repeat
+																																																											→ PASS → Step 9
+```
+
+#### Step 9: Complete Tasks
+
+**Only after both conditions met:**
+1. ✅ Architect confirms CURRENTPLAN.md fully implemented
+2. ✅ Codex confirms all tests passing (via npm test)
+
+**Then:** Mark all tasks as complete.
+
+## Critical Requirements
+
+### User Authentication
+- User MUST be logged into Codex CLI before workflow execution
+- Run `codex login` if needed
+- Workflows will fail without proper authentication
+
+### Full-Auto Flag
+- Always use `--full-auto` flag in run-codex.sh
+- Replit Agent cannot interact with running workflows
+- Interactive mode will cause workflows to hang
+
+### Prompt.txt Management
+- Rewrite `prompt.txt` completely before each workflow start
+- Wait 100ms (0.1 seconds) between workflow starts
+- Ensure each workflow gets its intended prompt
+- **⚠️ NEVER write to prompt.txt when workflows are running or idle** (causes all idle workflows to restart with same prompt)
+- **⚠️ WARNING**: Workflows in FAILED/idle state will AUTO-RESTART if they detect content in `prompt.txt`
+- After launching all workflows, immediately clear `prompt.txt` OR stop all idle workflows to prevent unwanted restarts
+- Safe restart sequence: stop workflow → wait for FINISHED → write prompt → start workflow
+
+## Critical Execution Safeguards
+
+### 1. Workflow Completion Patience
+**RULE: Never interrupt or rush Codex workflows**
+- Let workflows complete fully, even if they take 5+ minutes
+- Quality over speed - rushing causes incomplete implementations
+- Trust the process - Codex is thorough when given time
+
+### 2. Status Check Timing
+**RULE: Maximum 30-second sleep between status checks**
+- Check workflow logs
+- If still working: wait another 30s max
+- If stuck/frozen: investigate and restart that workflow
+- NEVER sleep longer than 30 seconds while waiting
+
+### 3. Implementation Transparency
+**RULE: Always clearly communicate who's implementing**
+- ✅ "Codex Task 3 is implementing the authentication fixes"
+- ✅ "I'm implementing this trivial comment addition directly"
+- ❌ Don't say "fixing bugs" without specifying who's doing the work
+- This gives user visibility into the process
+
+### 4. Test Execution Ownership
+- **RULE: Codex runs npm test, NOT Replit Agent or user**
+- After architect approval, launch single Codex workflow: "Run `npm test` and report all results. Do not begin fixing test failures."
+- DEBUG_TESTS.md is auto-generated by qtests module when tests fail
+- Agent reads DEBUG_TESTS.md → determines parallelization strategy:
+	* Single file/cohesive fix → 1 Codex workflow to fix
+	* Multiple independent failures → 2-6 parallel Codex workflows to fix
+- Codex runs tests again → repeat until green
+- User should never be asked to run tests
+
+### 5. Workflow Failure Recovery
+**RULE: Immediately restart failed workflows**
+- If a workflow errors/fails mid-execution: STOP and restart it immediately
+- Use the same prompt/task assignment
+- Don't continue without all workflows completing
+- Each workflow must finish its assigned work
+
+### 6. Workflow Isolation & Coordination
+**RULE: Prevent prompt.txt contamination**
+- `prompt.txt` is only for the initial launch sequence
+- After all workflows start: DO NOT touch `prompt.txt`
+- **CRITICAL**: Workflows in FAILED/idle state will AUTO-RESTART if they detect content in `prompt.txt`
+- Writing to `prompt.txt` while workflows idle = mass restart disaster
+- All idle workflows will pick up the new prompt and run the same task
+- **Safeguard**: After launching workflows, immediately clear `prompt.txt` OR stop all idle workflows
+
+**Safe restart procedure:**
+```
+1. Stop the specific workflow
+2. Wait for status = FINISHED
+3. Write new prompt to prompt.txt
+4. Start the workflow
+5. Workflow reads prompt and begins
+```
+
+**Unsafe pattern (causes mass restart):**
+```
+❌ Workflows 1-6 are idle/finished (FAILED state)
+❌ prompt.txt contains content from previous launch
+❌ Agent runs ANY command (e.g., fileflows)
+❌ All 6 idle workflows detect prompt.txt and AUTO-RESTART
+❌ All 6 workflows restart with same prompt
+❌ Duplicate work, wasted resources, confusion
+```
+
+## Benefits
+
+- **Cost-effective**: Codex uses GPT-5 model (more intelligent and cheaper than Replit Agent)
+- **6x speedup** on parallelizable work (6 concurrent workflows)
+- **Better quality**: Codex's advanced model produces higher quality implementations
+- **Structured approach**: architect planning → Codex review → Codex implementation → architect evaluation
+- **Optimal division of labor**: Replit Agent orchestrates, Codex implements
+- **Platform optimized**: Stays within Replit's ~6 workflow concurrency limit
+- **Non-interactive**: `--full-auto` flag perfect for workflow automation
+
+## Limitations
+
+- Maximum 6 truly parallel workflows (Replit platform limit)
+- Requires Codex CLI authentication
+- Sequential prompt.txt updates add minor startup delay
+- Cannot be used for tasks requiring user interaction
+I) Read all the rules and guidance and cli usage from the files referenced here and place those rules and guidance in replit.md: 
+node_modules/commoncontext/00-AGENTS.md
+node_modules/npmcontext/01-STACK_RULES.md
+node_modules/npmcontext/02-NPM_architecture.md
+node_modules/commoncontext/ReplitCodexUse.md
+
+II) Take this following text (including comments) and paste it once at the top and once at the bottom of replit.md:
+
+<!--AI Can write above this line-->
+<!--┌── �� PROTECTED: DO NOT EDIT (READ ONLY) BELOW THIS LINE-->
+ Reference Patch
+For comprehensive agent development rules and guidelines, please refer to the documentation located at node_modules/commoncontext/00-AGENTS.md. This file contains detailed instructions for agent behavior, CLI tool usage, coding standards, and workflow procedures that should be followed throughout the development process.
+
+Additional project-specific guidance can be found in:
+node_modules/npmcontext/01-STACK_RULES.md - NPM & JavaScript development rules and policies
+node_modules/npmcontext/02-NPM_architecture.md - Architecture patterns and Single Responsibility Principle guidelines
+FILE_FLOWS.md- File & Data Workflow information. Read this before deciding the scope of file changes and where you need to work.
+IMPLEMENT_META.md- Information for metadata support for npm modules so that client apps can better use this module.
+node_modules/commoncontext/ReplitCodexUse.md - details Replit Codex Use Protocol (RCUP), the main development workflow for non-trivial tasks.
+
+Here is a high level guide for RCUP:
+=================
+Replit Agent Development Workflow (RCUP)
+RCUP = Replit Codex Use Protocol
+This workflow uses 6 parallel codex workflows (Codex Task 1-6) for cost-effective, high-quality implementation.
+
+IMPORTANT: Always communicate your workflow decisions to the user for transparency.
+
+1. Tell user: "This is a non-trivial task requiring the full workflow"
+2. Launch single codex workflow to create CURRENTPLAN.md
+3. Create task list based on plan
+4. Check FILE_FLOWS.md: Review file organization to determine parallelization strategy
+         - Can parallelize by logical divisions (features, components)
+         - Can parallelize by file index (even/odd, quarters, etc.) for tasks like bug checks, commenting, refactoring
+         - Decide optimal division based on task type and file structure
+5. Tell user: "I'll run [N] codex workflow(s) [division strategy] because [reason]" 
+6. Implementation via codex with explicit file assignments:
+         - CRITICAL: Create prompt.txt, and write prompt to prompt.txt before launching each workflow
+         - Launch workflows sequentially (brief delay between each):
+         - Write full prompt to prompt.txt (this is rewritten over with the prompt for each workflow, it is just the staging area, the codex workflows pull the prompt from here)
+         - Start workflow (e.g., "Codex Task 1")
+         - Wait 100ms
+         - Repeat for next workflow
+         - Workflows execute in parallel once started
+         - 1 codex workflow for sequential/single cohesive tasks
+         - 2-6 parallel codex workflows for independent tasks (divided by feature, component, file index, or other logical grouping)
+         - Each prompt MUST include: 
+                        - (a) CURRENTPLAN.md section this workflow implements, 
+                        - (b) Explicit list of files to modify, 
+                        - (c) Files to avoid (handled by other workflows)
+                        - This prevents merge conflicts by ensuring distinct code areas
+7. Architect evaluation: Use architect(responsibility="evaluate_task") to verify CURRENTPLAN.md was fully implemented
+         - If architect finds plan NOT implemented: RESTART workflow from step 2 (create new plan for shortcomings → parallel codex execution)
+         - If architect finds plan IS implemented: proceed to testing
+8. Testing loop (codex runs tests since Replit Agent cannot):
+         - Launch single codex: "Run `npm test` and report all results. Do not begin fixing test failures. Do nothing else."
+         - Tests pass → Continue to step 9 (Mark tasks complete)
+         - Tests fail → DEBUG_TESTS.md auto-generated by qtests module (not codex)
+                 - Read DEBUG_TESTS.md to analyze failures
+                 - RESTART from step 3 (Create task list based on plan) with DEBUG_TESTS.md instead of CURRENTPLAN.md as work to be addressed (parallel codex fixes test failures)
+         - After codex fixes, run npm test again, repeat until test are passing
+9. Mark tasks complete (only after tests all pass)
+
+For trivial tasks (comments, single-line fixes):
+Announce classification: Tell user this is a trivial task you'll implement directly
+Implement directly
+
+Transparency Requirements:
+Always state whether task is "trivial" or "non-trivial" and explain why
+Always state how many codex workflows you'll run (0, 1, or 2-6) and the reasoning
+This gives the user visibility into your decision-making process
+Rationale: Codex uses GPT-5 model (more intelligent and cheaper than Replit Agent's default). Use codex for heavy lifting, Replit Agent for orchestration.
+
+Available Workflows: Codex Task 1, Codex Task 2, Codex Task 3, Codex Task 4, Codex Task 5, Codex Task 6
+=====================
+
+While replit.md is the source of truth for replit agent, it often becomes out of date, 
+with these being the maintained rules files. Check these for up to date information and 
+copy their guidance to replit.md.
+<!--└── END PROTECTED RANGE ��-->
+<!--AI Can write from here on-->
+
+(End patch text)\n\n<file>\n00001| I) Read all the rules and guidance and cli usage from the files referenced here and place those rules and guidance in replit.md: \n00002| node_modules/commoncontext/00-AGENTS.md\n00003| node_modules/npmcontext/01-STACK_RULES.md\n00004| node_modules/npmcontext/02-NPM_architecture.md\n00005| node_modules/commoncontext/ReplitCodexUse.md\n00006| \n00007| II) Take this following text (including comments) and paste it once at the top and once at the bottom of replit.md:\n... 
