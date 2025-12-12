@@ -29,7 +29,7 @@ const dependencyInterfaces = require('./lib/dependencyInterfaces'); //load depen
 const entityGuards = require('./lib/entityGuards'); //load entity validation utilities
 const responseHelpers = require('./lib/responseHelpers'); //load Express response helper utilities
 const circuitBreaker = require('./lib/circuitBreaker'); //load circuit breaker utilities
-const testing = require('./lib/testing'); //load Jest-compatible testing mocks
+
 
 /**
  * Error logger middleware that logs errors and provides AI-powered suggestions.
@@ -78,7 +78,7 @@ module.exports = { //(primary export object allows destructuring imports like { 
   sanitizeMessage: sanitization.sanitizeMessage, //(message sanitization utility for security)
   sanitizeContext: sanitization.sanitizeContext, //(context sanitization utility for security)
   addCustomSanitizationPattern: sanitization.addCustomSanitizationPattern, //(register custom sanitization rules)
-  clearCustomSanitizationPatterns: sanitization.clearCustomSanitizationPatterns, //(clear custom patterns for testing)
+  clearCustomSanitizationPatterns: sanitization.clearCustomSanitizationPatterns, //(clear custom patterns for reconfiguration)
   sanitizeWithCustomPatterns: sanitization.sanitizeWithCustomPatterns, //(enhanced sanitization with custom rules)
 
   // Queue management and monitoring utilities
@@ -107,12 +107,11 @@ module.exports = { //(primary export object allows destructuring imports like { 
   // Environment constants
   NODE_ENV: envUtils.NODE_ENV, //(current Node environment)
   DEFAULT_ERROR_MESSAGE: envUtils.DEFAULT_ERROR_MESSAGE, //(standardized default error message)
-  TEST_SUCCESS_MESSAGE: envUtils.TEST_SUCCESS_MESSAGE, //(test success marker)
-  TEST_FAILURE_MESSAGE: envUtils.TEST_FAILURE_MESSAGE, //(test failure marker)
+
 
   // AI model management utilities (LangChain integration)
   getAIModelManager: aiModelManager.getAIModelManager, //(get AI model manager singleton)
-  resetAIModelManager: aiModelManager.resetAIModelManager, //(reset AI model manager for testing)
+  resetAIModelManager: aiModelManager.resetAIModelManager, //(reset AI model manager singleton)
   MODEL_PROVIDERS: aiModelManager.MODEL_PROVIDERS, //(available AI providers)
   createLangChainModel: aiModelManager.createLangChainModel, //(create LangChain model instances)
 
@@ -130,7 +129,7 @@ module.exports = { //(primary export object allows destructuring imports like { 
   getErrorSeverity: dependencyInterfaces.getErrorSeverity, //(get severity constants with DI)
   logErrorWithSeverityDI: dependencyInterfaces.logErrorWithSeverityDI, //(severity logging with DI)
   withErrorHandlingDI: dependencyInterfaces.withErrorHandlingDI, //(async wrapper with DI)
-  resetDefaultQerrorsCoreDeps: dependencyInterfaces.resetDefaultQerrorsCoreDeps, //(test helper to reset cached deps)
+  resetDefaultQerrorsCoreDeps: dependencyInterfaces.resetDefaultQerrorsCoreDeps, //(helper to reset cached deps)
 
   // Entity validation utilities (@qutils/entity-guards)
   throwIfNotFound: entityGuards.throwIfNotFound, //(validate entity exists or throw)
@@ -178,11 +177,7 @@ module.exports = { //(primary export object allows destructuring imports like { 
   CircuitState: circuitBreaker.CircuitState, //(circuit state enum)
   createCircuitBreaker: circuitBreaker.createCircuitBreaker, //(factory with defaults)
   
-  // Testing utilities (Jest mocks)
-  testing, //(Jest-compatible testing mocks for unit tests)
-  MockErrorFactory: testing.MockErrorFactory, //(mock error factory for tests)
-  createMockResponse: testing.createMockResponse, //(mock Express response factory)
-  createMockRequest: testing.createMockRequest //(mock Express request factory)
+
 };
 
 module.exports.default = qerrors; //(default export for backward compatibility allowing both 'const qerrors = require("qerrors")' and destructuring patterns, dual strategy accommodates different developer preferences)
