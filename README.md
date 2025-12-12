@@ -101,6 +101,7 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 - `sendForbiddenResponse(res, message?)` - 403 forbidden response
 - `sendServerErrorResponse(res, message?)` - 500 server error response
 - `createResponseHelper(res, startTime?)` - Factory for response helper object with all methods
+- `globalErrorHandler(err, req, res, next)` - Centralized Express error handler middleware
 
 ### Circuit Breaker (Resilience)
 - `CircuitBreaker` - Class for protecting external service calls

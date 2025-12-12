@@ -1,0 +1,118 @@
+Other
+@codex/qerrors-helpers
+Purpose: Safe wrappers around qerrors logging with graceful fallback to console methods. Explanation:
+This module provides safe wrapper functions for the qerrors logging library with automatic fallback to console methods when the library is unavailable. It solves the common problem of optional dependency handling by offering functions that attempt to use qerrors when available but gracefully fall back to console logging when it's not. The wrappers include error logging, info logging, warning logging, and general qerrors function calls with consistent error handling.
+
+The module is particularly useful in applications that want to use qerrors for enhanced logging but need to maintain functionality when the library is not available, such as in testing environments or during development.
+
+import { loadQerrors } from './qerrorsLoader';
+export async function safeQerrors(error: unknown, context: string, extra?: Record<string, any>): Promise<void> {
+  try {
+    const q = await loadQerrors();
+    const fn = typeof q?.qerrors === 'function' ? q.qerrors : null;
+    if (fn) {
+      await fn(error, context, extra);
+      return;
+    }
+  } catch {
+    try {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`qerrors unavailable: ${context}:`, message);
+    } catch {
+      // Silently fail if even console.error fails
+    }
+  }
+}
+export async function safeLogError(message: string, details?: Record<string, any>): Promise<void> {
+  try {
+    const q = await loadQerrors();
+    const fn = typeof q?.logError === 'function' ? q.logError : null;
+    if (fn) {
+      await fn(message, details);
+      return;
+    }
+  } catch {
+    try {
+      console.error(message, details);
+    } catch {
+      // Silently fail if even console.error fails
+    }
+  }
+}
+export async function safeLogInfo(message: string, details?: Record<string, any>): Promise<void> {
+  try {
+    const q = await loadQerrors();
+    const fn = typeof q?.logInfo === 'function' ? q.logInfo : null;
+    if (fn) {
+      await fn(message, details);
+      return;
+    }
+  } catch {
+    try {
+      console.log(message, details);
+    } catch {
+      // Silently fail if even console.log fails
+    }
+  }
+}
+export async function safeLogWarn(message: string, details?: Record<string, any>): Promise<void> {
+  try {
+    const q = await loadQerrors();
+    const fn = typeof q?.logWarn === 'function' ? q.logWarn : null;
+    if (fn) {
+      await fn(message, details);
+      return;
+    }
+  } catch {
+    try {
+      console.warn(message, details);
+    } catch {
+      // Silently fail if even console.warn fails
+    }
+  }
+}
+export default {
+  safeQerrors,
+  safeLogError,
+  safeLogInfo,
+  safeLogWarn
+};
+
+@codex/global-error-handler
+Purpose: Centralized Express error handler with consistent formatting and optional library integration. Explanation:
+This module provides a standardized global error handler for Express applications that integrates with optional error handling libraries while maintaining consistent fallback behavior. It solves the problem of inconsistent error responses across an application by offering a unified error handling approach that can use specialized libraries when available but falls back to basic HTTP error responses when they're not. The handler includes proper HTTP status code detection, error message exposure control, and integration with logging systems.
+
+The module is essential for Express applications that need consistent error handling, want to integrate with optional error libraries like qerrors, and require proper error formatting and logging across all endpoints.
+
+import type { ErrorRequestHandler } from 'express';
+import createError from 'http-errors';
+import { safeQerrors } from './qerrorsHelpers';
+/**
+ * Centralized error handler used by Express to format HTTP errors consistently.
+ * It logs to qerrors when available and falls back to a bare JSON error payload.
+ */
+export const globalErrorHandler: ErrorRequestHandler = async (err, req, res, next) => {
+  if (res.headersSent) {
+    return next(err);
+  }
+  const httpError = createError.isHttpError(err)
+    ? err
+    : createError(500, 'Internal Server Error');
+  const status = httpError.status || httpError.statusCode || 500;
+  const message = httpError.expose ? httpError.message : 'Internal Server Error';
+  try {
+    await safeQerrors(err, 'globalErrorHandler', {
+      status,
+      path: req.path,
+      method: req.method
+    });
+  } catch {
+    // Swallow logging failures to avoid crashing the handler
+  }
+  if (!res.headersSent) {
+    res.status(status).json({
+      error: message,
+      details: httpError.details || (err instanceof Error ? err.message : undefined)
+    });
+  }
+}

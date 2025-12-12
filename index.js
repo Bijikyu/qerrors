@@ -156,6 +156,7 @@ module.exports = { //(primary export object allows destructuring imports like { 
   createSafeOperation: utils.createSafeOperation, //(wrap async function with error protection)
   safeJsonParse: utils.safeJsonParse, //(safe JSON parsing with fallback)
   safeJsonStringify: utils.safeJsonStringify, //(safe JSON stringify with fallback)
+  safeQerrors: utils.safeQerrors, //(safe wrapper for main qerrors with console fallback)
   
   // Express response helpers
   sendJsonResponse: responseHelpers.sendJsonResponse, //(core JSON response sender)
@@ -168,6 +169,7 @@ module.exports = { //(primary export object allows destructuring imports like { 
   sendForbiddenResponse: responseHelpers.sendForbiddenResponse, //(403 forbidden response)
   sendServerErrorResponse: responseHelpers.sendServerErrorResponse, //(500 server error response)
   createResponseHelper: responseHelpers.createResponseHelper, //(factory for response helper object)
+  globalErrorHandler: responseHelpers.globalErrorHandler, //(centralized Express error handler middleware)
   
   // Circuit breaker
   CircuitBreaker: circuitBreaker.CircuitBreaker, //(circuit breaker class)

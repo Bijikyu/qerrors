@@ -103,6 +103,8 @@ declare module 'qerrors' {
     sendForbiddenResponse: (res: any, message?: string) => any;
     sendServerErrorResponse: (res: any, message?: string) => any;
     createResponseHelper: (res: any, startTime?: number | null) => ResponseHelper;
+    globalErrorHandler: (err: Error, req: any, res: any, next: Function) => void;
+    safeQerrors: (error: unknown, context: string, extra?: Record<string, any>) => Promise<void>;
     CircuitBreaker: typeof CircuitBreaker;
     CircuitState: { CLOSED: 'CLOSED'; OPEN: 'OPEN'; HALF_OPEN: 'HALF_OPEN' };
     createCircuitBreaker: <T extends (...args: any[]) => Promise<any>>(operation: T, serviceName: string, overrides?: Partial<CircuitBreakerOptions>) => CircuitBreaker<T>;
