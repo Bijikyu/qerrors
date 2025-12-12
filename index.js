@@ -24,6 +24,7 @@ const utils = require('./lib/utils'); //load common utility functions
 const config = require('./lib/config'); //load configuration utilities
 const envUtils = require('./lib/envUtils'); //load environment validation utilities
 const aiModelManager = require('./lib/aiModelManager'); //load AI model management utilities
+const moduleInitializer = require('./lib/moduleInitializer'); //load module initialization utilities
 
 /**
  * Error logger middleware that logs errors and provides AI-powered suggestions.
@@ -105,7 +106,13 @@ module.exports = { //(primary export object allows destructuring imports like { 
   getAIModelManager: aiModelManager.getAIModelManager, //(get AI model manager singleton)
   resetAIModelManager: aiModelManager.resetAIModelManager, //(reset AI model manager for testing)
   MODEL_PROVIDERS: aiModelManager.MODEL_PROVIDERS, //(available AI providers)
-  createLangChainModel: aiModelManager.createLangChainModel //(create LangChain model instances)
+  createLangChainModel: aiModelManager.createLangChainModel, //(create LangChain model instances)
+
+  // Module initialization utilities
+  initializeModule: moduleInitializer.initializeModule, //(CJS-compatible module initialization)
+  initializeModuleESM: moduleInitializer.initializeModuleESM, //(ESM-compatible initialization with dynamic import)
+  shouldInitialize: moduleInitializer.shouldInitialize, //(check if initialization should proceed)
+  logModuleInit: moduleInitializer.logModuleInit //(structured logging for module initialization)
 };
 
 module.exports.default = qerrors; //(default export for backward compatibility allowing both 'const qerrors = require("qerrors")' and destructuring patterns, dual strategy accommodates different developer preferences)

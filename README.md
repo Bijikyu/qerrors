@@ -54,6 +54,12 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 - `TEST_SUCCESS_MESSAGE` - Test success marker ('✓')
 - `TEST_FAILURE_MESSAGE` - Test failure marker ('✗')
 
+### Module Initialization
+- `initializeModule(options?)` - CJS-compatible module initialization with error logging
+- `initializeModuleESM(options?)` - ESM-compatible initialization using dynamic import
+- `shouldInitialize()` - Check if initialization should proceed (false during tests)
+- `logModuleInit(moduleName, metadata?)` - Structured logging for module initialization
+
 ### TypeScript Support
 - Complete TypeScript type definitions available in `lib/types.d.ts`
 

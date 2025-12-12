@@ -68,6 +68,16 @@ declare module 'qerrors' {
     resetAIModelManager: any;
     MODEL_PROVIDERS: any;
     createLangChainModel: any;
+    initializeModule: (options?: ModuleInitOptions) => Promise<null>;
+    initializeModuleESM: (options?: ModuleInitOptions) => Promise<null>;
+    shouldInitialize: () => boolean;
+    logModuleInit: (moduleName: string, metadata?: object) => void;
+  }
+
+  interface ModuleInitOptions {
+    module?: string;
+    version?: string;
+    environment?: string;
   }
 
   const qerrorsModule: QErrorsModule;
