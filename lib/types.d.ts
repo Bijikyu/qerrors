@@ -93,6 +93,19 @@ declare module 'qerrors' {
     attempt: <T>(fn: () => T | Promise<T>) => Promise<{ ok: true; value: T } | { ok: false; error: unknown }>;
     executeWithQerrors: <T>(options: ExecuteWithQerrorsOptions<T>) => Promise<T>;
     formatErrorMessage: (error: unknown, context: string) => string;
+    sendJsonResponse: (res: any, status: number, data: any) => any;
+    sendSuccessResponse: (res: any, data: any, options?: ResponseOptions) => any;
+    sendCreatedResponse: (res: any, data: any) => any;
+    sendErrorResponse: (res: any, status: number, message: string, details?: any, options?: ResponseOptions) => any;
+    sendValidationErrorResponse: (res: any, errors: any[], options?: ResponseOptions) => any;
+    sendNotFoundResponse: (res: any, message?: string) => any;
+    sendUnauthorizedResponse: (res: any, message?: string) => any;
+    sendForbiddenResponse: (res: any, message?: string) => any;
+    sendServerErrorResponse: (res: any, message?: string) => any;
+    createResponseHelper: (res: any, startTime?: number | null) => ResponseHelper;
+    CircuitBreaker: typeof CircuitBreaker;
+    CircuitState: { CLOSED: 'CLOSED'; OPEN: 'OPEN'; HALF_OPEN: 'HALF_OPEN' };
+    createCircuitBreaker: <T extends (...args: any[]) => Promise<any>>(operation: T, serviceName: string, overrides?: Partial<CircuitBreakerOptions>) => CircuitBreaker<T>;
   }
 
   interface ExecuteWithQerrorsOptions<T> {
@@ -105,6 +118,52 @@ declare module 'qerrors' {
     logMessage?: string;
     rethrow?: boolean;
     fallbackValue?: T;
+  }
+
+  interface ResponseOptions {
+    includeProcessingTime?: boolean;
+    startTime?: number | null;
+    requestId?: string | null;
+    processingTime?: number | null;
+  }
+
+  interface ResponseHelper {
+    success: (data: any, options?: ResponseOptions) => any;
+    created: (data: any) => any;
+    error: (status: number, message: string, details?: any, options?: ResponseOptions) => any;
+    validation: (errors: any[], options?: ResponseOptions) => any;
+    notFound: (message?: string) => any;
+    unauthorized: (message?: string) => any;
+    forbidden: (message?: string) => any;
+    serverError: (message?: string) => any;
+  }
+
+  interface CircuitBreakerOptions {
+    failureThreshold: number;
+    recoveryTimeoutMs: number;
+    monitoringPeriodMs: number;
+    timeoutMs?: number;
+  }
+
+  interface ServiceMetrics {
+    totalRequests: number;
+    successfulRequests: number;
+    failedRequests: number;
+    averageResponseTime: number;
+    lastFailureTime?: number;
+  }
+
+  type CircuitStateType = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+
+  class CircuitBreaker<T extends (...args: any[]) => Promise<any>> {
+    constructor(operation: T, serviceName: string, options: CircuitBreakerOptions);
+    execute(...args: Parameters<T>): Promise<ReturnType<T>>;
+    getState(): CircuitStateType;
+    getMetrics(): ServiceMetrics;
+    getSuccessRate(): number;
+    getFailureRate(): number;
+    reset(): void;
+    forceOpen(): void;
   }
 
   interface ModuleInitOptions {

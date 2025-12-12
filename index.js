@@ -27,6 +27,8 @@ const aiModelManager = require('./lib/aiModelManager'); //load AI model manageme
 const moduleInitializer = require('./lib/moduleInitializer'); //load module initialization utilities
 const dependencyInterfaces = require('./lib/dependencyInterfaces'); //load dependency injection utilities
 const entityGuards = require('./lib/entityGuards'); //load entity validation utilities
+const responseHelpers = require('./lib/responseHelpers'); //load Express response helper utilities
+const circuitBreaker = require('./lib/circuitBreaker'); //load circuit breaker utilities
 
 /**
  * Error logger middleware that logs errors and provides AI-powered suggestions.
@@ -143,7 +145,24 @@ module.exports = { //(primary export object allows destructuring imports like { 
   // Async operation wrappers
   attempt: utils.attempt, //(Result-type pattern for safe operation execution)
   executeWithQerrors: utils.executeWithQerrors, //(async operation wrapper with comprehensive error handling)
-  formatErrorMessage: utils.formatErrorMessage //(standardized error message formatting)
+  formatErrorMessage: utils.formatErrorMessage, //(standardized error message formatting)
+  
+  // Express response helpers
+  sendJsonResponse: responseHelpers.sendJsonResponse, //(core JSON response sender)
+  sendSuccessResponse: responseHelpers.sendSuccessResponse, //(200 success response)
+  sendCreatedResponse: responseHelpers.sendCreatedResponse, //(201 created response)
+  sendErrorResponse: responseHelpers.sendErrorResponse, //(general error response)
+  sendValidationErrorResponse: responseHelpers.sendValidationErrorResponse, //(400 validation response)
+  sendNotFoundResponse: responseHelpers.sendNotFoundResponse, //(404 not found response)
+  sendUnauthorizedResponse: responseHelpers.sendUnauthorizedResponse, //(401 unauthorized response)
+  sendForbiddenResponse: responseHelpers.sendForbiddenResponse, //(403 forbidden response)
+  sendServerErrorResponse: responseHelpers.sendServerErrorResponse, //(500 server error response)
+  createResponseHelper: responseHelpers.createResponseHelper, //(factory for response helper object)
+  
+  // Circuit breaker
+  CircuitBreaker: circuitBreaker.CircuitBreaker, //(circuit breaker class)
+  CircuitState: circuitBreaker.CircuitState, //(circuit state enum)
+  createCircuitBreaker: circuitBreaker.createCircuitBreaker //(factory with defaults)
 };
 
 module.exports.default = qerrors; //(default export for backward compatibility allowing both 'const qerrors = require("qerrors")' and destructuring patterns, dual strategy accommodates different developer preferences)

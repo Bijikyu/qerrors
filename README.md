@@ -90,6 +90,23 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 - `formatErrorMessage(error, context)` - Standardized error message formatting
 - `handleControllerError(res, error, functionName, context?, userMessage?)` - Express controller error handler
 
+### Express Response Helpers
+- `sendJsonResponse(res, status, data)` - Core JSON response sender
+- `sendSuccessResponse(res, data, options?)` - 200 success response with optional processing time
+- `sendCreatedResponse(res, data)` - 201 created response
+- `sendErrorResponse(res, status, message, details?, options?)` - General error response
+- `sendValidationErrorResponse(res, errors, options?)` - 400 validation error response
+- `sendNotFoundResponse(res, message?)` - 404 not found response
+- `sendUnauthorizedResponse(res, message?)` - 401 unauthorized response
+- `sendForbiddenResponse(res, message?)` - 403 forbidden response
+- `sendServerErrorResponse(res, message?)` - 500 server error response
+- `createResponseHelper(res, startTime?)` - Factory for response helper object with all methods
+
+### Circuit Breaker (Resilience)
+- `CircuitBreaker` - Class for protecting external service calls
+- `CircuitState` - State constants (CLOSED, OPEN, HALF_OPEN)
+- `createCircuitBreaker(operation, serviceName, options?)` - Factory with sensible defaults
+
 ### TypeScript Support
 - Complete TypeScript type definitions available in `lib/types.d.ts`
 
