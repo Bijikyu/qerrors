@@ -358,3 +358,10 @@ export interface TestingModule {
   createMockResponse(): MockResponse;
   createMockRequest(overrides?: Partial<MockRequest>): MockRequest;
 }
+
+export function handleError(
+  error: unknown,
+  context: string,
+  res: any,
+  next?: Function
+): Promise<void>;

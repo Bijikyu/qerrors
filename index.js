@@ -171,6 +171,7 @@ module.exports = { //(primary export object allows destructuring imports like { 
   sendServerErrorResponse: responseHelpers.sendServerErrorResponse, //(500 server error response)
   createResponseHelper: responseHelpers.createResponseHelper, //(factory for response helper object)
   globalErrorHandler: responseHelpers.globalErrorHandler, //(centralized Express error handler middleware)
+  handleError: responseHelpers.handleError, //(async error handler with dynamic import and fallback)
   
   // Circuit breaker
   CircuitBreaker: circuitBreaker.CircuitBreaker, //(circuit breaker class)
