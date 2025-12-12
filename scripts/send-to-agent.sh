@@ -1,28 +1,8 @@
 #!/bin/bash
-# USAGE:
-# ./send-to-agent.sh agent-name "your prompt here"
-
-NAME="$1"
-shift
-MESSAGE="$*"
-SESSION="codex-swarm"
-WINDOW="$SESSION:$NAME"
-
-if [ -z "$NAME" ] || [ -z "$MESSAGE" ]; then
-  echo "Usage: $0 agent-name \"message to send\""
-  exit 1
-fi
-
-if ! tmux has-session -t "$SESSION" 2>/dev/null; then
-  echo "❌ Tmux session '$SESSION' is not running."
-  exit 1
-fi
-
-if ! tmux list-windows -t "$SESSION" -F "#{window_name}" 2>/dev/null | grep -Fxq "$NAME"; then
-  echo "❌ Agent '$NAME' window not found in session '$SESSION'."
-  exit 1
-fi
-
-tmux send-keys -t "$WINDOW" "$MESSAGE" C-m
-tmux send-keys -t "$WINDOW" C-m
-echo "✅ Sent to $NAME → $MESSAGE"
+N=$1;shift;M=$*;S="codex-swarm";W="$S:$N"
+[[ -z "$N" || -z "$M" ]] && { echo "Usage: $0 agent-name \"message\"";exit 1; }
+! tmux has-session -t "$S" 2>/dev/null && { echo "❌ Tmux session '$S' not running.";exit 1; }
+! tmux list-windows -t "$S" -F "#{window_name}" 2>/dev/null|grep -Fxq "$N" && { echo "❌ Agent '$N' not found.";exit 1; }
+tmux send-keys -t "$W" "$M" C-m
+tmux send-keys -t "$W" C-m
+echo "✅ Sent to $N → $M"

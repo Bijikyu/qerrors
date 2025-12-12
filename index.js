@@ -1,5 +1,5 @@
 
-'use strict'; //enforce strict parsing and error handling across module
+'use strict';
 
 /**
  * Main entry point for the qerrors package - an intelligent error handling middleware
@@ -15,20 +15,7 @@
  * - Uses strict mode to catch common JavaScript pitfalls early
  */
 
-const qerrors = require('./lib/qerrors'); //load primary error handler implementation
-const logger = require('./lib/logger'); //load configured winston logger used by qerrors
-const errorTypes = require('./lib/errorTypes'); //load error classification and handling utilities
-const sanitization = require('./lib/sanitization'); //load data sanitization utilities
-const queueManager = require('./lib/queueManager'); //load queue management utilities
-const utils = require('./lib/utils'); //load common utility functions
-const config = require('./lib/config'); //load configuration utilities
-const envUtils = require('./lib/envUtils'); //load environment validation utilities
-const aiModelManager = require('./lib/aiModelManager'); //load AI model management utilities
-const moduleInitializer = require('./lib/moduleInitializer'); //load module initialization utilities
-const dependencyInterfaces = require('./lib/dependencyInterfaces'); //load dependency injection utilities
-const entityGuards = require('./lib/entityGuards'); //load entity validation utilities
-const responseHelpers = require('./lib/responseHelpers'); //load Express response helper utilities
-const circuitBreaker = require('./lib/circuitBreaker'); //load circuit breaker utilities
+const qerrors=require('./lib/qerrors'),logger=require('./lib/logger'),errorTypes=require('./lib/errorTypes'),sanitization=require('./lib/sanitization'),queueManager=require('./lib/queueManager'),utils=require('./lib/utils'),config=require('./lib/config'),envUtils=require('./lib/envUtils'),aiModelManager=require('./lib/aiModelManager'),moduleInitializer=require('./lib/moduleInitializer'),dependencyInterfaces=require('./lib/dependencyInterfaces'),entityGuards=require('./lib/entityGuards'),responseHelpers=require('./lib/responseHelpers'),circuitBreaker=require('./lib/circuitBreaker');
 
 
 /**
@@ -41,108 +28,6 @@ const circuitBreaker = require('./lib/circuitBreaker'); //load circuit breaker u
  * @returns {Promise<void>}
  */
 
-module.exports = {
-  qerrors,
-  logger,
-  errorTypes,
-  logErrorWithSeverity: qerrors.logErrorWithSeverity,
-  handleControllerError: qerrors.handleControllerError,
-  withErrorHandling: qerrors.withErrorHandling,
-  createTypedError: errorTypes.createTypedError,
-  createStandardError: errorTypes.createStandardError,
-  ErrorTypes: errorTypes.ErrorTypes,
-  ErrorSeverity: errorTypes.ErrorSeverity,
-  ErrorFactory: errorTypes.ErrorFactory,
-  errorMiddleware: errorTypes.errorMiddleware,
-  handleSimpleError: errorTypes.handleSimpleError,
-  ServiceError: errorTypes.ServiceError,
-  errorUtils: errorTypes.errorUtils,
-  safeUtils: errorTypes.safeUtils,
-  logDebug: logger.logDebug,
-  logInfo: logger.logInfo,
-  logWarn: logger.logWarn,
-  logError: logger.logError,
-  logFatal: logger.logFatal,
-  logAudit: logger.logAudit,
-  createPerformanceTimer: logger.createPerformanceTimer,
-  createEnhancedLogEntry: logger.createEnhancedLogEntry,
-  LOG_LEVELS: logger.LOG_LEVELS,
-  simpleLogger: logger.simpleLogger,
-  createSimpleWinstonLogger: logger.createSimpleWinstonLogger,
-  sanitizeMessage: sanitization.sanitizeMessage,
-  sanitizeContext: sanitization.sanitizeContext,
-  addCustomSanitizationPattern: sanitization.addCustomSanitizationPattern,
-  clearCustomSanitizationPatterns: sanitization.clearCustomSanitizationPatterns,
-  sanitizeWithCustomPatterns: sanitization.sanitizeWithCustomPatterns,
-  createLimiter: queueManager.createLimiter,
-  getQueueLength: queueManager.getQueueLength,
-  getQueueRejectCount: queueManager.getQueueRejectCount,
-  startQueueMetrics: queueManager.startQueueMetrics,
-  stopQueueMetrics: queueManager.stopQueueMetrics,
-  generateUniqueId: utils.generateUniqueId,
-  createTimer: utils.createTimer,
-  deepClone: utils.deepClone,
-  safeRun: utils.safeRun,
-  verboseLog: utils.verboseLog,
-  getEnv: config.getEnv,
-  getInt: config.getInt,
-  getMissingEnvVars: envUtils.getMissingEnvVars,
-  throwIfMissingEnvVars: envUtils.throwIfMissingEnvVars,
-  warnIfMissingEnvVars: envUtils.warnIfMissingEnvVars,
-  validateRequiredEnvVars: envUtils.validateRequiredEnvVars,
-  warnMissingEnvVars: envUtils.warnMissingEnvVars,
-  NODE_ENV: envUtils.NODE_ENV,
-  DEFAULT_ERROR_MESSAGE: envUtils.DEFAULT_ERROR_MESSAGE,
-  getAIModelManager: aiModelManager.getAIModelManager,
-  resetAIModelManager: aiModelManager.resetAIModelManager,
-  MODEL_PROVIDERS: aiModelManager.MODEL_PROVIDERS,
-  createLangChainModel: aiModelManager.createLangChainModel,
-  initializeModule: moduleInitializer.initializeModule,
-  initializeModuleESM: moduleInitializer.initializeModuleESM,
-  shouldInitialize: moduleInitializer.shouldInitialize,
-  logModuleInit: moduleInitializer.logModuleInit,
-  createQerrorsCoreDeps: dependencyInterfaces.createQerrorsCoreDeps,
-  getDefaultQerrorsCoreDeps: dependencyInterfaces.getDefaultQerrorsCoreDeps,
-  createDefaultErrorHandlingDeps: dependencyInterfaces.createDefaultErrorHandlingDeps,
-  qerr: dependencyInterfaces.qerr,
-  getErrorSeverity: dependencyInterfaces.getErrorSeverity,
-  logErrorWithSeverityDI: dependencyInterfaces.logErrorWithSeverityDI,
-  withErrorHandlingDI: dependencyInterfaces.withErrorHandlingDI,
-  resetDefaultQerrorsCoreDeps: dependencyInterfaces.resetDefaultQerrorsCoreDeps,
-  throwIfNotFound: entityGuards.throwIfNotFound,
-  throwIfNotFoundObj: entityGuards.throwIfNotFoundObj,
-  throwIfNotFoundMany: entityGuards.throwIfNotFoundMany,
-  throwIfNotFoundWithMessage: entityGuards.throwIfNotFoundWithMessage,
-  entityExists: entityGuards.entityExists,
-  assertEntityExists: entityGuards.assertEntityExists,
-  safeErrorMessage: utils.safeErrorMessage,
-  safeLogError: utils.logError,
-  safeLogInfo: utils.logInfo,
-  safeLogWarn: utils.logWarn,
-  attempt: utils.attempt,
-  executeWithQerrors: utils.executeWithQerrors,
-  formatErrorMessage: utils.formatErrorMessage,
-  createSafeAsyncWrapper: utils.createSafeAsyncWrapper,
-  createSafeLogger: utils.createSafeLogger,
-  createSafeOperation: utils.createSafeOperation,
-  safeJsonParse: utils.safeJsonParse,
-  safeJsonStringify: utils.safeJsonStringify,
-  safeQerrors: utils.safeQerrors,
-  sendJsonResponse: responseHelpers.sendJsonResponse,
-  sendSuccessResponse: responseHelpers.sendSuccessResponse,
-  sendCreatedResponse: responseHelpers.sendCreatedResponse,
-  sendErrorResponse: responseHelpers.sendErrorResponse,
-  sendValidationErrorResponse: responseHelpers.sendValidationErrorResponse,
-  sendNotFoundResponse: responseHelpers.sendNotFoundResponse,
-  sendUnauthorizedResponse: responseHelpers.sendUnauthorizedResponse,
-  sendForbiddenResponse: responseHelpers.sendForbiddenResponse,
-  sendServerErrorResponse: responseHelpers.sendServerErrorResponse,
-  createResponseHelper: responseHelpers.createResponseHelper,
-  globalErrorHandler: responseHelpers.globalErrorHandler,
-  handleError: responseHelpers.handleError,
-  CircuitBreaker: circuitBreaker.CircuitBreakerWrapper,
-  CircuitState: circuitBreaker.CircuitState,
-  createCircuitBreaker: circuitBreaker.createCircuitBreaker
-};
+module.exports={qerrors,logger,errorTypes,logErrorWithSeverity:qerrors.logErrorWithSeverity,handleControllerError:qerrors.handleControllerError,withErrorHandling:qerrors.withErrorHandling,createTypedError:errorTypes.createTypedError,createStandardError:errorTypes.createStandardError,ErrorTypes:errorTypes.ErrorTypes,ErrorSeverity:errorTypes.ErrorSeverity,ErrorFactory:errorTypes.ErrorFactory,errorMiddleware:errorTypes.errorMiddleware,handleSimpleError:errorTypes.handleSimpleError,ServiceError:errorTypes.ServiceError,errorUtils:errorTypes.errorUtils,safeUtils:errorTypes.safeUtils,logDebug:logger.logDebug,logInfo:logger.logInfo,logWarn:logger.logWarn,logError:logger.logError,logFatal:logger.logFatal,logAudit:logger.logAudit,createPerformanceTimer:logger.createPerformanceTimer,createEnhancedLogEntry:logger.createEnhancedLogEntry,LOG_LEVELS:logger.LOG_LEVELS,simpleLogger:logger.simpleLogger,createSimpleWinstonLogger:logger.createSimpleWinstonLogger,sanitizeMessage:sanitization.sanitizeMessage,sanitizeContext:sanitization.sanitizeContext,addCustomSanitizationPattern:sanitization.addCustomSanitizationPattern,clearCustomSanitizationPatterns:sanitization.clearCustomSanitizationPatterns,sanitizeWithCustomPatterns:sanitization.sanitizeWithCustomPatterns,createLimiter:queueManager.createLimiter,getQueueLength:queueManager.getQueueLength,getQueueRejectCount:queueManager.getQueueRejectCount,startQueueMetrics:queueManager.startQueueMetrics,stopQueueMetrics:queueManager.stopQueueMetrics,generateUniqueId:utils.generateUniqueId,createTimer:utils.createTimer,deepClone:utils.deepClone,safeRun:utils.safeRun,verboseLog:utils.verboseLog,getEnv:config.getEnv,getInt:config.getInt,getMissingEnvVars:envUtils.getMissingEnvVars,throwIfMissingEnvVars:envUtils.throwIfMissingEnvVars,warnIfMissingEnvVars:envUtils.warnIfMissingEnvVars,validateRequiredEnvVars:envUtils.validateRequiredEnvVars,warnMissingEnvVars:envUtils.warnMissingEnvVars,NODE_ENV:envUtils.NODE_ENV,DEFAULT_ERROR_MESSAGE:envUtils.DEFAULT_ERROR_MESSAGE,getAIModelManager:aiModelManager.getAIModelManager,resetAIModelManager:aiModelManager.resetAIModelManager,MODEL_PROVIDERS:aiModelManager.MODEL_PROVIDERS,createLangChainModel:aiModelManager.createLangChainModel,initializeModule:moduleInitializer.initializeModule,initializeModuleESM:moduleInitializer.initializeModuleESM,shouldInitialize:moduleInitializer.shouldInitialize,logModuleInit:moduleInitializer.logModuleInit,createQerrorsCoreDeps:dependencyInterfaces.createQerrorsCoreDeps,getDefaultQerrorsCoreDeps:dependencyInterfaces.getDefaultQerrorsCoreDeps,createDefaultErrorHandlingDeps:dependencyInterfaces.createDefaultErrorHandlingDeps,qerr:dependencyInterfaces.qerr,getErrorSeverity:dependencyInterfaces.getErrorSeverity,logErrorWithSeverityDI:dependencyInterfaces.logErrorWithSeverityDI,withErrorHandlingDI:dependencyInterfaces.withErrorHandlingDI,resetDefaultQerrorsCoreDeps:dependencyInterfaces.resetDefaultQerrorsCoreDeps,throwIfNotFound:entityGuards.throwIfNotFound,throwIfNotFoundObj:entityGuards.throwIfNotFoundObj,throwIfNotFoundMany:entityGuards.throwIfNotFoundMany,throwIfNotFoundWithMessage:entityGuards.throwIfNotFoundWithMessage,entityExists:entityGuards.entityExists,assertEntityExists:entityGuards.assertEntityExists,safeErrorMessage:utils.safeErrorMessage,safeLogError:utils.logError,safeLogInfo:utils.logInfo,safeLogWarn:utils.logWarn,attempt:utils.attempt,executeWithQerrors:utils.executeWithQerrors,formatErrorMessage:utils.formatErrorMessage,createSafeAsyncWrapper:utils.createSafeAsyncWrapper,createSafeLogger:utils.createSafeLogger,createSafeOperation:utils.createSafeOperation,safeJsonParse:utils.safeJsonParse,safeJsonStringify:utils.safeJsonStringify,safeQerrors:utils.safeQerrors,sendJsonResponse:responseHelpers.sendJsonResponse,sendSuccessResponse:responseHelpers.sendSuccessResponse,sendCreatedResponse:responseHelpers.sendCreatedResponse,sendErrorResponse:responseHelpers.sendErrorResponse,sendValidationErrorResponse:responseHelpers.sendValidationErrorResponse,sendNotFoundResponse:responseHelpers.sendNotFoundResponse,sendUnauthorizedResponse:responseHelpers.sendUnauthorizedResponse,sendForbiddenResponse:responseHelpers.sendForbiddenResponse,sendServerErrorResponse:responseHelpers.sendServerErrorResponse,createResponseHelper:responseHelpers.createResponseHelper,globalErrorHandler:responseHelpers.globalErrorHandler,handleError:responseHelpers.handleError,CircuitBreaker:circuitBreaker.CircuitBreakerWrapper,CircuitState:circuitBreaker.CircuitState,createCircuitBreaker:circuitBreaker.createCircuitBreaker};
 
-module.exports.default = qerrors; //(default export for backward compatibility allowing both 'const qerrors = require("qerrors")' and destructuring patterns, dual strategy accommodates different developer preferences)
+module.exports.default=qerrors;

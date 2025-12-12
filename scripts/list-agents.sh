@@ -1,16 +1,8 @@
 #!/bin/bash
-LOG_DIR="./logs"
-SESSION="codex-swarm"
-
+L="./logs";S="codex-swarm"
 echo "🔍 Listing active Codex agents..."
-
 echo "📜 Logs:"
-if [[ -d "$LOG_DIR" ]]; then
-  find "$LOG_DIR" -maxdepth 1 -type f -name "*.log" 2>/dev/null || echo "  (none)"
-else
-  echo "  (none)"
-fi
-
+[[ -d "$L" ]] && find "$L" -maxdepth 1 -type f -name "*.log" 2>/dev/null||echo "  (none)"
 echo ""
-echo "🪟 Tmux windows in session '$SESSION':"
-tmux list-windows -t "$SESSION" 2>/dev/null || echo "  (tmux session not running)"
+echo "🪟 Tmux windows in session '$S':"
+tmux list-windows -t "$S" 2>/dev/null||echo "  (tmux session not running)"
