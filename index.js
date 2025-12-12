@@ -87,11 +87,19 @@ module.exports = { //(primary export object allows destructuring imports like { 
   verboseLog: utils.verboseLog, //(conditional verbose logging)
 
   // Configuration and environment utilities
-  getEnv: config.getEnv, //(environment variable getter with defaults)
-  getInt: config.getInt, //(integer parsing with validation)
+  getEnv: config.getEnv, //(environment variable getter with explicit default support)
+  getInt: config.getInt, //(integer parsing with explicit default support and validation)
   getMissingEnvVars: envUtils.getMissingEnvVars, //(environment validation)
   throwIfMissingEnvVars: envUtils.throwIfMissingEnvVars, //(required environment validation)
   warnIfMissingEnvVars: envUtils.warnIfMissingEnvVars, //(optional environment validation)
+  validateRequiredEnvVars: envUtils.validateRequiredEnvVars, //(alias for throwIfMissingEnvVars)
+  warnMissingEnvVars: envUtils.warnMissingEnvVars, //(alias for warnIfMissingEnvVars)
+  
+  // Environment constants
+  NODE_ENV: envUtils.NODE_ENV, //(current Node environment)
+  DEFAULT_ERROR_MESSAGE: envUtils.DEFAULT_ERROR_MESSAGE, //(standardized default error message)
+  TEST_SUCCESS_MESSAGE: envUtils.TEST_SUCCESS_MESSAGE, //(test success marker)
+  TEST_FAILURE_MESSAGE: envUtils.TEST_FAILURE_MESSAGE, //(test failure marker)
 
   // AI model management utilities (LangChain integration)
   getAIModelManager: aiModelManager.getAIModelManager, //(get AI model manager singleton)

@@ -43,8 +43,19 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 - `verboseLog` - Conditional verbose logging
 
 ### Configuration & Environment
-- `getEnv`, `getInt` - Environment variable parsing
+- `getEnv(key, defaultVal?)` - Environment variable getter with explicit default support
+- `getInt(key, defaultVal?, min?)` - Integer parsing with explicit default support and validation
 - `getMissingEnvVars`, `throwIfMissingEnvVars`, `warnIfMissingEnvVars` - Environment validation
+- `validateRequiredEnvVars`, `warnMissingEnvVars` - Convenient aliases for environment validation
+
+### Environment Constants
+- `NODE_ENV` - Current Node.js environment value
+- `DEFAULT_ERROR_MESSAGE` - Standardized default error message ('An unexpected error occurred')
+- `TEST_SUCCESS_MESSAGE` - Test success marker ('✓')
+- `TEST_FAILURE_MESSAGE` - Test failure marker ('✗')
+
+### TypeScript Support
+- Complete TypeScript type definitions available in `lib/types.d.ts`
 
 ## Environment Variables
 
