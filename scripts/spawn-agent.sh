@@ -4,7 +4,8 @@ S="codex-swarm";N=$1;D=$2;shift 2;A=("$@")
 [[ ! -d "$D" ]] && { echo "❌ Dir '$D' not found.";exit 1; }
 L="./logs";mkdir -p "$L"
 C=(npx codex)
-if [[ ${#A[@]} -eq 0 ]];then C+=(--full-auto --ask-for-approval never)
+if [[ ${#A[@]} -eq 0 ]];then 
+  C+=(--full-auto --ask-for-approval never)
 else
   F=false
   for I in "${!A[@]}";do [[ "${A[$I]}" == "--ask-for-approval" || "${A[$I]}" == "-a" ]] && { F=true;break; }done
