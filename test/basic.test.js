@@ -1,3 +1,4 @@
+// 🔗 Tests: index.js → All module exports
 const qerrors = require('../index.js');
 
 // Basic functionality tests
@@ -9,7 +10,7 @@ console.log('✓ Available functions:', Object.keys(qerrors).length);
 
 // Test 2: Core utilities
 try {
-  const timer = qerrors.createTimer();
+  qerrors.createTimer();
   console.log('✓ Timer creation works');
   
   const sanitized = qerrors.sanitizeMessage('Password: secret123');
@@ -25,7 +26,7 @@ try {
 
 // Test 3: Configuration
 try {
-  const configValue = qerrors.getEnv('QERRORS_CONCURRENCY');
+  qerrors.getEnv('QERRORS_CONCURRENCY');
   console.log('✓ Configuration access works');
 } catch (err) {
   console.error('✗ Configuration failed:', err.message);

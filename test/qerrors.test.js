@@ -1,0 +1,172 @@
+// 🔗 Tests: qerrors → analyzeError → aiModelManager → circuitBreaker
+// 🔗 Tests: qerrors.logErrorWithSeverity → loggingCore → logger → winston
+// 🔗 Tests: qerrors.handleControllerError → errorTypes → responseHelpers
+// 🔗 Tests: qerrors.withErrorHandling → shared/asyncContracts → safeWrappers
+const qerrors = require('../index.js');
+
+describe('QErrors Core Functionality', () => {
+  let mockReq, mockRes, mockNext;
+
+  beforeEach(() => {
+    mockReq = {
+      headers: { accept: 'application/json' },
+      url: '/test',
+      method: 'GET',
+      ip: '127.0.0.1'
+    };
+    
+    mockRes = {
+      headersSent: false,
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+      send: jest.fn()
+    };
+    
+    mockNext = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Error Middleware Tests', () => {
+    test('should handle basic error with JSON response', async () => {
+      const error = new Error('Test error');
+      await qerrors(error, 'test context', mockReq, mockRes, mockNext);
+
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(mockRes.json).toHaveBeenCalled();
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+
+    test('should handle error with HTML response', async () => {
+      mockReq.headers.accept = 'text/html';
+      const error = new Error('Test error');
+      await qerrors(error, 'test context', mockReq, mockRes, mockNext);
+
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(mockRes.send).toHaveBeenCalled();
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+
+    test('should sanitize HTML in error responses', async () => {
+      mockReq.headers.accept = 'text/html';
+      const error = new Error('<script>alert("xss")</script>');
+      await qerrors(error, 'test context', mockReq, mockRes, mockNext);
+
+      const callArgs = mockRes.send.mock.calls[0][0];
+      expect(callArgs).not.toContain('<script>');
+    });
+
+    test('should handle missing error gracefully', async () => {
+      await qerrors(null, 'test context', mockReq, mockRes, mockNext);
+      
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Error Severity Tests', () => {
+    test('should handle critical severity errors', async () => {
+      const error = new Error('Critical error');
+      await qerrors.logErrorWithSeverity(error, 'testFunction', {}, qerrors.ErrorSeverity.CRITICAL);
+      
+      // Should not throw and should complete successfully
+      expect(true).toBe(true);
+    });
+
+    test('should handle high severity errors', async () => {
+      const error = new Error('High severity error');
+      await qerrors.logErrorWithSeverity(error, 'testFunction', {}, qerrors.ErrorSeverity.HIGH);
+      
+      expect(true).toBe(true);
+    });
+  });
+
+  describe('Controller Error Handling', () => {
+    test('should handle controller errors with user message', async () => {
+      const error = new Error('Controller error');
+      await qerrors.handleControllerError(mockRes, error, 'testFunction', {}, 'User friendly message');
+      
+      expect(mockRes.status).toHaveBeenCalled();
+      expect(mockRes.json).toHaveBeenCalled();
+    });
+  });
+
+  describe('Safe Wrappers', () => {
+    test('should wrap async operations safely', async () => {
+      const successOperation = jest.fn().mockResolvedValue('success');
+      const result = await qerrors.withErrorHandling(successOperation, 'testOperation');
+      
+      expect(result).toBe('success');
+    });
+
+    test('should handle operation failures gracefully', async () => {
+      const failingOperation = jest.fn().mockRejectedValue(new Error('Operation failed'));
+      const fallback = 'fallback value';
+      const result = await qerrors.withErrorHandling(failingOperation, 'testOperation', {}, fallback);
+      
+      expect(result).toBe(fallback);
+    });
+  });
+
+  describe('Queue Management', () => {
+    test('should track queue metrics', () => {
+      const initialRejectCount = qerrors.getQueueRejectCount();
+      expect(typeof initialRejectCount).toBe('number');
+    });
+
+    test('should manage cache limits', () => {
+      const cacheLimit = qerrors.getAdviceCacheLimit();
+      expect(typeof cacheLimit).toBe('number');
+    });
+  });
+
+  describe('Security Tests', () => {
+    test('should sanitize error messages for logging', () => {
+      const maliciousError = new Error('Error with\r\nnewlines and\ttabs');
+      const sanitized = qerrors.sanitizeMessage(maliciousError.message);
+      
+      expect(sanitized).not.toContain('\r');
+      expect(sanitized).not.toContain('\n');
+      expect(sanitized).not.toContain('\t');
+    });
+
+    test('should handle very long error messages', () => {
+      const longError = new Error('x'.repeat(1000));
+      const sanitized = qerrors.sanitizeMessage(longError.message);
+      
+      expect(sanitized.length).toBeLessThanOrEqual(200);
+    });
+  });
+
+  describe('Configuration Tests', () => {
+    test('should get environment variables with defaults', () => {
+      const concurrency = qerrors.getEnv('QERRORS_CONCURRENCY');
+      expect(typeof concurrency).toBe('string');
+    });
+
+    test('should parse integer environment variables', () => {
+      const timeout = qerrors.getInt('QERRORS_TIMEOUT');
+      expect(typeof timeout).toBe('number');
+      expect(timeout).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Performance Tests', () => {
+    test('should create performance timers', () => {
+      const timer = qerrors.createTimer();
+      expect(typeof timer.start).toBe('function');
+      expect(typeof timer.end).toBe('function');
+    });
+
+    test('should measure execution time', () => {
+      const timer = qerrors.createTimer();
+      timer.start();
+      setTimeout(() => {
+        const duration = timer.end();
+        expect(typeof duration).toBe('number');
+        expect(duration).toBeGreaterThanOrEqual(0);
+      }, 10);
+    });
+  });
+});
