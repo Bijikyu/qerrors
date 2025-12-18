@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QErrors Functional Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2::before {
+            content: "🧪";
+            font-size: 1.2rem;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        button.danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+
+        button.success {
+            background: linear-gradient(135deg, #00d2d3 0%, #01a3a4 100%);
+        }
+
+        .response-area {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .response-area.error {
+            border-color: #ff6b6b;
+            background: #ffe0e0;
+        }
+
+        .response-area.success {
+            border-color: #00d2d3;
+            background: #e0f7f7;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background: #ccc;
+        }
+
+        .status-indicator.active {
+            background: #00d2d3;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.error {
+            background: #ff6b6b;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .metrics {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .metrics h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .metric-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .config-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-radius: 12px 12px 0 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 12px 12px 0 0;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .tab-content {
+            background: white;
+            border-radius: 0 0 12px 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧪 QErrors Functional Demo</h1>
+            <p>Comprehensive testing suite for QErrors error handling middleware</p>
+        </header>
+
+        <!-- Configuration Panel -->
+        <div class="config-panel">
+            <h2>⚙️ Configuration</h2>
+            <div class="config-grid">
+                <div class="form-group">
+                    <label for="aiProvider">AI Provider</label>
+                    <select id="aiProvider">
+                        <option value="openai">OpenAI</option>
+                        <option value="google">Google Gemini</option>
+                        <option value="none">None (Disable AI)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="aiModel">AI Model</label>
+                    <select id="aiModel">
+                        <option value="gpt-4">GPT-4</option>
+                        <option value="gpt-4-mini">GPT-4 Mini</option>
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="apiKey">API Key</label>
+                    <input type="password" id="apiKey" placeholder="Enter API key (optional)">
+                </div>
+                <div class="form-group">
+                    <label for="logLevel">Log Level</label>
+                    <select id="logLevel">
+                        <option value="error">Error</option>
+                        <option value="warn">Warning</option>
+                        <option value="info" selected>Info</option>
+                        <option value="debug">Debug</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="concurrency">Concurrency Limit</label>
+                    <input type="number" id="concurrency" value="5" min="1" max="20">
+                </div>
+                <div class="form-group">
+                    <label for="cacheLimit">Cache Limit</label>
+                    <input type="number" id="cacheLimit" value="50" min="10" max="200">
+                </div>
+            </div>
+            <button onclick="applyConfiguration()" class="success">Apply Configuration</button>
+            <button onclick="testHealthCheck()" class="secondary">Test Health Check</button>
+        </div>
+
+        <!-- Metrics Dashboard -->
+        <div class="metrics">
+            <h2>📊 Live Metrics</h2>
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <div class="metric-value" id="totalErrors">0</div>
+                    <div class="metric-label">Total Errors</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value" id="queueLength">0</div>
+                    <div class="metric-label">Queue Length</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value" id="cacheHits">0</div>
+                    <div class="metric-label">Cache Hits</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value" id="aiAnalyses">0</div>
+                    <div class="metric-label">AI Analyses</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value" id="avgResponseTime">0ms</div>
+                    <div class="metric-label">Avg Response Time</div>
+                </div>
+                <div class="metric-item">
+                    <div class="status-indicator" id="systemStatus"></div>
+                    <div class="metric-label">System Status</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('basic', this)">Basic Tests</button>
+            <button class="tab" onclick="switchTab('error-types', this)">Error Types</button>
+            <button class="tab" onclick="switchTab('ai-analysis', this)">AI Analysis</button>
+            <button class="tab" onclick="switchTab('performance', this)">Performance</button>
+            <button class="tab" onclick="switchTab('security', this)">Security</button>
+        </div>
+
+        <!-- Basic Tests Tab -->
+        <div id="basic-tab" class="tab-content">
+            <div class="demo-grid">
+                <div class="card">
+                    <h2>Basic Error Generation</h2>
+                    <div class="form-group">
+                        <label for="errorMessage">Error Message</label>
+                        <input type="text" id="errorMessage" value="This is a test error" placeholder="Enter error message">
+                    </div>
+                    <div class="form-group">
+                        <label for="errorContext">Context</label>
+                        <input type="text" id="errorContext" value="demo-test" placeholder="Enter context">
+                    </div>
+                    <button onclick="generateBasicError('json')">Generate JSON Error</button>
+                    <button onclick="generateBasicError('html')" class="secondary">Generate HTML Error</button>
+                    <div id="basicErrorResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Controller Error Handling</h2>
+                    <div class="form-group">
+                        <label for="controllerFunction">Function Name</label>
+                        <input type="text" id="controllerFunction" value="getUserData" placeholder="Enter function name">
+                    </div>
+                    <div class="form-group">
+                        <label for="controllerContext">Context</label>
+                        <input type="text" id="controllerContext" value="user-controller" placeholder="Enter context">
+                    </div>
+                    <button onclick="testControllerError()">Test Controller Error</button>
+                    <button onclick="testAsyncWrapper()" class="secondary">Test Async Wrapper</button>
+                    <div id="controllerErrorResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Response Builder</h2>
+                    <div class="form-group">
+                        <label for="responseType">Response Type</label>
+                        <select id="responseType">
+                            <option value="success">Success</option>
+                            <option value="error">Error</option>
+                            <option value="notFound">Not Found</option>
+                            <option value="unauthorized">Unauthorized</option>
+                            <option value="validation">Validation Error</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="responseMessage">Message</label>
+                        <input type="text" id="responseMessage" value="Operation completed" placeholder="Enter message">
+                    </div>
+                    <button onclick="testResponseBuilder()">Test Response Builder</button>
+                    <button onclick="testValidationResponse()" class="secondary">Test Validation</button>
+                    <div id="responseBuilderResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Logging System</h2>
+                    <div class="form-group">
+                        <label for="logSeverity">Severity Level</label>
+                        <select id="logSeverity">
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                            <option value="CRITICAL">Critical</option>
+                        </select>
+                    </div>
+                    <button onclick="testErrorLogging()">Test Error Logging</button>
+                    <button onclick="testVerboseLogging()" class="secondary">Test Verbose Logging</button>
+                    <button onclick="clearLogs()" class="danger">Clear Logs</button>
+                    <div id="loggingResponse" class="response-area"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Types Tab -->
+        <div id="error-types-tab" class="tab-content hidden">
+            <div class="demo-grid">
+                <div class="card">
+                    <h2>Validation Errors</h2>
+                    <div class="form-group">
+                        <label for="validationField">Field Name</label>
+                        <input type="text" id="validationField" value="email" placeholder="Enter field name">
+                    </div>
+                    <div class="form-group">
+                        <label for="validationValue">Field Value</label>
+                        <input type="text" id="validationValue" value="invalid-email" placeholder="Enter field value">
+                    </div>
+                    <button onclick="testValidationError()">Test Validation Error</button>
+                    <div id="validationErrorResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Authentication Errors</h2>
+                    <div class="form-group">
+                        <label for="authService">Service Name</label>
+                        <input type="text" id="authService" value="user-service" placeholder="Enter service name">
+                    </div>
+                    <button onclick="testAuthenticationError()">Test Auth Error</button>
+                    <button onclick="testAuthorizationError()" class="secondary">Test Authz Error</button>
+                    <div id="authErrorResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Network & Database Errors</h2>
+                    <button onclick="testNetworkError()">Test Network Error</button>
+                    <button onclick="testDatabaseError()" class="secondary">Test Database Error</button>
+                    <button onclick="testSystemError()" class="danger">Test System Error</button>
+                    <div id="networkErrorResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Rate Limiting</h2>
+                    <div class="form-group">
+                        <label for="rateLimitLimit">Limit</label>
+                        <input type="number" id="rateLimitLimit" value="100" placeholder="Enter rate limit">
+                    </div>
+                    <div class="form-group">
+                        <label for="rateLimitWindow">Window (seconds)</label>
+                        <input type="number" id="rateLimitWindow" value="3600" placeholder="Enter window">
+                    </div>
+                    <button onclick="testRateLimitError()">Test Rate Limit Error</button>
+                    <div id="rateLimitErrorResponse" class="response-area"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Analysis Tab -->
+        <div id="ai-analysis-tab" class="tab-content hidden">
+            <div class="demo-grid">
+                <div class="card">
+                    <h2>AI Error Analysis</h2>
+                    <div class="form-group">
+                        <label for="aiErrorMessage">Complex Error Message</label>
+                        <textarea id="aiErrorMessage" rows="4" placeholder="Enter a complex error scenario for AI analysis">TypeError: Cannot read property 'user' of undefined at UserService.getUserById (/app/services/user.js:45:12) at UserController.getUser (/app/controllers/user.js:23:8) at Layer.handle [as handle_request] (/app/node_modules/express/lib/router/layer.js:95:5)</textarea>
+                    </div>
+                    <button onclick="testAIAnalysis()">Test AI Analysis</button>
+                    <button onclick="testAICaching()" class="secondary">Test AI Caching</button>
+                    <div id="aiAnalysisResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Queue Management</h2>
+                    <div class="form-group">
+                        <label for="queueLoad">Concurrent Errors</label>
+                        <input type="number" id="queueLoad" value="10" min="1" max="50" placeholder="Number of concurrent errors">
+                    </div>
+                    <button onclick="testQueueLoad()">Test Queue Load</button>
+                    <button onclick="testQueueOverflow()" class="danger">Test Queue Overflow</button>
+                    <div id="queueResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Model Comparison</h2>
+                    <button onclick="compareModels()">Compare AI Models</button>
+                    <button onclick="testModelFallback()" class="secondary">Test Model Fallback</button>
+                    <div id="modelComparisonResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Cache Management</h2>
+                    <button onclick="testCachePerformance()">Test Cache Performance</button>
+                    <button onclick="testCacheEviction()" class="secondary">Test Cache Eviction</button>
+                    <button onclick="clearCache()" class="danger">Clear Cache</button>
+                    <div id="cacheResponse" class="response-area"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Tab -->
+        <div id="performance-tab" class="tab-content hidden">
+            <div class="demo-grid">
+                <div class="card">
+                    <h2>Load Testing</h2>
+                    <div class="form-group">
+                        <label for="loadTestCount">Request Count</label>
+                        <input type="number" id="loadTestCount" value="100" min="10" max="1000">
+                    </div>
+                    <div class="form-group">
+                        <label for="loadTestConcurrency">Concurrency</label>
+                        <input type="number" id="loadTestConcurrency" value="10" min="1" max="50">
+                    </div>
+                    <button onclick="runLoadTest()">Run Load Test</button>
+                    <div id="loadTestResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Memory Usage</h2>
+                    <button onclick="testMemoryUsage()">Test Memory Usage</button>
+                    <button onclick="testMemoryLeaks()" class="danger">Test Memory Leaks</button>
+                    <div id="memoryResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Circuit Breaker</h2>
+                    <button onclick="testCircuitBreaker()">Test Circuit Breaker</button>
+                    <button onclick="testRetryLogic()" class="secondary">Test Retry Logic</button>
+                    <div id="circuitResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Performance Timers</h2>
+                    <button onclick="testPerformanceTimers()">Test Performance Timers</button>
+                    <button onclick="benchmarkOperations()" class="secondary">Benchmark Operations</button>
+                    <div id="timerResponse" class="response-area"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Tab -->
+        <div id="security-tab" class="tab-content hidden">
+            <div class="demo-grid">
+                <div class="card">
+                    <h2>XSS Protection</h2>
+                    <div class="form-group">
+                        <label for="xssPayload">XSS Payload</label>
+                        <input type="text" id="xssPayload" value="&lt;script&gt;alert('XSS')&lt;/script&gt;" placeholder="Enter XSS payload">
+                    </div>
+                    <button onclick="testXSSProtection()">Test XSS Protection</button>
+                    <div id="xssResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Input Sanitization</h2>
+                    <div class="form-group">
+                        <label for="maliciousInput">Malicious Input</label>
+                        <textarea id="maliciousInput" rows="3" placeholder="Enter malicious input">Error: \n\t\x00\x01\x02<script>alert('hack')</script>\n\tStack trace</textarea>
+                    </div>
+                    <button onclick="testInputSanitization()">Test Input Sanitization</button>
+                    <div id="sanitizationResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>API Key Security</h2>
+                    <button onclick="testAPIKeySecurity()">Test API Key Security</button>
+                    <button onclick="testSensitiveDataProtection()" class="secondary">Test Sensitive Data</button>
+                    <div id="securityResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Content Security</h2>
+                    <button onclick="testContentNegotiation()">Test Content Negotiation</button>
+                    <button onclick="testResponseSecurity()" class="secondary">Test Response Security</button>
+                    <div id="contentResponse" class="response-area"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let metrics = {
+            totalErrors: 0,
+            queueLength: 0,
+            cacheHits: 0,
+            aiAnalyses: 0,
+            avgResponseTime: 0,
+            systemStatus: 'active'
+        };
+
+        let responseTimes = [];
+
+        // Tab switching
+        function switchTab(tabName, buttonElement) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            const selectedTab = document.getElementById(`${tabName}-tab`);
+            if (selectedTab) {
+                selectedTab.classList.remove('hidden');
+            }
+            
+            // Add active class to clicked button
+            if (buttonElement) {
+                buttonElement.classList.add('active');
+            }
+        }
+
+        // Configuration management
+        function applyConfiguration() {
+            const config = {
+                aiProvider: document.getElementById('aiProvider').value,
+                aiModel: document.getElementById('aiModel').value,
+                apiKey: document.getElementById('apiKey').value,
+                logLevel: document.getElementById('logLevel').value,
+                concurrency: document.getElementById('concurrency').value,
+                cacheLimit: document.getElementById('cacheLimit').value
+            };
+            
+            // Simulate applying configuration
+            updateResponse('basicErrorResponse', 'Configuration applied successfully:\n' + JSON.stringify(config, null, 2), 'success');
+            updateMetrics();
+        }
+
+        function testHealthCheck() {
+            simulateAsyncOperation(() => {
+                const healthStatus = {
+                    status: 'healthy',
+                    timestamp: new Date().toISOString(),
+                    aiProvider: document.getElementById('aiProvider').value,
+                    queueLength: metrics.queueLength,
+                    cacheSize: metrics.cacheHits,
+                    uptime: '2h 34m 15s'
+                };
+                
+                updateResponse('basicErrorResponse', 'Health Check Result:\n' + JSON.stringify(healthStatus, null, 2), 'success');
+            });
+        }
+
+        // Basic error generation
+        function generateBasicError(format) {
+            const startTime = performance.now();
+            const messageElement = document.getElementById('errorMessage');
+            const contextElement = document.getElementById('errorContext');
+            
+            if (!messageElement || !contextElement) {
+                console.error('Required form elements not found');
+                return;
+            }
+            
+            const message = messageElement.value || 'Default error message';
+            const context = contextElement.value || 'default-context';
+            
+            simulateAsyncOperation(() => {
+                const error = {
+                    uniqueErrorName: `ERROR:${context}_${generateUUID()}`,
+                    timestamp: new Date().toISOString(),
+                    message: message,
+                    statusCode: 500,
+                    isOperational: true,
+                    context: context,
+                    stack: `Error: ${message}\n    at testFunction (/app/demo.js:10:5)\n    at Object.<anonymous> (/app/demo.js:20:3)`
+                };
+                
+                let response;
+                if (format === 'json') {
+                    response = {
+                        success: false,
+                        error: error
+                    };
+                } else {
+                    response = `<!DOCTYPE html>
+<html>
+<head><title>Error 500</title></head>
+<body>
+    <h1>Error 500</h1>
+    <p>${escapeHtml(message)}</p>
+    <pre>${escapeHtml(error.stack)}</pre>
+</body>
+</html>`;
+                }
+                
+                const endTime = performance.now();
+                const responseTime = endTime - startTime;
+                responseTimes.push(responseTime);
+                
+                metrics.totalErrors++;
+                updateResponse('basicErrorResponse', `Response (${format.toUpperCase()}):\n${typeof response === 'string' ? response : JSON.stringify(response, null, 2)}`, 'error');
+                updateMetrics();
+                updateAvgResponseTime();
+            });
+        }
+
+        // Controller error handling
+        function testControllerError() {
+            const functionNameElement = document.getElementById('controllerFunction');
+            const contextElement = document.getElementById('controllerContext');
+            
+            if (!functionNameElement || !contextElement) {
+                console.error('Controller form elements not found');
+                return;
+            }
+            
+            const functionName = functionNameElement.value || 'unknownFunction';
+            const context = contextElement.value || 'unknown-context';
+            
+            simulateAsyncOperation(() => {
+                const controllerError = {
+                    success: false,
+                    error: {
+                        uniqueErrorName: `ERROR:${context}_${functionName}_${generateUUID()}`,
+                        timestamp: new Date().toISOString(),
+                        message: `Controller error in ${functionName}`,
+                        statusCode: 500,
+                        isOperational: true,
+                        context: context,
+                        functionName: functionName,
+                        stack: `Error: Controller operation failed\n    at ${functionName} (/app/controllers/${context}.js:15:8)`
+                    },
+                    userMessage: 'An error occurred while processing your request'
+                };
+                
+                metrics.totalErrors++;
+                updateResponse('controllerErrorResponse', JSON.stringify(controllerError, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        function testAsyncWrapper() {
+            simulateAsyncOperation(() => {
+                const wrapperResult = {
+                    success: false,
+                    error: {
+                        uniqueErrorName: `ERROR:async_wrapper_${generateUUID()}`,
+                        timestamp: new Date().toISOString(),
+                        message: 'Async operation failed',
+                        statusCode: 500,
+                        isOperational: true,
+                        context: 'async-wrapper',
+                        stack: `Error: Promise rejected\n    at asyncOperation (/app/utils/async.js:25:10)\n    at withErrorHandling (/app/utils/wrappers.js:12:5)`
+                    },
+                    fallback: 'Operation failed, but system recovered gracefully'
+                };
+                
+                metrics.totalErrors++;
+                updateResponse('controllerErrorResponse', 'Async Wrapper Result:\n' + JSON.stringify(wrapperResult, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        // Response builder testing
+        function testResponseBuilder() {
+            const responseTypeElement = document.getElementById('responseType');
+            const messageElement = document.getElementById('responseMessage');
+            
+            if (!responseTypeElement || !messageElement) {
+                console.error('Response builder form elements not found');
+                return;
+            }
+            
+            const responseType = responseTypeElement.value || 'success';
+            const message = messageElement.value || 'Operation completed';
+            
+            simulateAsyncOperation(() => {
+                let response;
+                
+                switch(responseType) {
+                    case 'success':
+                        response = {
+                            success: true,
+                            data: { message: message },
+                            timestamp: new Date().toISOString(),
+                            metadata: {
+                                requestId: generateUUID(),
+                                processingTime: '45ms'
+                            }
+                        };
+                        break;
+                    case 'error':
+                        response = {
+                            success: false,
+                            error: {
+                                message: message,
+                                statusCode: 500,
+                                timestamp: new Date().toISOString()
+                            }
+                        };
+                        break;
+                    case 'notFound':
+                        response = {
+                            success: false,
+                            error: {
+                                message: message,
+                                statusCode: 404,
+                                timestamp: new Date().toISOString()
+                            }
+                        };
+                        break;
+                    case 'unauthorized':
+                        response = {
+                            success: false,
+                            error: {
+                                message: message,
+                                statusCode: 401,
+                                timestamp: new Date().toISOString()
+                            }
+                        };
+                        break;
+                    case 'validation':
+                        response = {
+                            success: false,
+                            error: {
+                                message: 'Validation failed',
+                                statusCode: 400,
+                                timestamp: new Date().toISOString(),
+                                details: [
+                                    { field: 'email', message: 'Invalid email format' },
+                                    { field: 'password', message: 'Password too short' }
+                                ]
+                            }
+                        };
+                        break;
+                }
+                
+                updateResponse('responseBuilderResponse', JSON.stringify(response, null, 2), responseType === 'success' ? 'success' : 'error');
+            });
+        }
+
+        function testValidationResponse() {
+            simulateAsyncOperation(() => {
+                const validationResponse = {
+                    success: false,
+                    error: {
+                        message: 'Validation failed',
+                        statusCode: 400,
+                        timestamp: new Date().toISOString(),
+                        type: 'ValidationError',
+                        details: [
+                            { field: 'username', message: 'Username is required', code: 'REQUIRED' },
+                            { field: 'email', message: 'Invalid email format', code: 'INVALID_FORMAT' },
+                            { field: 'age', message: 'Age must be between 18 and 120', code: 'OUT_OF_RANGE' },
+                            { field: 'password', message: 'Password must be at least 8 characters', code: 'MIN_LENGTH' }
+                        ]
+                    }
+                };
+                
+                metrics.totalErrors++;
+                updateResponse('responseBuilderResponse', 'Validation Response:\n' + JSON.stringify(validationResponse, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        // Logging system tests
+        function testErrorLogging() {
+            const severity = document.getElementById('logSeverity').value;
+            
+            simulateAsyncOperation(() => {
+                const logEntry = {
+                    timestamp: new Date().toISOString(),
+                    level: 'ERROR',
+                    severity: severity,
+                    message: `Test error with ${severity} severity`,
+                    context: 'demo-logging',
+                    requestId: generateUUID(),
+                    metadata: {
+                        userId: '12345',
+                        ip: '192.168.1.100',
+                        userAgent: 'Mozilla/5.0 (Demo Browser)'
+                    }
+                };
+                
+                updateResponse('loggingResponse', 'Log Entry Created:\n' + JSON.stringify(logEntry, null, 2), 'success');
+            });
+        }
+
+        function testVerboseLogging() {
+            simulateAsyncOperation(() => {
+                const verboseLog = {
+                    timestamp: new Date().toISOString(),
+                    level: 'DEBUG',
+                    message: 'Verbose logging test',
+                    context: 'demo-verbose',
+                    requestId: generateUUID(),
+                    stack: `Debug: Verbose logging enabled\n    at testVerboseLogging (/app/demo.html:580:10)\n    at onclick (/app/demo.html:1:1)`,
+                    metadata: {
+                        memoryUsage: '45.2MB',
+                        cpuUsage: '12.5%',
+                        activeConnections: 23,
+                        queueLength: metrics.queueLength
+                    },
+                    performance: {
+                        responseTime: '23ms',
+                        dbQueryTime: '5ms',
+                        cacheHitTime: '1ms'
+                    }
+                };
+                
+                updateResponse('loggingResponse', 'Verbose Log Entry:\n' + JSON.stringify(verboseLog, null, 2), 'success');
+            });
+        }
+
+        function clearLogs() {
+            updateResponse('loggingResponse', 'Logs cleared successfully', 'success');
+        }
+
+        // Error type tests
+        function testValidationError() {
+            const fieldElement = document.getElementById('validationField');
+            const valueElement = document.getElementById('validationValue');
+            
+            if (!fieldElement || !valueElement) {
+                console.error('Validation form elements not found');
+                return;
+            }
+            
+            const field = fieldElement.value || 'unknownField';
+            const value = valueElement.value || 'unknownValue';
+            
+            simulateAsyncOperation(() => {
+                const validationError = {
+                    success: false,
+                    error: {
+                        uniqueErrorName: `ERROR:validation_${field}_${generateUUID()}`,
+                        timestamp: new Date().toISOString(),
+                        message: `Validation failed for field '${field}'`,
+                        statusCode: 400,
+                        type: 'ValidationError',
+                        context: 'validation-middleware',
+                        details: [
+                            {
+                                field: field,
+                                value: value,
+                                message: `Invalid value for ${field}: ${value}`,
+                                code: 'INVALID_VALUE'
+                            }
+                        ]
+                    }
+                };
+                
+                metrics.totalErrors++;
+                updateResponse('validationErrorResponse', JSON.stringify(validationError, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        function testAuthenticationError() {
+            const serviceElement = document.getElementById('authService');
+            
+            if (!serviceElement) {
+                console.error('Auth service element not found');
+                return;
+            }
+            
+            const service = serviceElement.value || 'unknown-service';
+            
+            simulateAsyncOperation(() => {
+                const authError = {
+                    success: false,
+                    error: {
+                        uniqueErrorName: `ERROR:auth_${service}_${generateUUID()}`,
+                        timestamp: new Date().toISOString(),
+                        message: `Authentication failed for service: ${service}`,
+                        statusCode: 401,
+                        type: 'AuthenticationError',
+                        context: 'auth-middleware',
+                        details: {
+                            service: service,
+                            reason: 'Invalid or expired token',
+                            tokenProvided: false
+                        }
+                    }
+                };
+                
+                metrics.totalErrors++;
+                updateResponse('authErrorResponse', JSON.stringify(authError, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        function testAuthorizationError() {
+            simulateAsyncOperation(() => {
+                const authzError = {
+                    success: false,
+                    error: {
+                        uniqueErrorName: `ERROR:authorization_${generateUUID()}`,
+                        timestamp: new Date().toISOString(),
+                        message: 'Access denied: insufficient permissions',
+                        statusCode: 403,
+                        type: 'AuthorizationError',
+                        context: 'authorization-middleware',
+                        details: {
+                            requiredRole: 'admin',
+                            userRole: 'user',
+                            action: 'DELETE',
+                            resource: '/api/users/123'
+                        }
+                    }
+                };
+                
+                metrics.totalErrors++;
+                updateResponse('authErrorResponse', JSON.stringify(authzError, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        function testNetworkError() {
+            simulateAsyncOperation(() => {
+                const networkError = {
+                    success: false,
+                    error: {
+                        uniqueErrorName: `ERROR:network_${generateUUID()}`,
+                        timestamp: new Date().toISOString(),
+                        message: 'External service unavailable',
+                        statusCode: 502,
+                        type: 'NetworkError',
+                        context: 'external-api',
+                        details: {
+                            service: 'payment-gateway',
+                            url: 'https://api.payment.com/charge',
+                            timeout: 10000,
+                            attempt: 1
+                        }
+                    }
+                };
+                
+                metrics.totalErrors++;
+                updateResponse('networkErrorResponse', JSON.stringify(networkError, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        function testDatabaseError() {
+            simulateAsyncOperation(() => {
+                const dbError = {
+                    success: false,
+                    error: {
+                        uniqueErrorName: `ERROR:database_${generateUUID()}`,
+                        timestamp: new Date().toISOString(),
+                        message: 'Database connection failed',
+                        statusCode: 500,
+                        type: 'DatabaseError',
+                        context: 'database-layer',
+                        details: {
+                            query: 'SELECT * FROM users WHERE id = ?',
+                            error: 'Connection timeout',
+                            retryCount: 3
+                        }
+                    }
+                };
+                
+                metrics.totalErrors++;
+                updateResponse('networkErrorResponse', JSON.stringify(dbError, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        function testSystemError() {
+            simulateAsyncOperation(() => {
+                const systemError = {
+                    success: false,
+                    error: {
+                        uniqueErrorName: `ERROR:system_${generateUUID()}`,
+                        timestamp: new Date().toISOString(),
+                        message: 'System resource exhausted',
+                        statusCode: 500,
+                        type: 'SystemError',
+                        context: 'system-layer',
+                        details: {
+                            resource: 'memory',
+                            usage: '98%',
+                            threshold: '90%',
+                            action: 'restart_required'
+                        }
+                    }
+                };
+                
+                metrics.totalErrors++;
+                updateResponse('networkErrorResponse', JSON.stringify(systemError, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        function testRateLimitError() {
+            const limitElement = document.getElementById('rateLimitLimit');
+            const windowElement = document.getElementById('rateLimitWindow');
+            
+            if (!limitElement || !windowElement) {
+                console.error('Rate limit form elements not found');
+                return;
+            }
+            
+            const limit = parseInt(limitElement.value) || 100;
+            const window = parseInt(windowElement.value) || 3600;
+            
+            simulateAsyncOperation(() => {
+                const rateLimitError = {
+                    success: false,
+                    error: {
+                        uniqueErrorName: `ERROR:rate_limit_${generateUUID()}`,
+                        timestamp: new Date().toISOString(),
+                        message: 'Rate limit exceeded',
+                        statusCode: 429,
+                        type: 'RateLimitError',
+                        context: 'rate-limiter',
+                        details: {
+                            limit: limit,
+                            window: window,
+                            current: limit + 1,
+                            resetTime: new Date(Date.now() + window * 1000).toISOString()
+                        }
+                    }
+                };
+                
+                metrics.totalErrors++;
+                updateResponse('rateLimitErrorResponse', JSON.stringify(rateLimitError, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        // AI Analysis tests
+        function testAIAnalysis() {
+            const errorMessageElement = document.getElementById('aiErrorMessage');
+            
+            if (!errorMessageElement) {
+                console.error('AI error message element not found');
+                return;
+            }
+            
+            const errorMessage = errorMessageElement.value || 'Default error message for analysis';
+            
+            simulateAsyncOperation(() => {
+                const aiAnalysis = {
+                    errorKey: generateSHA256(errorMessage),
+                    timestamp: new Date().toISOString(),
+                    analysis: {
+                        errorType: 'TypeError',
+                        probableCause: 'Attempting to access property on undefined object',
+                        suggestedFix: 'Add null check: if (data && data.user) { ... }',
+                        relatedFiles: [
+                            '/app/services/user.js:45',
+                            '/app/controllers/user.js:23'
+                        ],
+                        prevention: 'Use optional chaining: data?.user?.id',
+                        confidence: 0.92
+                    },
+                    cacheHit: false,
+                    processingTime: '1.2s'
+                };
+                
+                metrics.totalErrors++;
+                metrics.aiAnalyses++;
+                updateResponse('aiAnalysisResponse', 'AI Analysis Result:\n' + JSON.stringify(aiAnalysis, null, 2), 'success');
+                updateMetrics();
+            });
+        }
+
+        function testAICaching() {
+            const errorMessageElement = document.getElementById('aiErrorMessage');
+            
+            if (!errorMessageElement) {
+                console.error('AI error message element not found');
+                return;
+            }
+            
+            const errorMessage = errorMessageElement.value || 'Default error message for caching';
+            
+            simulateAsyncOperation(() => {
+                const cachedAnalysis = {
+                    errorKey: generateSHA256(errorMessage),
+                    timestamp: new Date().toISOString(),
+                    analysis: {
+                        errorType: 'TypeError',
+                        probableCause: 'Cached analysis result',
+                        suggestedFix: 'Use cached fix suggestion',
+                        confidence: 0.92
+                    },
+                    cacheHit: true,
+                    processingTime: '15ms'
+                };
+                
+                metrics.totalErrors++;
+                metrics.cacheHits++;
+                updateResponse('aiAnalysisResponse', 'Cached AI Analysis:\n' + JSON.stringify(cachedAnalysis, null, 2), 'success');
+                updateMetrics();
+            });
+        }
+
+        function testQueueLoad() {
+            const loadElement = document.getElementById('queueLoad');
+            
+            if (!loadElement) {
+                console.error('Queue load element not found');
+                return;
+            }
+            
+            const load = parseInt(loadElement.value) || 10;
+            
+            if (load < 1 || load > 50) {
+                console.error('Queue load must be between 1 and 50');
+                return;
+            }
+            
+            const results = [];
+            
+            for (let i = 0; i < load; i++) {
+                results.push({
+                    id: i + 1,
+                    status: i < 5 ? 'processing' : 'queued',
+                    timestamp: new Date().toISOString()
+                });
+            }
+            
+            metrics.queueLength = load;
+            
+            simulateAsyncOperation(() => {
+                const queueResult = {
+                    loadTest: {
+                        concurrentErrors: load,
+                        processed: results.filter(r => r.status === 'processing').length,
+                        queued: results.filter(r => r.status === 'queued').length,
+                        avgProcessingTime: '800ms',
+                        maxConcurrency: 5
+                    },
+                    results: results
+                };
+                
+                metrics.totalErrors += load;
+                updateResponse('queueResponse', 'Queue Load Test:\n' + JSON.stringify(queueResult, null, 2), 'success');
+                updateMetrics();
+            });
+        }
+
+        function testQueueOverflow() {
+            simulateAsyncOperation(() => {
+                const overflowResult = {
+                    status: 'overflow',
+                    queueLimit: 100,
+                    currentLength: 100,
+                    rejected: 15,
+                    message: 'Queue overflow protection activated',
+                    actions: [
+                        'New requests being rejected',
+                        'Existing requests continue processing',
+                        'Consider increasing concurrency limit'
+                    ]
+                };
+                
+                metrics.queueLength = 100;
+                metrics.totalErrors += 15;
+                updateResponse('queueResponse', 'Queue Overflow Test:\n' + JSON.stringify(overflowResult, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        function compareModels() {
+            simulateAsyncOperation(() => {
+                const modelComparison = {
+                    openai: {
+                        model: 'gpt-4',
+                        responseTime: '1.2s',
+                        accuracy: 0.94,
+                        cost: '$0.03',
+                        tokensUsed: 850
+                    },
+                    google: {
+                        model: 'gemini-2.5-flash-lite',
+                        responseTime: '0.8s',
+                        accuracy: 0.91,
+                        cost: '$0.001',
+                        tokensUsed: 650
+                    },
+                    recommendation: 'Google Gemini is more cost-effective for this use case',
+                    winner: 'google'
+                };
+                
+                updateResponse('modelComparisonResponse', 'Model Comparison:\n' + JSON.stringify(modelComparison, null, 2), 'success');
+            });
+        }
+
+        function testModelFallback() {
+            simulateAsyncOperation(() => {
+                const fallbackResult = {
+                    primaryProvider: 'openai',
+                    primaryStatus: 'failed',
+                    fallbackProvider: 'google',
+                    fallbackStatus: 'success',
+                    responseTime: '2.1s',
+                    message: 'Successfully fell back to Google Gemini after OpenAI failure',
+                    analysis: {
+                        errorType: 'NetworkError',
+                        probableCause: 'Primary provider unavailable',
+                        resolution: 'Automatic fallback successful'
+                    }
+                };
+                
+                updateResponse('modelComparisonResponse', 'Model Fallback Test:\n' + JSON.stringify(fallbackResult, null, 2), 'success');
+            });
+        }
+
+        function testCachePerformance() {
+            simulateAsyncOperation(() => {
+                const cachePerformance = {
+                    totalRequests: 1000,
+                    cacheHits: 743,
+                    cacheMisses: 257,
+                    hitRate: '74.3%',
+                    avgResponseTime: {
+                        cacheHit: '15ms',
+                        cacheMiss: '1250ms'
+                    },
+                    memoryUsage: '12.4MB',
+                    cacheSize: 50,
+                    ttl: 86400
+                };
+                
+                updateResponse('cacheResponse', 'Cache Performance:\n' + JSON.stringify(cachePerformance, null, 2), 'success');
+            });
+        }
+
+        function testCacheEviction() {
+            simulateAsyncOperation(() => {
+                const evictionResult = {
+                    action: 'LRU eviction triggered',
+                    evictedEntries: 12,
+                    reason: 'Cache limit reached',
+                    newCacheSize: 50,
+                    memoryFreed: '2.8MB',
+                    oldestEntryEvicted: '2.5h ago'
+                };
+                
+                updateResponse('cacheResponse', 'Cache Eviction Test:\n' + JSON.stringify(evictionResult, null, 2), 'success');
+            });
+        }
+
+        function clearCache() {
+            metrics.cacheHits = 0;
+            updateResponse('cacheResponse', 'Cache cleared successfully', 'success');
+            updateMetrics();
+        }
+
+        // Performance tests
+        function runLoadTest() {
+            const requestCountElement = document.getElementById('loadTestCount');
+            const concurrencyElement = document.getElementById('loadTestConcurrency');
+            
+            if (!requestCountElement || !concurrencyElement) {
+                console.error('Load test form elements not found');
+                return;
+            }
+            
+            const requestCount = parseInt(requestCountElement.value) || 100;
+            const concurrency = parseInt(concurrencyElement.value) || 10;
+            
+            if (requestCount < 10 || requestCount > 1000 || concurrency < 1 || concurrency > 50) {
+                console.error('Invalid load test parameters');
+                return;
+            }
+            
+            simulateAsyncOperation(() => {
+                const loadTestResult = {
+                    totalRequests: requestCount,
+                    concurrency: concurrency,
+                    duration: '45.2s',
+                    requestsPerSecond: Math.round(requestCount / 45.2),
+                    responseTime: {
+                        avg: '125ms',
+                        min: '23ms',
+                        max: '1.2s',
+                        p95: '340ms',
+                        p99: '580ms'
+                    },
+                    errors: 23,
+                    errorRate: '2.3%',
+                    statusCodes: {
+                        200: 977,
+                        500: 23
+                    }
+                };
+                
+                metrics.totalErrors += 23;
+                updateResponse('loadTestResponse', 'Load Test Results:\n' + JSON.stringify(loadTestResult, null, 2), 'success');
+                updateMetrics();
+            });
+        }
+
+        function testMemoryUsage() {
+            simulateAsyncOperation(() => {
+                const memoryUsage = {
+                    heapUsed: '45.2MB',
+                    heapTotal: '78.6MB',
+                    external: '12.3MB',
+                    rss: '98.7MB',
+                    uptime: '2h 34m',
+                    gcStats: {
+                        collections: 156,
+                        duration: '234ms',
+                        reclaimed: '12.4MB'
+                    }
+                };
+                
+                updateResponse('memoryResponse', 'Memory Usage:\n' + JSON.stringify(memoryUsage, null, 2), 'success');
+            });
+        }
+
+        function testMemoryLeaks() {
+            simulateAsyncOperation(() => {
+                const leakTest = {
+                    status: 'no_leaks_detected',
+                    iterations: 10000,
+                    memoryGrowth: '0.2MB',
+                    threshold: '5.0MB',
+                    result: 'PASS',
+                    recommendations: [
+                        'Memory usage stable',
+                        'No obvious leaks detected',
+                        'Continue monitoring'
+                    ]
+                };
+                
+                updateResponse('memoryResponse', 'Memory Leak Test:\n' + JSON.stringify(leakTest, null, 2), 'success');
+            });
+        }
+
+        function testCircuitBreaker() {
+            simulateAsyncOperation(() => {
+                const circuitBreakerTest = {
+                    status: 'open',
+                    failures: 5,
+                    threshold: 5,
+                    timeout: '30s',
+                    nextAttempt: new Date(Date.now() + 30000).toISOString(),
+                    halfOpenAttempts: 0,
+                    message: 'Circuit breaker opened after 5 consecutive failures'
+                };
+                
+                updateResponse('circuitResponse', 'Circuit Breaker Test:\n' + JSON.stringify(circuitBreakerTest, null, 2), 'error');
+            });
+        }
+
+        function testRetryLogic() {
+            simulateAsyncOperation(() => {
+                const retryTest = {
+                    attempt: 3,
+                    maxAttempts: 3,
+                    strategy: 'exponential_backoff',
+                    delays: [1000, 2000, 4000],
+                    totalDelay: '7s',
+                    result: 'success',
+                    message: 'Operation succeeded on 3rd attempt'
+                };
+                
+                updateResponse('circuitResponse', 'Retry Logic Test:\n' + JSON.stringify(retryTest, null, 2), 'success');
+            });
+        }
+
+        function testPerformanceTimers() {
+            simulateAsyncOperation(() => {
+                const timerResults = {
+                    operation1: '45.2ms',
+                    operation2: '123.7ms',
+                    operation3: '12.8ms',
+                    operation4: '234.1ms',
+                    operation5: '67.3ms',
+                    average: '96.6ms',
+                    total: '483.1ms'
+                };
+                
+                updateResponse('timerResponse', 'Performance Timers:\n' + JSON.stringify(timerResults, null, 2), 'success');
+            });
+        }
+
+        function benchmarkOperations() {
+            simulateAsyncOperation(() => {
+                const benchmark = {
+                    errorGeneration: {
+                        ops: 10000,
+                        time: '234ms',
+                        opsPerSec: 42735
+                    },
+                    cacheLookup: {
+                        ops: 10000,
+                        time: '45ms',
+                        opsPerSec: 222222
+                    },
+                    responseBuilding: {
+                        ops: 10000,
+                        time: '123ms',
+                        opsPerSec: 81301
+                    },
+                    logging: {
+                        ops: 10000,
+                        time: '567ms',
+                        opsPerSec: 17637
+                    }
+                };
+                
+                updateResponse('timerResponse', 'Benchmark Results:\n' + JSON.stringify(benchmark, null, 2), 'success');
+            });
+        }
+
+        // Security tests
+        function testXSSProtection() {
+            const payloadElement = document.getElementById('xssPayload');
+            
+            if (!payloadElement) {
+                console.error('XSS payload element not found');
+                return;
+            }
+            
+            const payload = payloadElement.value || '<script>alert("test")</script>';
+            
+            simulateAsyncOperation(() => {
+                const xssTest = {
+                    originalPayload: payload,
+                    escapedPayload: escapeHtml(payload),
+                    safe: true,
+                    response: {
+                        error: {
+                            message: escapeHtml(payload),
+                            sanitized: true
+                        }
+                    }
+                };
+                
+                updateResponse('xssResponse', 'XSS Protection Test:\n' + JSON.stringify(xssTest, null, 2), 'success');
+            });
+        }
+
+        function testInputSanitization() {
+            const maliciousInputElement = document.getElementById('maliciousInput');
+            
+            if (!maliciousInputElement) {
+                console.error('Malicious input element not found');
+                return;
+            }
+            
+            const maliciousInput = maliciousInputElement.value || 'Test input';
+            
+            simulateAsyncOperation(() => {
+                const sanitized = maliciousInput
+                    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
+                    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '[SCRIPT_REMOVED]')
+                    .replace(/\n/g, '\\n')
+                    .replace(/\t/g, '\\t');
+                
+                const sanitizationTest = {
+                    original: maliciousInput,
+                    sanitized: sanitized,
+                    removed: {
+                        controlChars: true,
+                        scripts: true,
+                        newlines: true,
+                        tabs: true
+                    },
+                    safe: true
+                };
+                
+                updateResponse('sanitizationResponse', 'Input Sanitization Test:\n' + JSON.stringify(sanitizationTest, null, 2), 'success');
+            });
+        }
+
+        function testAPIKeySecurity() {
+            simulateAsyncOperation(() => {
+                const securityTest = {
+                    apiKeyPresent: !!document.getElementById('apiKey').value,
+                    apiKeyLogged: false,
+                    apiKeyExposed: false,
+                    headersSafe: true,
+                    logsSafe: true,
+                    status: 'SECURE'
+                };
+                
+                updateResponse('securityResponse', 'API Key Security Test:\n' + JSON.stringify(securityTest, null, 2), 'success');
+            });
+        }
+
+        function testSensitiveDataProtection() {
+            simulateAsyncOperation(() => {
+                const sensitiveDataTest = {
+                    password: '[REDACTED]',
+                    apiKey: '[REDACTED]',
+                    token: '[REDACTED]',
+                    secret: '[REDACTED]',
+                    creditCard: '[REDACTED]',
+                    ssN: '[REDACTED]',
+                    status: 'SENSITIVE_DATA_PROTECTED'
+                };
+                
+                updateResponse('securityResponse', 'Sensitive Data Protection:\n' + JSON.stringify(sensitiveDataTest, null, 2), 'success');
+            });
+        }
+
+        function testContentNegotiation() {
+            simulateAsyncOperation(() => {
+                const contentTest = {
+                    accepts: ['application/json', 'text/html', 'text/plain'],
+                    provided: 'application/json',
+                    negotiated: 'application/json',
+                    safe: true
+                };
+                
+                updateResponse('contentResponse', 'Content Negotiation Test:\n' + JSON.stringify(contentTest, null, 2), 'success');
+            });
+        }
+
+        function testResponseSecurity() {
+            simulateAsyncOperation(() => {
+                const responseSecurity = {
+                    headers: {
+                        'X-Content-Type-Options': 'nosniff',
+                        'X-Frame-Options': 'DENY',
+                        'X-XSS-Protection': '1; mode=block',
+                        'Content-Security-Policy': "default-src 'self'"
+                    },
+                    xssProtection: true,
+                    clickjackingProtection: true,
+                    contentTypeSniffingProtection: true,
+                    status: 'SECURE'
+                };
+                
+                updateResponse('contentResponse', 'Response Security Test:\n' + JSON.stringify(responseSecurity, null, 2), 'success');
+            });
+        }
+
+        // Utility functions
+        function updateResponse(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            if (!element) {
+                console.error(`Element with id '${elementId}' not found`);
+                return;
+            }
+            element.textContent = content;
+            element.className = `response-area ${type}`;
+        }
+
+        function updateMetrics() {
+            const totalErrorsElement = document.getElementById('totalErrors');
+            const queueLengthElement = document.getElementById('queueLength');
+            const cacheHitsElement = document.getElementById('cacheHits');
+            const aiAnalysesElement = document.getElementById('aiAnalyses');
+            const statusIndicatorElement = document.getElementById('systemStatus');
+            
+            if (totalErrorsElement) totalErrorsElement.textContent = metrics.totalErrors;
+            if (queueLengthElement) queueLengthElement.textContent = metrics.queueLength;
+            if (cacheHitsElement) cacheHitsElement.textContent = metrics.cacheHits;
+            if (aiAnalysesElement) aiAnalysesElement.textContent = metrics.aiAnalyses;
+            if (statusIndicatorElement) statusIndicatorElement.className = `status-indicator ${metrics.systemStatus}`;
+        }
+
+        function updateAvgResponseTime() {
+            const avgResponseTimeElement = document.getElementById('avgResponseTime');
+            if (!avgResponseTimeElement) {
+                console.error('Average response time element not found');
+                return;
+            }
+            
+            if (responseTimes.length === 0) {
+                avgResponseTimeElement.textContent = '0ms';
+                return;
+            }
+            
+            const avg = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+            avgResponseTimeElement.textContent = Math.round(avg) + 'ms';
+            
+            // Keep only last 50 response times
+            if (responseTimes.length > 50) {
+                responseTimes = responseTimes.slice(-50);
+            }
+        }
+
+        function simulateAsyncOperation(callback) {
+            // Show loading state
+            setTimeout(() => {
+                callback();
+            }, Math.random() * 500 + 200); // Random delay between 200-700ms
+        }
+
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function generateSHA256(input) {
+            // Simple hash simulation (not real SHA256)
+            let hash = 0;
+            for (let i = 0; i < input.length; i++) {
+                const char = input.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(16);
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Initialize metrics on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateMetrics();
+            updateAvgResponseTime();
+            
+            // Simulate real-time metrics updates
+            const metricsInterval = setInterval(() => {
+                // Randomly update some metrics to simulate activity
+                if (Math.random() > 0.7) {
+                    metrics.queueLength = Math.max(0, metrics.queueLength + Math.floor(Math.random() * 3) - 1);
+                    updateMetrics();
+                }
+            }, 2000);
+            
+            // Clean up interval on page unload to prevent memory leaks
+            window.addEventListener('beforeunload', function() {
+                if (metricsInterval) {
+                    clearInterval(metricsInterval);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
