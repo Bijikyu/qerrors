@@ -183,29 +183,72 @@
       const provider = document.getElementById('ai-provider').value;
       document.getElementById('ai-output').textContent = 'Analyzing...';
       try {
-        // For now, simulate AI analysis since we don't have real AI endpoint
-        metrics.aiRequests += 1; updateMetricsUI();
-        const analysis = { provider, scenario, analysis: {
-          diagnosis: 'Simulated issue for '+scenario,
-          suggestions: ['Check logs','Increase timeout','Enable fallback']
-        }, confidence: Math.floor(Math.random()*20)+80, processingTime: Math.floor(Math.random()*900)+500, cost: '$0.01' };
-        document.getElementById('ai-output').textContent = JSON.stringify(analysis, null, 2);
+        const response = await fetch('/api/errors/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            error: { 
+              message: `Test error for ${scenario} analysis`,
+              name: 'AnalysisTestError',
+              stack: new Error().stack
+            }, 
+            context: { scenario, provider } 
+          })
+        });
+        
+        const data = await response.json();
+        metrics.aiRequests += 1; 
+        updateMetricsUI();
+        document.getElementById('ai-output').textContent = JSON.stringify(data, null, 2);
       } catch (error) {
-        metrics.aiRequests += 1; updateMetricsUI();
-        const analysis = { provider, scenario, error: 'Analysis failed' };
+        // Fallback to mock response if backend is unavailable
+        console.warn('Backend unavailable, using fallback:', error.message);
+        metrics.aiRequests += 1; 
+        updateMetricsUI();
+        const analysis = { 
+          provider, 
+          scenario, 
+          analysis: {
+            diagnosis: 'Simulated issue for ' + scenario,
+            suggestions: ['Check logs','Increase timeout','Enable fallback']
+          }, 
+          confidence: Math.floor(Math.random()*20)+80, 
+          processingTime: Math.floor(Math.random()*900)+500, 
+          cost: '$0.01',
+          fallback: true
+        };
         document.getElementById('ai-output').textContent = JSON.stringify(analysis, null, 2);
       }
     }
     function clearAIOutput(){ document.getElementById('ai-output').textContent = 'AI output will appear here...'; }
 
-    function exportLogs(){
-      const logs = {
-        timestamp: new Date().toISOString(),
-        metrics, demo: 'functional'
-      };
-      const blob = new Blob([JSON.stringify(logs,null,2)], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'qerrors-demo-logs.json'; a.click();
+    async function exportLogs(){
+      try {
+        const response = await fetch('/api/logs/export');
+        const serverLogs = await response.json();
+        
+        const logs = {
+          timestamp: new Date().toISOString(),
+          serverLogs: serverLogs.logs,
+          metrics: metrics,
+          demo: 'functional'
+        };
+        const blob = new Blob([JSON.stringify(logs,null,2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'qerrors-demo-logs.json'; a.click();
+      } catch (error) {
+        // Fallback to local logs if backend unavailable
+        console.warn('Backend unavailable, using local logs:', error.message);
+        const localLogs = {
+          timestamp: new Date().toISOString(),
+          error: 'Failed to fetch server logs',
+          metrics: metrics,
+          demo: 'functional'
+        };
+        const blob = new Blob([JSON.stringify(localLogs,null,2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'qerrors-demo-logs.json'; a.click();
+      }
     }
     function resetMetrics(){ metrics.total=0; metrics.queue=0; metrics.cacheHits=0; metrics.aiRequests=0; updateMetricsUI(); clearErrorOutput(); clearCustomOutput(); clearAIOutput(); }
 
