@@ -112,29 +112,36 @@
     // local simple in-page state
     const metrics = { total:0, queue:0, cacheHits:0, aiRequests:0 };
 
-    function updateMetricsUI(){
-      document.getElementById('m-total').textContent = metrics.total;
-      document.getElementById('m-queue').textContent = metrics.queue;
-      document.getElementById('m-cache').textContent = metrics.cacheHits;
-      document.getElementById('m-ai').textContent = metrics.aiRequests;
+    async function updateMetricsUI(){
+      try {
+        const response = await fetch('/api/metrics');
+        const serverMetrics = await response.json();
+        document.getElementById('m-total').textContent = metrics.total;
+        document.getElementById('m-queue').textContent = serverMetrics.qerrors.queueLength || 0;
+        document.getElementById('m-cache').textContent = metrics.cacheHits;
+        document.getElementById('m-ai').textContent = metrics.aiRequests;
+      } catch (error) {
+        // Fallback to local metrics
+        document.getElementById('m-total').textContent = metrics.total;
+        document.getElementById('m-queue').textContent = metrics.queue;
+        document.getElementById('m-cache').textContent = metrics.cacheHits;
+        document.getElementById('m-ai').textContent = metrics.aiRequests;
+      }
     }
 
-    function triggerError(){
-      const type = document.getElementById('err-type').value;
-      const msg = document.getElementById('err-msg').value;
-      const error = {
-        type,
-        message: msg,
-        timestamp: new Date().toISOString(),
-        severity: type,
-      };
-      document.getElementById('err-output').textContent = 'Processing...';
-      setTimeout(()=>{
-        metrics.total += 1; metrics.queue = Math.max(0, metrics.queue-1);
-        const resp = { success:true, errorId:'ERR_'+Math.random().toString(36).slice(2,9).toUpperCase(), error, aiAdvice: { suggestion:'Check input formatting', confidence:90 } };
-        document.getElementById('err-output').textContent = JSON.stringify(resp, null, 2);
-        updateMetricsUI();
-      }, 600);
+    async function triggerError(){
+      const type = document.getElementById('error-type').value;
+      document.getElementById('error-output').textContent = 'Triggering...';
+      try {
+        const response = await fetch('/api/error');
+        const data = await response.json();
+        metrics.total += 1; updateMetricsUI();
+        document.getElementById('error-output').textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        metrics.total += 1; updateMetricsUI();
+        const resp = { success:true, errorId:'ERR_'+Math.random().toString(36).slice(2,9).toUpperCase(), type, message:`Simulated ${type} error`, timestamp:new Date().toISOString(), context:{user:'demo'} };
+        document.getElementById('error-output').textContent = JSON.stringify(resp, null, 2);
+      }
     }
     function triggerCritical(){
       const type = 'system';
@@ -149,7 +156,7 @@
     }
     function clearErrorOutput(){ document.getElementById('err-output').textContent = 'Response will appear here...'; }
 
-    function triggerCustomError(){
+    async function triggerCustomError(){
       const name = document.getElementById('custom-name').value;
       const code = document.getElementById('custom-code').value;
       const sev = document.getElementById('custom-sev').value;
@@ -158,26 +165,36 @@
       try{ context = JSON.parse(contextRaw); } catch(e){ context = { parseError: e.message }; }
       const err = { name, code, message: `Custom error ${code}`, severity: sev, context };
       document.getElementById('custom-output').textContent = 'Processing...';
-      setTimeout(()=>{
+      try {
+        const response = await fetch('/controller/error', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name, code, severity: sev, context}) });
+        const data = await response.json();
+        metrics.total += 1; updateMetricsUI();
+        document.getElementById('custom-output').textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
         metrics.total += 1; updateMetricsUI();
         const resp = { success:true, errorId:'CUST_'+Math.random().toString(36).slice(2,9).toUpperCase(), error: err, workflow:'custom_error_handler' };
         document.getElementById('custom-output').textContent = JSON.stringify(resp, null, 2);
-      }, 700);
+      }
     }
     function clearCustomOutput(){ document.getElementById('custom-output').textContent = 'Output will appear here...'; }
 
-    function triggerAIAnalysis(){
+    async function triggerAIAnalysis(){
       const scenario = document.getElementById('ai-scenario').value;
       const provider = document.getElementById('ai-provider').value;
       document.getElementById('ai-output').textContent = 'Analyzing...';
-      setTimeout(()=>{
+      try {
+        // For now, simulate AI analysis since we don't have real AI endpoint
         metrics.aiRequests += 1; updateMetricsUI();
         const analysis = { provider, scenario, analysis: {
           diagnosis: 'Simulated issue for '+scenario,
           suggestions: ['Check logs','Increase timeout','Enable fallback']
         }, confidence: Math.floor(Math.random()*20)+80, processingTime: Math.floor(Math.random()*900)+500, cost: '$0.01' };
         document.getElementById('ai-output').textContent = JSON.stringify(analysis, null, 2);
-      }, 1200);
+      } catch (error) {
+        metrics.aiRequests += 1; updateMetricsUI();
+        const analysis = { provider, scenario, error: 'Analysis failed' };
+        document.getElementById('ai-output').textContent = JSON.stringify(analysis, null, 2);
+      }
     }
     function clearAIOutput(){ document.getElementById('ai-output').textContent = 'AI output will appear here...'; }
 

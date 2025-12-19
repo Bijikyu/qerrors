@@ -1261,16 +1261,51 @@
             updateMetrics();
         }
 
-        function exportLogs() {
-            const logs = {
-                timestamp: new Date().toISOString(),
-                metrics: metrics,
-                config: config,
-                demoSession: {
-                    duration: '5 minutes',
-                    errorsTested: metrics.totalErrors,
-                    aiRequests: metrics.aiRequests
-                }
+        async function exportLogs() {
+            try {
+                const response = await fetch('/api/logs/export');
+                const serverLogs = await response.json();
+                
+                const logs = {
+                    timestamp: new Date().toISOString(),
+                    serverLogs: serverLogs.logs,
+                    metrics: metrics,
+                    config: config,
+                    demoSession: {
+                        duration: '5 minutes',
+                        errorsTested: metrics.totalErrors,
+                        aiRequests: metrics.aiRequests
+                    }
+                };
+                
+                const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'qerrors-demo-logs.json';
+                a.click();
+            } catch (error) {
+                // Fallback to local logs
+                const logs = {
+                    timestamp: new Date().toISOString(),
+                    error: 'Failed to fetch server logs',
+                    metrics: metrics,
+                    config: config,
+                    demoSession: {
+                        duration: '5 minutes',
+                        errorsTested: metrics.totalErrors,
+                        aiRequests: metrics.aiRequests
+                    }
+                };
+                
+                const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'qerrors-demo-logs.json';
+                a.click();
+            }
+        }
             };
             
             const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
@@ -1305,11 +1340,21 @@
             updateResponse('error-response', 'Response will appear here...');
         }
 
-        function updateMetrics() {
-            document.getElementById('total-errors').textContent = metrics.totalErrors;
-            document.getElementById('queue-length').textContent = metrics.queueLength;
-            document.getElementById('cache-hits').textContent = metrics.cacheHits;
-            document.getElementById('ai-requests').textContent = metrics.aiRequests;
+        async function updateMetrics() {
+            try {
+                const response = await fetch('/api/metrics');
+                const serverMetrics = await response.json();
+                document.getElementById('total-errors').textContent = metrics.totalErrors;
+                document.getElementById('queue-length').textContent = serverMetrics.qerrors.queueLength;
+                document.getElementById('cache-hits').textContent = metrics.cacheHits;
+                document.getElementById('ai-requests').textContent = metrics.aiRequests;
+            } catch (error) {
+                // Fallback to local metrics
+                document.getElementById('total-errors').textContent = metrics.totalErrors;
+                document.getElementById('queue-length').textContent = metrics.queueLength;
+                document.getElementById('cache-hits').textContent = metrics.cacheHits;
+                document.getElementById('ai-requests').textContent = metrics.aiRequests;
+            }
         }
 
         function updateStatus(severity = 'normal') {
@@ -1458,24 +1503,22 @@
             });
         }
 
-        function testEnvironmentHealth() {
-            simulateAsyncOperation(() => {
-                const healthCheck = {
-                    status: 'healthy',
-                    timestamp: new Date().toISOString(),
-                    environment: 'development',
-                    checks: {
-                        envFile: { status: 'pass', message: '.env file found' },
-                        requiredVars: { status: 'pass', message: 'All required vars present' },
-                        optionalVars: { status: 'warn', message: 'Some optional vars missing' },
-                        nodeVersion: { status: 'pass', message: 'Node.js 18.17.0' },
-                        memory: { status: 'pass', message: 'Sufficient memory available' }
-                    },
-                    overall: 'HEALTHY'
-                };
+        async function testEnvironmentHealth() {
+            try {
+                const response = await fetch('/api/health');
+                const healthCheck = await response.json();
                 
                 updateResponse('environmentResponse', 'Environment Health:\n' + JSON.stringify(healthCheck, null, 2), 'success');
-            });
+            } catch (error) {
+                const healthCheck = {
+                    status: 'unhealthy',
+                    timestamp: new Date().toISOString(),
+                    error: error.message,
+                    overall: 'UNHEALTHY'
+                };
+                
+                updateResponse('environmentResponse', 'Environment Health:\n' + JSON.stringify(healthCheck, null, 2), 'error');
+            }
         }
 
         function testConfigRetrieval() {
@@ -1754,10 +1797,24 @@
                 return;
             }
             
-            const url = urlElement.value || 'https://api.example.com';
+            const url = urlElement.value || 'http://localhost:3001/api/data';
             const timeout = parseInt(timeoutElement.value) || 5000;
             
-            simulateAsyncOperation(() => {
+            // Make real API call
+            const startTime = Date.now();
+            fetch(url, {
+                method: 'GET',
+                headers: { 'user-agent': 'qerrors-demo/1.0' },
+                signal: AbortSignal.timeout(timeout)
+            }).then(response => {
+                const duration = Date.now() - startTime;
+                return response.json().then(data => ({
+                    statusCode: response.status,
+                    headers: { 'content-type': response.headers.get('content-type') },
+                    body: data,
+                    duration: duration + 'ms'
+                }));
+            }).then(responseData => {
                 const serviceTest = {
                     url: url,
                     method: 'GET',
@@ -1766,12 +1823,7 @@
                         headers: { 'user-agent': 'qerrors-demo/1.0' },
                         body: null
                     },
-                    response: {
-                        statusCode: 200,
-                        headers: { 'content-type': 'application/json' },
-                        body: { status: 'ok', data: 'test response' },
-                        duration: '234ms'
-                    },
+                    response: responseData,
                     circuitBreaker: {
                         state: 'closed',
                         failures: 0,
@@ -1781,7 +1833,24 @@
                 };
                 
                 updateResponse('externalServiceResponse', 'External Service Test:\n' + JSON.stringify(serviceTest, null, 2), 'success');
+            }).catch(error => {
+                const serviceTest = {
+                    url: url,
+                    method: 'GET',
+                    timeout: timeout,
+                    error: error.message,
+                    circuitBreaker: {
+                        state: 'open',
+                        failures: 1,
+                        successes: 0
+                    },
+                    retries: 0
+                };
+                
+                updateResponse('externalServiceResponse', 'External Service Test:\n' + JSON.stringify(serviceTest, null, 2), 'error');
             });
+            
+            const startTime = Date.now();
         }
 
         function testServiceFallback() {
