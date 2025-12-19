@@ -1,1 +1,22 @@
-# Functional Demo Overview\n\nThis repository includes a self-contained frontend demo at the repository root that exercises error analysis tooling flows in a standalone, client-side environment. It does not require Bun or any server-side AI calls; all flows are mocked to demonstrate UI/UX and integration points.\n\n## How to run\n- Ensure dependencies are installed: `npm install`\n- Start the static demo server: `npm run demo-server` (listens on port 8080 by default)\n- Open `http://localhost:8080/demo.html` in a browser.\n\n## What the demo covers\n- Error generation and context capture\n- Mock AI analysis with caching behavior\n- Enqueue/dequeue and backoff simulation for a processing queue\n- Basic health and configuration UI scaffolding\n- Live metrics visualization (counts of errors, cache hits, AI analyses, etc.)\n\n## Next steps\n- If you want to prune or simplify flows, I can tailor the UI to focus on a subset of scenarios.\n
+# Functional Demo: QErrors Frontend
+
+A self-contained HTML page to exercise core frontend flows for testing and validation without a backend.
+
+What it covers
+- Error testing (basic and critical) with simulated responses
+- Custom error creation and handling
+- AI analysis workflow with scenario/provider selection
+- Basic metrics visualization (total errors, queue, cache hits, AI requests)
+- Logs export and metric reset
+
+How to run
+- Open `demo-functional.html` at repo root in a modern browser, or serve it via a static file server (e.g. `npx http-server` from project root).
+- If you want to test programmatic loading, you can use any server that serves static files on port 8080+.
+
+What the demo covers
+- Client-side mock flows to demonstrate UX without a backend
+- UI scaffolding designed to mirror real API interactions in the qerrors frontend
+- Lightweight data shapes for errors, AI analysis, and metrics
+
+Next steps
+- If you want to tailor the UI to certain flows or add more scenarios, I can adapt the demo accordingly.
