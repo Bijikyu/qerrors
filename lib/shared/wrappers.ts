@@ -26,9 +26,25 @@ export const createSafeAsyncWrapper = (options: {
 };
 
 export const createSafeLogger = (functionName: string, fallbackLevel: 'error' | 'warn' | 'log' | 'info' = 'error'): any => {
-  return (message: string, details?: Record<string, any>): Promise<void> => {
+  return (message: string, details?: Record<string, any>): void => {
     const level = fallbackLevel.toUpperCase();
-    console[level](`[${functionName}] ${message}`, details);
+    switch (level) {
+      case 'ERROR':
+        console.error(`[${functionName}] ${message}`, details);
+        break;
+      case 'WARN':
+        console.warn(`[${functionName}] ${message}`, details);
+        break;
+      case 'INFO':
+        console.info(`[${functionName}] ${message}`, details);
+        break;
+      case 'LOG':
+        console.log(`[${functionName}] ${message}`, details);
+        break;
+      default:
+        console.log(`[${functionName}] ${message}`, details);
+        break;
+    }
   };
 };
 

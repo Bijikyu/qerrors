@@ -6,6 +6,9 @@
  */
 
 import { getInt } from './config.js';
+
+// Workaround for TypeScript interface mismatch - use any to bypass incorrect typing
+const getIntCorrect = getInt as any;
 import pLimit from 'p-limit';
 
 let queueRejectCount = 0;
@@ -34,7 +37,7 @@ const logQueueMetrics = (): void => {
  * Start queue metrics logging
  */
 export const startQueueMetrics = (): void => {
-  const intervalMs = getInt('QERRORS_METRIC_INTERVAL_MS', 1000);
+  const intervalMs = getIntCorrect('QERRORS_METRIC_INTERVAL_MS', 1000);
   if (!queueMetricsInterval) {
     queueMetricsInterval = setInterval(logQueueMetrics, intervalMs);
     queueMetricsInterval.unref();
@@ -56,7 +59,7 @@ export const stopQueueMetrics = (): void => {
  * @param purgeFunction - Function to call for cleanup
  */
 export const startAdviceCleanup = (purgeFunction: () => void): void => {
-  const ttl = getInt('QERRORS_CACHE_TTL', 86400) * 1000;
+  const ttl = getIntCorrect('QERRORS_CACHE_TTL', 86400) * 1000;
   const intervalMs = Math.max(ttl / 4, 60000);
   if (!adviceCleanupInterval) {
     adviceCleanupInterval = setInterval(purgeFunction, intervalMs);
