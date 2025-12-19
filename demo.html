@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QErrors Functional Demo</title>
+    <title>QErrors Module - Functional Demo</title>
     <style>
         * {
             margin: 0;
@@ -25,889 +25,631 @@
         }
 
         header {
-            text-align: center;
-            color: white;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
             margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
         }
 
-        header h1 {
-            font-size: 2.5rem;
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
 
-        header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.5em;
         }
 
-        .demo-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+
+        .status-bar {
+            display: flex;
             gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 10px 20px;
+            border-radius: 25px;
+            border: 2px solid #667eea;
+            font-weight: 500;
+        }
+
+        .status-item.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
             margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
         }
 
         .card {
-            background: white;
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
             padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
 
         .card h2 {
             color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.4rem;
+            margin-bottom: 20px;
+            font-size: 1.5em;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .card h2::before {
-            content: "🧪";
-            font-size: 1.2rem;
-        }
-
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
+            margin-bottom: 8px;
+            font-weight: 500;
             color: #555;
         }
 
         input, select, textarea {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 2px solid #e1e5e9;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 14px;
-            transition: border-color 0.3s ease;
+            transition: all 0.3s ease;
         }
 
         input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 6px;
+            padding: 12px 24px;
+            border-radius: 8px;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-right: 10px;
-            margin-bottom: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        button:hover {
+        .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
 
-        button:active {
+        .btn:active {
             transform: translateY(0);
         }
 
-        button.secondary {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        .btn-secondary {
+            background: #6c757d;
         }
 
-        button.danger {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        .btn-danger {
+            background: #dc3545;
         }
 
-        button.success {
-            background: linear-gradient(135deg, #00d2d3 0%, #01a3a4 100%);
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         .response-area {
             background: #f8f9fa;
             border: 2px solid #e9ecef;
-            border-radius: 6px;
-            padding: 15px;
-            margin-top: 15px;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 12px;
-            max-height: 300px;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 400px;
             overflow-y: auto;
+        }
+
+        .response-area pre {
+            margin: 0;
             white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
         }
 
-        .response-area.error {
-            border-color: #ff6b6b;
-            background: #ffe0e0;
+        .error-response {
+            border-color: #f5c6cb;
+            background: #fff5f5;
         }
 
-        .response-area.success {
-            border-color: #00d2d3;
-            background: #e0f7f7;
-        }
-
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 8px;
-            background: #ccc;
-        }
-
-        .status-indicator.active {
-            background: #00d2d3;
-            animation: pulse 2s infinite;
-        }
-
-        .status-indicator.error {
-            background: #ff6b6b;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        .metrics {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
-        }
-
-        .metrics h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-            font-size: 1.4rem;
+        .success-response {
+            border-color: #c3e6cb;
+            background: #f5fff5;
         }
 
         .metrics-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
-        .metric-item {
-            text-align: center;
+        .metric-card {
+            background: rgba(102, 126, 234, 0.1);
             padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #667eea;
         }
 
         .metric-value {
-            font-size: 2rem;
+            font-size: 2em;
             font-weight: bold;
             color: #667eea;
         }
 
         .metric-label {
-            font-size: 0.9rem;
             color: #666;
+            font-size: 0.9em;
             margin-top: 5px;
-        }
-
-        .config-panel {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
-        }
-
-        .config-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
         }
 
         .loading {
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            border: 3px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-color: #0c5460;
+            color: #0c5460;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-color: #856404;
+            color: #856404;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border-color: #721c24;
+            color: #721c24;
         }
 
         .tabs {
             display: flex;
-            background: white;
-            border-radius: 12px 12px 0 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 0;
-            flex-wrap: wrap;
-        }
-
-        .tab {
-            flex: 1;
-            min-width: 120px;
-            padding: 12px 8px;
-            background: #f8f9fa;
-            border: none;
-            border-radius: 12px 12px 0 0;
-            cursor: pointer;
-            font-weight: 600;
-            color: #666;
-            transition: all 0.3s ease;
-            font-size: 13px;
-            text-align: center;
-        }
-
-        .tab.active {
-            background: white;
-            color: #667eea;
-        }
-
-        .tab-content {
-            background: white;
-            border-radius: 0 0 12px 12px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-bottom: 2px solid #e9ecef;
             margin-bottom: 20px;
         }
 
-        .hidden {
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
             display: none;
         }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .check-icon {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .config-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: #667eea;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(26px);
+        }
+
+        
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🧪 QErrors Functional Demo</h1>
-            <p>Comprehensive testing suite for QErrors error handling middleware</p>
+            <h1>
+                <div class="logo">Q</div>
+                QErrors Module - Functional Demo
+            </h1>
+            <p class="subtitle">Intelligent Error Handling Middleware with AI-Powered Analysis</p>
+            <div class="status-bar">
+                <div class="status-item active" id="server-status">Server: Connected</div>
+                <div class="status-item" id="ai-status">AI: Ready</div>
+                <div class="status-item" id="cache-status">Cache: Active</div>
+                <div class="status-item" id="queue-status">Queue: Empty</div>
+            </div>
         </header>
 
-        <!-- Configuration Panel -->
-        <div class="config-panel">
-            <h2>⚙️ Configuration</h2>
-            <div class="config-grid">
-                <div class="form-group">
-                    <label for="aiProvider">AI Provider</label>
-                    <select id="aiProvider">
-                        <option value="openai">OpenAI</option>
-                        <option value="google">Google Gemini</option>
-                        <option value="none">None (Disable AI)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="aiModel">AI Model</label>
-                    <select id="aiModel">
-                        <option value="gpt-4">GPT-4</option>
-                        <option value="gpt-4-mini">GPT-4 Mini</option>
-                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="apiKey">API Key</label>
-                    <input type="password" id="apiKey" placeholder="Enter API key (optional)">
-                </div>
-                <div class="form-group">
-                    <label for="logLevel">Log Level</label>
-                    <select id="logLevel">
-                        <option value="error">Error</option>
-                        <option value="warn">Warning</option>
-                        <option value="info" selected>Info</option>
-                        <option value="debug">Debug</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="concurrency">Concurrency Limit</label>
-                    <input type="number" id="concurrency" value="5" min="1" max="20">
-                </div>
-                <div class="form-group">
-                    <label for="cacheLimit">Cache Limit</label>
-                    <input type="number" id="cacheLimit" value="50" min="10" max="200">
-                </div>
-            </div>
-            <button onclick="applyConfiguration()" class="success">Apply Configuration</button>
-            <button onclick="testHealthCheck()" class="secondary">Test Health Check</button>
-        </div>
-
-        <!-- Metrics Dashboard -->
-        <div class="metrics">
-            <h2>📊 Live Metrics</h2>
-            <div class="metrics-grid">
-                <div class="metric-item">
-                    <div class="metric-value" id="totalErrors">0</div>
-                    <div class="metric-label">Total Errors</div>
-                </div>
-                <div class="metric-item">
-                    <div class="metric-value" id="queueLength">0</div>
-                    <div class="metric-label">Queue Length</div>
-                </div>
-                <div class="metric-item">
-                    <div class="metric-value" id="cacheHits">0</div>
-                    <div class="metric-label">Cache Hits</div>
-                </div>
-                <div class="metric-item">
-                    <div class="metric-value" id="aiAnalyses">0</div>
-                    <div class="metric-label">AI Analyses</div>
-                </div>
-                <div class="metric-item">
-                    <div class="metric-value" id="avgResponseTime">0ms</div>
-                    <div class="metric-label">Avg Response Time</div>
-                </div>
-                <div class="metric-item">
-                    <div class="status-indicator" id="systemStatus"></div>
-                    <div class="metric-label">System Status</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Test Tabs -->
-        <div class="tabs">
-            <button class="tab active" onclick="switchTab('basic', this)">Basic Tests</button>
-            <button class="tab" onclick="switchTab('error-types', this)">Error Types</button>
-            <button class="tab" onclick="switchTab('ai-analysis', this)">AI Analysis</button>
-            <button class="tab" onclick="switchTab('performance', this)">Performance</button>
-            <button class="tab" onclick="switchTab('security', this)">Security</button>
-            <button class="tab" onclick="switchTab('environment', this)">Environment</button>
-            <button class="tab" onclick="switchTab('integration', this)">Integration</button>
-            <button class="tab" onclick="switchTab('advanced', this)">Advanced</button>
-        </div>
-
-        <!-- Basic Tests Tab -->
-        <div id="basic-tab" class="tab-content">
-            <div class="demo-grid">
-                <div class="card">
-                    <h2>Basic Error Generation</h2>
-                    <div class="form-group">
-                        <label for="errorMessage">Error Message</label>
-                        <input type="text" id="errorMessage" value="This is a test error" placeholder="Enter error message">
-                    </div>
-                    <div class="form-group">
-                        <label for="errorContext">Context</label>
-                        <input type="text" id="errorContext" value="demo-test" placeholder="Enter context">
-                    </div>
-                    <button onclick="generateBasicError('json')">Generate JSON Error</button>
-                    <button onclick="generateBasicError('html')" class="secondary">Generate HTML Error</button>
-                    <div id="basicErrorResponse" class="response-area"></div>
+        <div class="main-content">
+            <div class="card">
+                <h2>🧪 Error Testing</h2>
+                
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('basic-errors')">Basic Errors</button>
+                    <button class="tab" onclick="switchTab('custom-errors')">Custom Errors</button>
+                    <button class="tab" onclick="switchTab('ai-analysis')">AI Analysis</button>
                 </div>
 
-                <div class="card">
-                    <h2>Controller Error Handling</h2>
+                <div id="basic-errors" class="tab-content active">
                     <div class="form-group">
-                        <label for="controllerFunction">Function Name</label>
-                        <input type="text" id="controllerFunction" value="getUserData" placeholder="Enter function name">
-                    </div>
-                    <div class="form-group">
-                        <label for="controllerContext">Context</label>
-                        <input type="text" id="controllerContext" value="user-controller" placeholder="Enter context">
-                    </div>
-                    <button onclick="testControllerError()">Test Controller Error</button>
-                    <button onclick="testAsyncWrapper()" class="secondary">Test Async Wrapper</button>
-                    <div id="controllerErrorResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Response Builder</h2>
-                    <div class="form-group">
-                        <label for="responseType">Response Type</label>
-                        <select id="responseType">
-                            <option value="success">Success</option>
-                            <option value="error">Error</option>
-                            <option value="notFound">Not Found</option>
-                            <option value="unauthorized">Unauthorized</option>
+                        <label for="error-type">Error Type</label>
+                        <select id="error-type">
                             <option value="validation">Validation Error</option>
+                            <option value="authentication">Authentication Error</option>
+                            <option value="authorization">Authorization Error</option>
+                            <option value="network">Network Error</option>
+                            <option value="system">System Error</option>
+                            <option value="database">Database Error</option>
                         </select>
                     </div>
+
                     <div class="form-group">
-                        <label for="responseMessage">Message</label>
-                        <input type="text" id="responseMessage" value="Operation completed" placeholder="Enter message">
+                        <label for="error-message">Error Message</label>
+                        <input type="text" id="error-message" placeholder="Enter custom error message" value="Test error message">
                     </div>
-                    <button onclick="testResponseBuilder()">Test Response Builder</button>
-                    <button onclick="testValidationResponse()" class="secondary">Test Validation</button>
-                    <div id="responseBuilderResponse" class="response-area"></div>
+
+                    <div class="form-group">
+                        <label for="error-context">Context (JSON)</label>
+                        <textarea id="error-context" placeholder='{"userId": "123", "action": "create"}'>{"userId": "123", "action": "create"}</textarea>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn" onclick="triggerError()">
+                            ⚡ Trigger Error
+                        </button>
+                        <button class="btn btn-danger" onclick="triggerCriticalError()">
+                            🚨 Critical Error
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearResponse()">
+                            🗑️ Clear
+                        </button>
+                    </div>
                 </div>
 
-                <div class="card">
-                    <h2>Logging System</h2>
+                <div id="custom-errors" class="tab-content">
                     <div class="form-group">
-                        <label for="logSeverity">Severity Level</label>
-                        <select id="logSeverity">
-                            <option value="LOW">Low</option>
-                            <option value="MEDIUM">Medium</option>
-                            <option value="HIGH">High</option>
-                            <option value="CRITICAL">Critical</option>
+                        <label for="custom-error-name">Error Name</label>
+                        <input type="text" id="custom-error-name" placeholder="CustomErrorName" value="CustomBusinessError">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="custom-error-code">Error Code</label>
+                        <input type="text" id="custom-error-code" placeholder="BUSINESS_RULE_VIOLATION" value="BUSINESS_RULE_VIOLATION">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="custom-error-severity">Severity</label>
+                        <select id="custom-error-severity">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="critical">Critical</option>
                         </select>
                     </div>
-                    <button onclick="testErrorLogging()">Test Error Logging</button>
-                    <button onclick="testVerboseLogging()" class="secondary">Test Verbose Logging</button>
-                    <button onclick="clearLogs()" class="danger">Clear Logs</button>
-                    <div id="loggingResponse" class="response-area"></div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Error Types Tab -->
-        <div id="error-types-tab" class="tab-content hidden">
-            <div class="demo-grid">
-                <div class="card">
-                    <h2>Validation Errors</h2>
-                    <div class="form-group">
-                        <label for="validationField">Field Name</label>
-                        <input type="text" id="validationField" value="email" placeholder="Enter field name">
+                    <div class="btn-group">
+                        <button class="btn" onclick="triggerCustomError()">
+                            🎯 Trigger Custom Error
+                        </button>
+                        <button class="btn btn-success" onclick="testErrorRecovery()">
+                            🔄 Test Recovery
+                        </button>
                     </div>
+                </div>
+
+                <div id="ai-analysis" class="tab-content">
                     <div class="form-group">
-                        <label for="validationValue">Field Value</label>
-                        <input type="text" id="validationValue" value="invalid-email" placeholder="Enter field value">
-                    </div>
-                    <button onclick="testValidationError()">Test Validation Error</button>
-                    <div id="validationErrorResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Authentication Errors</h2>
-                    <div class="form-group">
-                        <label for="authService">Service Name</label>
-                        <input type="text" id="authService" value="user-service" placeholder="Enter service name">
-                    </div>
-                    <button onclick="testAuthenticationError()">Test Auth Error</button>
-                    <button onclick="testAuthorizationError()" class="secondary">Test Authz Error</button>
-                    <div id="authErrorResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Network & Database Errors</h2>
-                    <button onclick="testNetworkError()">Test Network Error</button>
-                    <button onclick="testDatabaseError()" class="secondary">Test Database Error</button>
-                    <button onclick="testSystemError()" class="danger">Test System Error</button>
-                    <div id="networkErrorResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Rate Limiting</h2>
-                    <div class="form-group">
-                        <label for="rateLimitLimit">Limit</label>
-                        <input type="number" id="rateLimitLimit" value="100" placeholder="Enter rate limit">
-                    </div>
-                    <div class="form-group">
-                        <label for="rateLimitWindow">Window (seconds)</label>
-                        <input type="number" id="rateLimitWindow" value="3600" placeholder="Enter window">
-                    </div>
-                    <button onclick="testRateLimitError()">Test Rate Limit Error</button>
-                    <div id="rateLimitErrorResponse" class="response-area"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- AI Analysis Tab -->
-        <div id="ai-analysis-tab" class="tab-content hidden">
-            <div class="demo-grid">
-                <div class="card">
-                    <h2>AI Error Analysis</h2>
-                    <div class="form-group">
-                        <label for="aiErrorMessage">Complex Error Message</label>
-                        <textarea id="aiErrorMessage" rows="4" placeholder="Enter a complex error scenario for AI analysis">TypeError: Cannot read property 'user' of undefined at UserService.getUserById (/app/services/user.js:45:12) at UserController.getUser (/app/controllers/user.js:23:8) at Layer.handle [as handle_request] (/app/node_modules/express/lib/router/layer.js:95:5)</textarea>
-                    </div>
-                    <button onclick="testAIAnalysis()">Test AI Analysis</button>
-                    <button onclick="testAICaching()" class="secondary">Test AI Caching</button>
-                    <div id="aiAnalysisResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Queue Management</h2>
-                    <div class="form-group">
-                        <label for="queueLoad">Concurrent Errors</label>
-                        <input type="number" id="queueLoad" value="10" min="1" max="50" placeholder="Number of concurrent errors">
-                    </div>
-                    <button onclick="testQueueLoad()">Test Queue Load</button>
-                    <button onclick="testQueueOverflow()" class="danger">Test Queue Overflow</button>
-                    <div id="queueResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Model Comparison</h2>
-                    <button onclick="compareModels()">Compare AI Models</button>
-                    <button onclick="testModelFallback()" class="secondary">Test Model Fallback</button>
-                    <div id="modelComparisonResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Cache Management</h2>
-                    <button onclick="testCachePerformance()">Test Cache Performance</button>
-                    <button onclick="testCacheEviction()" class="secondary">Test Cache Eviction</button>
-                    <button onclick="clearCache()" class="danger">Clear Cache</button>
-                    <div id="cacheResponse" class="response-area"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Performance Tab -->
-        <div id="performance-tab" class="tab-content hidden">
-            <div class="demo-grid">
-                <div class="card">
-                    <h2>Load Testing</h2>
-                    <div class="form-group">
-                        <label for="loadTestCount">Request Count</label>
-                        <input type="number" id="loadTestCount" value="100" min="10" max="1000">
-                    </div>
-                    <div class="form-group">
-                        <label for="loadTestConcurrency">Concurrency</label>
-                        <input type="number" id="loadTestConcurrency" value="10" min="1" max="50">
-                    </div>
-                    <button onclick="runLoadTest()">Run Load Test</button>
-                    <div id="loadTestResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Memory Usage</h2>
-                    <button onclick="testMemoryUsage()">Test Memory Usage</button>
-                    <button onclick="testMemoryLeaks()" class="danger">Test Memory Leaks</button>
-                    <div id="memoryResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Circuit Breaker</h2>
-                    <button onclick="testCircuitBreaker()">Test Circuit Breaker</button>
-                    <button onclick="testRetryLogic()" class="secondary">Test Retry Logic</button>
-                    <div id="circuitResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Performance Timers</h2>
-                    <button onclick="testPerformanceTimers()">Test Performance Timers</button>
-                    <button onclick="benchmarkOperations()" class="secondary">Benchmark Operations</button>
-                    <div id="timerResponse" class="response-area"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Security Tab -->
-        <div id="security-tab" class="tab-content hidden">
-            <div class="demo-grid">
-                <div class="card">
-                    <h2>XSS Protection</h2>
-                    <div class="form-group">
-                        <label for="xssPayload">XSS Payload</label>
-                        <input type="text" id="xssPayload" value="&lt;script&gt;alert('XSS')&lt;/script&gt;" placeholder="Enter XSS payload">
-                    </div>
-                    <button onclick="testXSSProtection()">Test XSS Protection</button>
-                    <div id="xssResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Input Sanitization</h2>
-                    <div class="form-group">
-                        <label for="maliciousInput">Malicious Input</label>
-                        <textarea id="maliciousInput" rows="3" placeholder="Enter malicious input">Error: \n\t\x00\x01\x02<script>alert('hack')</script>\n\tStack trace</textarea>
-                    </div>
-                    <button onclick="testInputSanitization()">Test Input Sanitization</button>
-                    <div id="sanitizationResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>API Key Security</h2>
-                    <button onclick="testAPIKeySecurity()">Test API Key Security</button>
-                    <button onclick="testSensitiveDataProtection()" class="secondary">Test Sensitive Data</button>
-                    <div id="securityResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Content Security</h2>
-                    <button onclick="testContentNegotiation()">Test Content Negotiation</button>
-                    <button onclick="testResponseSecurity()" class="secondary">Test Response Security</button>
-                    <div id="contentResponse" class="response-area"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Environment Tab -->
-        <div id="environment-tab" class="tab-content hidden">
-            <div class="demo-grid">
-                <div class="card">
-                    <h2>Environment Validation</h2>
-                    <div class="form-group">
-                        <label for="requiredEnvVars">Required Variables (comma-separated)</label>
-                        <input type="text" id="requiredEnvVars" value="NODE_ENV,PORT,DATABASE_URL" placeholder="Enter required env vars">
-                    </div>
-                    <div class="form-group">
-                        <label for="optionalEnvVars">Optional Variables (comma-separated)</label>
-                        <input type="text" id="optionalEnvVars" value="LOG_LEVEL,API_KEY,REDIS_URL" placeholder="Enter optional env vars">
-                    </div>
-                    <button onclick="testEnvironmentValidation()">Validate Environment</button>
-                    <button onclick="testEnvironmentHealth()" class="secondary">Check Health</button>
-                    <div id="environmentResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Configuration Management</h2>
-                    <div class="form-group">
-                        <label for="configKey">Config Key</label>
-                        <input type="text" id="configKey" value="QERRORS_AI_PROVIDER" placeholder="Enter config key">
-                    </div>
-                    <div class="form-group">
-                        <label for="configValue">Config Value</label>
-                        <input type="text" id="configValue" value="openai" placeholder="Enter config value">
-                    </div>
-                    <button onclick="testConfigRetrieval()">Test Config Retrieval</button>
-                    <button onclick="testConfigValidation()" class="secondary">Test Config Validation</button>
-                    <div id="configResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Local Variables</h2>
-                    <button onclick="testLocalVariables()">Test Local Variables</button>
-                    <button onclick="testVariableDefaults()" class="secondary">Test Variable Defaults</button>
-                    <div id="localVarsResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Environment Switching</h2>
-                    <div class="form-group">
-                        <label for="targetEnvironment">Target Environment</label>
-                        <select id="targetEnvironment">
-                            <option value="development">Development</option>
-                            <option value="staging">Staging</option>
-                            <option value="production">Production</option>
-                            <option value="test">Test</option>
+                        <label for="ai-scenario">AI Analysis Scenario</label>
+                        <select id="ai-scenario">
+                            <option value="database-connection">Database Connection Failed</option>
+                            <option value="api-timeout">External API Timeout</option>
+                            <option value="memory-leak">Memory Leak Detected</option>
+                            <option value="race-condition">Race Condition</option>
+                            <option value="file-permission">File Permission Error</option>
                         </select>
                     </div>
-                    <button onclick="testEnvironmentSwitch()">Test Environment Switch</button>
-                    <button onclick="testEnvironmentDetection()" class="secondary">Test Environment Detection</button>
-                    <div id="envSwitchResponse" class="response-area"></div>
+
+                    <div class="form-group">
+                        <label for="ai-provider">AI Provider</label>
+                        <select id="ai-provider">
+                            <option value="openai">OpenAI GPT</option>
+                            <option value="google">Google Gemini</option>
+                            <option value="anthropic">Anthropic Claude</option>
+                        </select>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn" onclick="triggerAIAnalysis()">
+                            🤖 Analyze with AI
+                        </button>
+                        <button class="btn btn-secondary" onclick="testAIHealth()">
+                            💉 AI Health Check
+                        </button>
+                    </div>
+                </div>
+
+                <div class="response-area" id="error-response">
+                    <pre>Response will appear here...</pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📊 System Metrics</h2>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="total-errors">0</div>
+                        <div class="metric-label">Total Errors</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="queue-length">0</div>
+                        <div class="metric-label">Queue Length</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="cache-hits">0</div>
+                        <div class="metric-label">Cache Hits</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="ai-requests">0</div>
+                        <div class="metric-label">AI Requests</div>
+                    </div>
+                </div>
+
+                <h3>Configuration</h3>
+                <div class="config-section">
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <span>AI Analysis</span>
+                            <div class="toggle-switch active" id="ai-toggle" onclick="toggleConfig('ai')"></div>
+                        </div>
+                        <div class="config-item">
+                            <span>Caching</span>
+                            <div class="toggle-switch active" id="cache-toggle" onclick="toggleConfig('cache')"></div>
+                        </div>
+                        <div class="config-item">
+                            <span>Queue Metrics</span>
+                            <div class="toggle-switch active" id="metrics-toggle" onclick="toggleConfig('metrics')"></div>
+                        </div>
+                        <div class="config-item">
+                            <span>Verbose Logging</span>
+                            <div class="toggle-switch" id="verbose-toggle" onclick="toggleConfig('verbose')"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Environment</h3>
+                <div class="config-section">
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <span>Node Environment</span>
+                            <span id="node-env">development</span>
+                        </div>
+                        <div class="config-item">
+                            <span>Log Level</span>
+                            <span id="log-level">info</span>
+                        </div>
+                        <div class="config-item">
+                            <span>Cache TTL</span>
+                            <span id="cache-ttl">24h</span>
+                        </div>
+                        <div class="config-item">
+                            <span>Queue Limit</span>
+                            <span id="queue-limit">100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Actions</h3>
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="clearCache()">
+                        🗑️ Clear Cache
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetMetrics()">
+                        📊 Reset Metrics
+                    </button>
+                    <button class="btn btn-success" onclick="exportLogs()">
+                        📥 Export Logs
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- Integration Tab -->
-        <div id="integration-tab" class="tab-content hidden">
-            <div class="demo-grid">
-                <div class="card">
-                    <h2>Express Middleware</h2>
-                    <div class="form-group">
-                        <label for="middlewareRoute">Route Path</label>
-                        <input type="text" id="middlewareRoute" value="/api/test" placeholder="Enter route path">
-                    </div>
-                    <div class="form-group">
-                        <label for="middlewareMethod">HTTP Method</label>
-                        <select id="middlewareMethod">
-                            <option value="GET">GET</option>
-                            <option value="POST">POST</option>
-                            <option value="PUT">PUT</option>
-                            <option value="DELETE">DELETE</option>
-                        </select>
-                    </div>
-                    <button onclick="testExpressMiddleware()">Test Express Middleware</button>
-                    <button onclick="testErrorMiddleware()" class="secondary">Test Error Middleware</button>
-                    <div id="expressResponse" class="response-area"></div>
-                </div>
+        
 
-                <div class="card">
-                    <h2>Database Integration</h2>
-                    <div class="form-group">
-                        <label for="dbQuery">Sample Query</label>
-                        <input type="text" id="dbQuery" value="SELECT * FROM users WHERE id = ?" placeholder="Enter sample query">
-                    </div>
-                    <button onclick="testDatabaseIntegration()">Test DB Integration</button>
-                    <button onclick="testConnectionPool()" class="secondary">Test Connection Pool</button>
-                    <div id="databaseResponse" class="response-area"></div>
-                </div>
+        
 
-                <div class="card">
-                    <h2>External Service Integration</h2>
-                    <div class="form-group">
-                        <label for="serviceUrl">Service URL</label>
-                        <input type="text" id="serviceUrl" value="https://api.example.com/data" placeholder="Enter service URL">
-                    </div>
-                    <div class="form-group">
-                        <label for="serviceTimeout">Timeout (ms)</label>
-                        <input type="number" id="serviceTimeout" value="5000" placeholder="Enter timeout">
-                    </div>
-                    <button onclick="testExternalService()">Test External Service</button>
-                    <button onclick="testServiceFallback()" class="secondary">Test Service Fallback</button>
-                    <div id="externalServiceResponse" class="response-area"></div>
-                </div>
+        
 
-                <div class="card">
-                    <h2>Message Queue Integration</h2>
-                    <div class="form-group">
-                        <label for="queueName">Queue Name</label>
-                        <input type="text" id="queueName" value="error-processing" placeholder="Enter queue name">
-                    </div>
-                    <button onclick="testMessageQueue()">Test Message Queue</button>
-                    <button onclick="testQueueErrorHandling()" class="secondary">Test Queue Error Handling</button>
-                    <div id="messageQueueResponse" class="response-area"></div>
-                </div>
-            </div>
+        
+
+        
+
+        
+
+        
+
+        
+
+        <div class="card">
+            <h2>🚀 Features & Capabilities</h2>
+            <ul class="feature-list">
+                <li><span class="check-icon">✓</span> AI-powered error analysis with multiple provider support</li>
+                <li><span class="check-icon">✓</span> Intelligent caching system for cost optimization</li>
+                <li><span class="check-icon">✓</span> Queue-based async processing with rate limiting</li>
+                <li><span class="check-icon">✓</span> Comprehensive error typing and severity levels</li>
+                <li><span class="check-icon">✓</span> Express middleware integration</li>
+                <li><span class="check-icon">✓</span> Winston-based logging with daily rotation</li>
+                <li><span class="check-icon">✓</span> Circuit breaker pattern for resilience</li>
+                <li><span class="check-icon">✓</span> Environment variable validation</li>
+                <li><span class="check-icon">✓</span> Performance monitoring and metrics</li>
+                <li><span class="check-icon">✓</span> Content sanitization for security</li>
+                <li><span class="check-icon">✓</span> Graceful degradation and error-safe design</li>
+                <li><span class="check-icon">✓</span> TypeScript support with type definitions</li>
+            </ul>
         </div>
 
-        <!-- Advanced Tab -->
-        <div id="advanced-tab" class="tab-content hidden">
-            <div class="demo-grid">
-                <div class="card">
-                    <h2>Custom Error Types</h2>
-                    <div class="form-group">
-                        <label for="customErrorName">Error Name</label>
-                        <input type="text" id="customErrorName" value="BusinessLogicError" placeholder="Enter error name">
-                    </div>
-                    <div class="form-group">
-                        <label for="customErrorMessage">Error Message</label>
-                        <input type="text" id="customErrorMessage" value="Business rule violation occurred" placeholder="Enter error message">
-                    </div>
-                    <button onclick="testCustomErrorType()">Test Custom Error Type</button>
-                    <button onclick="testErrorInheritance()" class="secondary">Test Error Inheritance</button>
-                    <div id="customErrorResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Error Context Enhancement</h2>
-                    <div class="form-group">
-                        <label for="contextData">Context Data (JSON)</label>
-                        <textarea id="contextData" rows="3" placeholder="Enter context data as JSON">{"userId": "123", "action": "update", "resource": "profile"}</textarea>
-                    </div>
-                    <button onclick="testContextEnhancement()">Test Context Enhancement</button>
-                    <button onclick="testContextChaining()" class="secondary">Test Context Chaining</button>
-                    <div id="contextResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Error Aggregation</h2>
-                    <div class="form-group">
-                        <label for="errorCount">Number of Errors</label>
-                        <input type="number" id="errorCount" value="5" min="1" max="20">
-                    </div>
-                    <button onclick="testErrorAggregation()">Test Error Aggregation</button>
-                    <button onclick="testErrorBatching()" class="secondary">Test Error Batching</button>
-                    <div id="aggregationResponse" class="response-area"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Advanced Caching</h2>
-                    <div class="form-group">
-                        <label for="cacheStrategy">Cache Strategy</label>
-                        <select id="cacheStrategy">
-                            <option value="lru">LRU</option>
-                            <option value="fifo">FIFO</option>
-                            <option value="ttl">TTL</option>
-                            <option value="adaptive">Adaptive</option>
-                        </select>
-                    </div>
-                    <button onclick="testAdvancedCaching()">Test Advanced Caching</button>
-                    <button onclick="testCacheDistribution()" class="secondary">Test Cache Distribution</button>
-                    <div id="advancedCacheResponse" class="response-area"></div>
-                </div>
+        <div class="card">
+            <h2>📝 API Endpoints Tested</h2>
+            <div class="alert alert-info">
+                <strong>Note:</strong> This demo tests the qerrors module functionality through simulated API calls. 
+                In a real application, these would be actual Express middleware integrations.
             </div>
+            <ul class="feature-list">
+                <li><code>POST /api/errors/trigger</code> - Triggers various error types</li>
+                <li><code>POST /api/errors/custom</code> - Creates custom business errors</li>
+                <li><code>POST /api/errors/analyze</code> - AI-powered error analysis</li>
+                <li><code>GET /api/metrics</code> - System performance metrics</li>
+                <li><code>POST /api/config</code> - Dynamic configuration updates</li>
+                <li><code>GET /api/health</code> - AI model health checks</li>
+                <li><code>DELETE /api/cache</code> - Cache management operations</li>
+                <li><code>GET /api/logs/export</code> - Log export functionality</li>
+            </ul>
         </div>
     </div>
-
-    <!-- Documentation Section -->
-    <div class="container" style="margin-top: 40px;">
-        <div class="card" style="background: rgba(255, 255, 255, 0.95);">
-            <h2 style="color: #667eea; margin-bottom: 20px;">📚 Feature Documentation</h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                <div>
-                    <h3 style="color: #764ba2; margin-bottom: 10px;">Basic Tests</h3>
-                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
-                        <li><strong>Basic Error Generation:</strong> Creates standard error responses in JSON/HTML format</li>
-                        <li><strong>Controller Error Handling:</strong> Tests Express.js controller error patterns</li>
-                        <li><strong>Response Builder:</strong> Validates structured API response creation</li>
-                        <li><strong>Logging System:</strong> Demonstrates severity-based error logging</li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 style="color: #764ba2; margin-bottom: 10px;">Error Types</h3>
-                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
-                        <li><strong>Validation Errors:</strong> Input validation failure scenarios</li>
-                        <li><strong>Authentication/Authorization:</strong> Auth and permission errors</li>
-                        <li><strong>Network & Database:</strong> External service and DB connectivity issues</li>
-                        <li><strong>Rate Limiting:</strong> API throttling and quota exceeded errors</li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 style="color: #764ba2; margin-bottom: 10px;">AI Analysis</h3>
-                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
-                        <li><strong>AI Error Analysis:</strong> OpenAI/Google Gemini-powered error suggestions</li>
-                        <li><strong>Queue Management:</strong> Concurrent error processing with limits</li>
-                        <li><strong>Model Comparison:</strong> Performance testing across AI providers</li>
-                        <li><strong>Cache Management:</strong> LRU caching for AI analysis results</li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 style="color: #764ba2; margin-bottom: 10px;">Performance</h3>
-                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
-                        <li><strong>Load Testing:</strong> High-volume error generation testing</li>
-                        <li><strong>Memory Usage:</strong> Memory leak detection and monitoring</li>
-                        <li><strong>Circuit Breaker:</strong> Opossum-based circuit breaker patterns</li>
-                        <li><strong>Performance Timers:</strong> Operation timing and benchmarking</li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 style="color: #764ba2; margin-bottom: 10px;">Security</h3>
-                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
-                        <li><strong>XSS Protection:</strong> HTML escaping and script injection prevention</li>
-                        <li><strong>Input Sanitization:</strong> Control character and malicious content filtering</li>
-                        <li><strong>API Key Security:</strong> Sensitive data protection and logging safety</li>
-                        <li><strong>Content Security:</strong> HTTP headers and CSP configuration</li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 style="color: #764ba2; margin-bottom: 10px;">Environment</h3>
-                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
-                        <li><strong>Environment Validation:</strong> Required/optional environment variable checking</li>
-                        <li><strong>Configuration Management:</strong> Dynamic config retrieval and validation</li>
-                        <li><strong>Local Variables:</strong> Built-in configuration defaults and constants</li>
-                        <li><strong>Environment Switching:</strong> Runtime environment change testing</li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 style="color: #764ba2; margin-bottom: 10px;">Integration</h3>
-                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
-                        <li><strong>Express Middleware:</strong> Express.js integration and error handling</li>
-                        <li><strong>Database Integration:</strong> DB connection pooling and query error handling</li>
-                        <li><strong>External Service:</strong> HTTP client with circuit breaker and retry logic</li>
-                        <li><strong>Message Queue:</strong> Async error processing with queue management</li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 style="color: #764ba2; margin-bottom: 10px;">Advanced</h3>
-                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
-                        <li><strong>Custom Error Types:</strong> Business logic error creation and inheritance</li>
-                        <li><strong>Error Context:</strong> Rich context enhancement and chaining</li>
-                        <li><strong>Error Aggregation:</strong> Batch error processing and analysis</li>
-                        <li><strong>Advanced Caching:</strong> Multi-node cache distribution and strategies</li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
-                <h3 style="color: #667eea; margin-bottom: 15px;">🚀 Quick Start Guide</h3>
-                <ol style="color: #666; font-size: 14px; line-height: 1.8;">
-                    <li><strong>Configure AI Provider:</strong> Select OpenAI or Google Gemini and optionally provide an API key</li>
-                    <li><strong>Test Basic Functionality:</strong> Start with "Basic Tests" tab to understand core error handling</li>
-                    <li><strong>Explore Error Types:</strong> Test different error categories in the "Error Types" tab</li>
-                    <li><strong>Try AI Analysis:</strong> Enable AI and test intelligent error suggestions</li>
-                    <li><strong>Performance Testing:</strong> Use load testing to validate system behavior under stress</li>
-                    <li><strong>Security Validation:</strong> Verify XSS protection and input sanitization</li>
-                    <li><strong>Environment Setup:</strong> Test environment variable validation and configuration</li>
-                    <li><strong>Integration Testing:</strong> Validate Express.js and database integration</li>
-                </ol>
-            </div>
-        </div>
     </div>
+
+    
 
     <script>
         // Global state
@@ -915,938 +657,403 @@
             totalErrors: 0,
             queueLength: 0,
             cacheHits: 0,
-            aiAnalyses: 0,
-            avgResponseTime: 0,
-            systemStatus: 'active'
+            aiRequests: 0
         };
 
-        let responseTimes = [];
+        let config = {
+            ai: true,
+            cache: true,
+            metrics: true,
+            verbose: false
+        };
+
+
 
         // Tab switching
-        function switchTab(tabName, buttonElement) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.add('hidden');
-            });
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             
-            // Remove active class from all tab buttons
-            document.querySelectorAll('.tab').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Show selected tab
-            const selectedTab = document.getElementById(`${tabName}-tab`);
-            if (selectedTab) {
-                selectedTab.classList.remove('hidden');
-            }
-            
-            // Add active class to clicked button
-            if (buttonElement) {
-                buttonElement.classList.add('active');
-            }
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
         }
 
-        // Configuration management
-        function applyConfiguration() {
-            const config = {
-                aiProvider: document.getElementById('aiProvider').value,
-                aiModel: document.getElementById('aiModel').value,
-                apiKey: document.getElementById('apiKey').value,
-                logLevel: document.getElementById('logLevel').value,
-                concurrency: document.getElementById('concurrency').value,
-                cacheLimit: document.getElementById('cacheLimit').value
+        // Error triggering functions
+        async function triggerError() {
+            const errorType = document.getElementById('error-type').value;
+            const message = document.getElementById('error-message').value;
+            const contextStr = document.getElementById('error-context').value;
+            
+            let context;
+            try {
+                context = JSON.parse(contextStr);
+            } catch (e) {
+                context = { parseError: e.message };
+            }
+
+            const errorData = {
+                type: errorType,
+                message: message,
+                context: context,
+                timestamp: new Date().toISOString(),
+                severity: getSeverityForType(errorType)
             };
+
+            updateResponse('error-response', 'Processing error...', 'loading');
             
-            // Simulate applying configuration
-            updateResponse('basicErrorResponse', 'Configuration applied successfully:\n' + JSON.stringify(config, null, 2), 'success');
-            updateMetrics();
+            // Simulate API call
+            setTimeout(() => {
+                metrics.totalErrors++;
+                metrics.queueLength = Math.max(0, metrics.queueLength - 1);
+                
+                const response = {
+                    success: true,
+                    errorId: generateErrorId(),
+                    error: errorData,
+                    aiAdvice: config.ai ? generateAIAdvice(errorType) : null,
+                    cached: config.cache && Math.random() > 0.7
+                };
+                
+                if (response.cached) metrics.cacheHits++;
+                if (config.ai) metrics.aiRequests++;
+                
+                updateResponse('error-response', JSON.stringify(response, null, 2), 'success');
+                updateMetrics();
+            }, 1000);
         }
 
-        function testHealthCheck() {
-            simulateAsyncOperation(() => {
-                const healthStatus = {
+        async function triggerCriticalError() {
+            const criticalError = {
+                type: 'system',
+                message: 'Critical system failure detected',
+                context: {
+                    severity: 'critical',
+                    systemState: 'degraded',
+                    affectedServices: ['database', 'cache', 'queue']
+                },
+                timestamp: new Date().toISOString(),
+                severity: 'critical'
+            };
+
+            updateResponse('error-response', 'Processing critical error...', 'error');
+            
+            setTimeout(() => {
+                metrics.totalErrors += 5;
+                metrics.queueLength += 3;
+                
+                const response = {
+                    success: false,
+                    errorId: generateErrorId(),
+                    error: criticalError,
+                    aiAdvice: config.ai ? {
+                        level: 'critical',
+                        immediate: 'Restart affected services immediately',
+                        investigation: 'Check system logs for root cause',
+                        prevention: 'Implement circuit breakers and health checks'
+                    } : null,
+                    escalation: 'CRITICAL',
+                    notificationSent: true
+                };
+                
+                updateResponse('error-response', JSON.stringify(response, null, 2), 'error');
+                updateMetrics();
+                updateStatus('critical');
+            }, 1500);
+        }
+
+        async function triggerCustomError() {
+            const name = document.getElementById('custom-error-name').value;
+            const code = document.getElementById('custom-error-code').value;
+            const severity = document.getElementById('custom-error-severity').value;
+
+            const customError = {
+                name: name,
+                code: code,
+                message: `Custom business error: ${code}`,
+                type: 'business',
+                severity: severity,
+                context: {
+                    businessRule: 'Custom validation failed',
+                    department: 'engineering',
+                    impact: 'medium'
+                },
+                timestamp: new Date().toISOString()
+            };
+
+            updateResponse('error-response', 'Processing custom error...', 'loading');
+            
+            setTimeout(() => {
+                metrics.totalErrors++;
+                
+                const response = {
+                    success: true,
+                    errorId: generateErrorId(),
+                    error: customError,
+                    workflow: 'custom_error_handler',
+                    businessLogic: 'Applied custom business rules',
+                    recovery: 'Error handled by custom middleware'
+                };
+                
+                updateResponse('error-response', JSON.stringify(response, null, 2), 'success');
+                updateMetrics();
+            }, 800);
+        }
+
+        async function testErrorRecovery() {
+            updateResponse('error-response', 'Testing error recovery mechanisms...', 'loading');
+            
+            setTimeout(() => {
+                const recoveryTest = {
+                    scenario: 'error_recovery_test',
+                    tests: [
+                        { name: 'Circuit Breaker', status: 'PASS', response: 'Circuit opened successfully' },
+                        { name: 'Retry Logic', status: 'PASS', response: '3 retries attempted, failed gracefully' },
+                        { name: 'Fallback Response', status: 'PASS', response: 'Fallback data provided' },
+                        { name: 'Queue Recovery', status: 'PASS', response: 'Queue processed after recovery' }
+                    ],
+                    overall: 'PASS',
+                    recommendation: 'All recovery mechanisms working correctly'
+                };
+                
+                updateResponse('error-response', JSON.stringify(recoveryTest, null, 2), 'success');
+            }, 2000);
+        }
+
+        async function triggerAIAnalysis() {
+            const scenario = document.getElementById('ai-scenario').value;
+            const provider = document.getElementById('ai-provider').value;
+
+            updateResponse('error-response', `Analyzing with ${provider} AI...`, 'loading');
+            
+            setTimeout(() => {
+                metrics.aiRequests++;
+                
+                const analysis = {
+                    provider: provider,
+                    scenario: scenario,
+                    analysis: generateScenarioAnalysis(scenario),
+                    confidence: Math.floor(Math.random() * 20) + 80,
+                    processingTime: Math.floor(Math.random() * 1000) + 500,
+                    cost: `$${(Math.random() * 0.05 + 0.01).toFixed(4)}`
+                };
+                
+                updateResponse('error-response', JSON.stringify(analysis, null, 2), 'success');
+                updateMetrics();
+            }, 2000);
+        }
+
+        async function testAIHealth() {
+            updateResponse('error-response', 'Checking AI model health...', 'loading');
+            
+            setTimeout(() => {
+                const healthCheck = {
                     status: 'healthy',
-                    timestamp: new Date().toISOString(),
-                    aiProvider: document.getElementById('aiProvider').value,
-                    queueLength: metrics.queueLength,
-                    cacheSize: metrics.cacheHits,
-                    uptime: '2h 34m 15s'
-                };
-                
-                updateResponse('basicErrorResponse', 'Health Check Result:\n' + JSON.stringify(healthStatus, null, 2), 'success');
-            });
-        }
-
-        // Basic error generation
-        function generateBasicError(format) {
-            const startTime = performance.now();
-            const messageElement = document.getElementById('errorMessage');
-            const contextElement = document.getElementById('errorContext');
-            
-            if (!messageElement || !contextElement) {
-                console.error('Required form elements not found');
-                return;
-            }
-            
-            const message = messageElement.value || 'Default error message';
-            const context = contextElement.value || 'default-context';
-            
-            simulateAsyncOperation(() => {
-                const error = {
-                    uniqueErrorName: `ERROR:${context}_${generateUUID()}`,
-                    timestamp: new Date().toISOString(),
-                    message: message,
-                    statusCode: 500,
-                    isOperational: true,
-                    context: context,
-                    stack: `Error: ${message}\n    at testFunction (/app/demo.js:10:5)\n    at Object.<anonymous> (/app/demo.js:20:3)`
-                };
-                
-                let response;
-                if (format === 'json') {
-                    response = {
-                        success: false,
-                        error: error
-                    };
-                } else {
-                    response = `<!DOCTYPE html>
-<html>
-<head><title>Error 500</title></head>
-<body>
-    <h1>Error 500</h1>
-    <p>${escapeHtml(message)}</p>
-    <pre>${escapeHtml(error.stack)}</pre>
-</body>
-</html>`;
-                }
-                
-                const endTime = performance.now();
-                const responseTime = endTime - startTime;
-                responseTimes.push(responseTime);
-                
-                metrics.totalErrors++;
-                updateResponse('basicErrorResponse', `Response (${format.toUpperCase()}):\n${typeof response === 'string' ? response : JSON.stringify(response, null, 2)}`, 'error');
-                updateMetrics();
-                updateAvgResponseTime();
-            });
-        }
-
-        // Controller error handling
-        function testControllerError() {
-            const functionNameElement = document.getElementById('controllerFunction');
-            const contextElement = document.getElementById('controllerContext');
-            
-            if (!functionNameElement || !contextElement) {
-                console.error('Controller form elements not found');
-                return;
-            }
-            
-            const functionName = functionNameElement.value || 'unknownFunction';
-            const context = contextElement.value || 'unknown-context';
-            
-            simulateAsyncOperation(() => {
-                const controllerError = {
-                    success: false,
-                    error: {
-                        uniqueErrorName: `ERROR:${context}_${functionName}_${generateUUID()}`,
-                        timestamp: new Date().toISOString(),
-                        message: `Controller error in ${functionName}`,
-                        statusCode: 500,
-                        isOperational: true,
-                        context: context,
-                        functionName: functionName,
-                        stack: `Error: Controller operation failed\n    at ${functionName} (/app/controllers/${context}.js:15:8)`
+                    models: {
+                        openai: { status: 'healthy', latency: '234ms', lastCheck: new Date().toISOString() },
+                        google: { status: 'healthy', latency: '189ms', lastCheck: new Date().toISOString() },
+                        anthropic: { status: 'degraded', latency: '1200ms', lastCheck: new Date().toISOString() }
                     },
-                    userMessage: 'An error occurred while processing your request'
-                };
-                
-                metrics.totalErrors++;
-                updateResponse('controllerErrorResponse', JSON.stringify(controllerError, null, 2), 'error');
-                updateMetrics();
-            });
-        }
-
-        function testAsyncWrapper() {
-            simulateAsyncOperation(() => {
-                const wrapperResult = {
-                    success: false,
-                    error: {
-                        uniqueErrorName: `ERROR:async_wrapper_${generateUUID()}`,
-                        timestamp: new Date().toISOString(),
-                        message: 'Async operation failed',
-                        statusCode: 500,
-                        isOperational: true,
-                        context: 'async-wrapper',
-                        stack: `Error: Promise rejected\n    at asyncOperation (/app/utils/async.js:25:10)\n    at withErrorHandling (/app/utils/wrappers.js:12:5)`
-                    },
-                    fallback: 'Operation failed, but system recovered gracefully'
-                };
-                
-                metrics.totalErrors++;
-                updateResponse('controllerErrorResponse', 'Async Wrapper Result:\n' + JSON.stringify(wrapperResult, null, 2), 'error');
-                updateMetrics();
-            });
-        }
-
-        // Response builder testing
-        function testResponseBuilder() {
-            const responseTypeElement = document.getElementById('responseType');
-            const messageElement = document.getElementById('responseMessage');
-            
-            if (!responseTypeElement || !messageElement) {
-                console.error('Response builder form elements not found');
-                return;
-            }
-            
-            const responseType = responseTypeElement.value || 'success';
-            const message = messageElement.value || 'Operation completed';
-            
-            simulateAsyncOperation(() => {
-                let response;
-                
-                switch(responseType) {
-                    case 'success':
-                        response = {
-                            success: true,
-                            data: { message: message },
-                            timestamp: new Date().toISOString(),
-                            metadata: {
-                                requestId: generateUUID(),
-                                processingTime: '45ms'
-                            }
-                        };
-                        break;
-                    case 'error':
-                        response = {
-                            success: false,
-                            error: {
-                                message: message,
-                                statusCode: 500,
-                                timestamp: new Date().toISOString()
-                            }
-                        };
-                        break;
-                    case 'notFound':
-                        response = {
-                            success: false,
-                            error: {
-                                message: message,
-                                statusCode: 404,
-                                timestamp: new Date().toISOString()
-                            }
-                        };
-                        break;
-                    case 'unauthorized':
-                        response = {
-                            success: false,
-                            error: {
-                                message: message,
-                                statusCode: 401,
-                                timestamp: new Date().toISOString()
-                            }
-                        };
-                        break;
-                    case 'validation':
-                        response = {
-                            success: false,
-                            error: {
-                                message: 'Validation failed',
-                                statusCode: 400,
-                                timestamp: new Date().toISOString(),
-                                details: [
-                                    { field: 'email', message: 'Invalid email format' },
-                                    { field: 'password', message: 'Password too short' }
-                                ]
-                            }
-                        };
-                        break;
-                }
-                
-                updateResponse('responseBuilderResponse', JSON.stringify(response, null, 2), responseType === 'success' ? 'success' : 'error');
-            });
-        }
-
-        function testValidationResponse() {
-            simulateAsyncOperation(() => {
-                const validationResponse = {
-                    success: false,
-                    error: {
-                        message: 'Validation failed',
-                        statusCode: 400,
-                        timestamp: new Date().toISOString(),
-                        type: 'ValidationError',
-                        details: [
-                            { field: 'username', message: 'Username is required', code: 'REQUIRED' },
-                            { field: 'email', message: 'Invalid email format', code: 'INVALID_FORMAT' },
-                            { field: 'age', message: 'Age must be between 18 and 120', code: 'OUT_OF_RANGE' },
-                            { field: 'password', message: 'Password must be at least 8 characters', code: 'MIN_LENGTH' }
-                        ]
-                    }
-                };
-                
-                metrics.totalErrors++;
-                updateResponse('responseBuilderResponse', 'Validation Response:\n' + JSON.stringify(validationResponse, null, 2), 'error');
-                updateMetrics();
-            });
-        }
-
-        // Logging system tests
-        function testErrorLogging() {
-            const severity = document.getElementById('logSeverity').value;
-            
-            simulateAsyncOperation(() => {
-                const logEntry = {
-                    timestamp: new Date().toISOString(),
-                    level: 'ERROR',
-                    severity: severity,
-                    message: `Test error with ${severity} severity`,
-                    context: 'demo-logging',
-                    requestId: generateUUID(),
-                    metadata: {
-                        userId: '12345',
-                        ip: '192.168.1.100',
-                        userAgent: 'Mozilla/5.0 (Demo Browser)'
-                    }
-                };
-                
-                updateResponse('loggingResponse', 'Log Entry Created:\n' + JSON.stringify(logEntry, null, 2), 'success');
-            });
-        }
-
-        function testVerboseLogging() {
-            simulateAsyncOperation(() => {
-                const verboseLog = {
-                    timestamp: new Date().toISOString(),
-                    level: 'DEBUG',
-                    message: 'Verbose logging test',
-                    context: 'demo-verbose',
-                    requestId: generateUUID(),
-                    stack: `Debug: Verbose logging enabled\n    at testVerboseLogging (/app/demo.html:580:10)\n    at onclick (/app/demo.html:1:1)`,
-                    metadata: {
-                        memoryUsage: '45.2MB',
-                        cpuUsage: '12.5%',
-                        activeConnections: 23,
-                        queueLength: metrics.queueLength
-                    },
-                    performance: {
-                        responseTime: '23ms',
-                        dbQueryTime: '5ms',
-                        cacheHitTime: '1ms'
-                    }
-                };
-                
-                updateResponse('loggingResponse', 'Verbose Log Entry:\n' + JSON.stringify(verboseLog, null, 2), 'success');
-            });
-        }
-
-        function clearLogs() {
-            updateResponse('loggingResponse', 'Logs cleared successfully', 'success');
-        }
-
-        // Error type tests
-        function testValidationError() {
-            const fieldElement = document.getElementById('validationField');
-            const valueElement = document.getElementById('validationValue');
-            
-            if (!fieldElement || !valueElement) {
-                console.error('Validation form elements not found');
-                return;
-            }
-            
-            const field = fieldElement.value || 'unknownField';
-            const value = valueElement.value || 'unknownValue';
-            
-            simulateAsyncOperation(() => {
-                const validationError = {
-                    success: false,
-                    error: {
-                        uniqueErrorName: `ERROR:validation_${field}_${generateUUID()}`,
-                        timestamp: new Date().toISOString(),
-                        message: `Validation failed for field '${field}'`,
-                        statusCode: 400,
-                        type: 'ValidationError',
-                        context: 'validation-middleware',
-                        details: [
-                            {
-                                field: field,
-                                value: value,
-                                message: `Invalid value for ${field}: ${value}`,
-                                code: 'INVALID_VALUE'
-                            }
-                        ]
-                    }
-                };
-                
-                metrics.totalErrors++;
-                updateResponse('validationErrorResponse', JSON.stringify(validationError, null, 2), 'error');
-                updateMetrics();
-            });
-        }
-
-        function testAuthenticationError() {
-            const serviceElement = document.getElementById('authService');
-            
-            if (!serviceElement) {
-                console.error('Auth service element not found');
-                return;
-            }
-            
-            const service = serviceElement.value || 'unknown-service';
-            
-            simulateAsyncOperation(() => {
-                const authError = {
-                    success: false,
-                    error: {
-                        uniqueErrorName: `ERROR:auth_${service}_${generateUUID()}`,
-                        timestamp: new Date().toISOString(),
-                        message: `Authentication failed for service: ${service}`,
-                        statusCode: 401,
-                        type: 'AuthenticationError',
-                        context: 'auth-middleware',
-                        details: {
-                            service: service,
-                            reason: 'Invalid or expired token',
-                            tokenProvided: false
-                        }
-                    }
-                };
-                
-                metrics.totalErrors++;
-                updateResponse('authErrorResponse', JSON.stringify(authError, null, 2), 'error');
-                updateMetrics();
-            });
-        }
-
-        function testAuthorizationError() {
-            simulateAsyncOperation(() => {
-                const authzError = {
-                    success: false,
-                    error: {
-                        uniqueErrorName: `ERROR:authorization_${generateUUID()}`,
-                        timestamp: new Date().toISOString(),
-                        message: 'Access denied: insufficient permissions',
-                        statusCode: 403,
-                        type: 'AuthorizationError',
-                        context: 'authorization-middleware',
-                        details: {
-                            requiredRole: 'admin',
-                            userRole: 'user',
-                            action: 'DELETE',
-                            resource: '/api/users/123'
-                        }
-                    }
-                };
-                
-                metrics.totalErrors++;
-                updateResponse('authErrorResponse', JSON.stringify(authzError, null, 2), 'error');
-                updateMetrics();
-            });
-        }
-
-        function testNetworkError() {
-            simulateAsyncOperation(() => {
-                const networkError = {
-                    success: false,
-                    error: {
-                        uniqueErrorName: `ERROR:network_${generateUUID()}`,
-                        timestamp: new Date().toISOString(),
-                        message: 'External service unavailable',
-                        statusCode: 502,
-                        type: 'NetworkError',
-                        context: 'external-api',
-                        details: {
-                            service: 'payment-gateway',
-                            url: 'https://api.payment.com/charge',
-                            timeout: 10000,
-                            attempt: 1
-                        }
-                    }
-                };
-                
-                metrics.totalErrors++;
-                updateResponse('networkErrorResponse', JSON.stringify(networkError, null, 2), 'error');
-                updateMetrics();
-            });
-        }
-
-        function testDatabaseError() {
-            simulateAsyncOperation(() => {
-                const dbError = {
-                    success: false,
-                    error: {
-                        uniqueErrorName: `ERROR:database_${generateUUID()}`,
-                        timestamp: new Date().toISOString(),
-                        message: 'Database connection failed',
-                        statusCode: 500,
-                        type: 'DatabaseError',
-                        context: 'database-layer',
-                        details: {
-                            query: 'SELECT * FROM users WHERE id = ?',
-                            error: 'Connection timeout',
-                            retryCount: 3
-                        }
-                    }
-                };
-                
-                metrics.totalErrors++;
-                updateResponse('networkErrorResponse', JSON.stringify(dbError, null, 2), 'error');
-                updateMetrics();
-            });
-        }
-
-        function testSystemError() {
-            simulateAsyncOperation(() => {
-                const systemError = {
-                    success: false,
-                    error: {
-                        uniqueErrorName: `ERROR:system_${generateUUID()}`,
-                        timestamp: new Date().toISOString(),
-                        message: 'System resource exhausted',
-                        statusCode: 500,
-                        type: 'SystemError',
-                        context: 'system-layer',
-                        details: {
-                            resource: 'memory',
-                            usage: '98%',
-                            threshold: '90%',
-                            action: 'restart_required'
-                        }
-                    }
-                };
-                
-                metrics.totalErrors++;
-                updateResponse('networkErrorResponse', JSON.stringify(systemError, null, 2), 'error');
-                updateMetrics();
-            });
-        }
-
-        function testRateLimitError() {
-            const limitElement = document.getElementById('rateLimitLimit');
-            const windowElement = document.getElementById('rateLimitWindow');
-            
-            if (!limitElement || !windowElement) {
-                console.error('Rate limit form elements not found');
-                return;
-            }
-            
-            const limit = parseInt(limitElement.value) || 100;
-            const window = parseInt(windowElement.value) || 3600;
-            
-            simulateAsyncOperation(() => {
-                const rateLimitError = {
-                    success: false,
-                    error: {
-                        uniqueErrorName: `ERROR:rate_limit_${generateUUID()}`,
-                        timestamp: new Date().toISOString(),
-                        message: 'Rate limit exceeded',
-                        statusCode: 429,
-                        type: 'RateLimitError',
-                        context: 'rate-limiter',
-                        details: {
-                            limit: limit,
-                            window: window,
-                            current: limit + 1,
-                            resetTime: new Date(Date.now() + window * 1000).toISOString()
-                        }
-                    }
-                };
-                
-                metrics.totalErrors++;
-                updateResponse('rateLimitErrorResponse', JSON.stringify(rateLimitError, null, 2), 'error');
-                updateMetrics();
-            });
-        }
-
-        // AI Analysis tests
-        function testAIAnalysis() {
-            const errorMessageElement = document.getElementById('aiErrorMessage');
-            
-            if (!errorMessageElement) {
-                console.error('AI error message element not found');
-                return;
-            }
-            
-            const errorMessage = errorMessageElement.value || 'Default error message for analysis';
-            
-            simulateAsyncOperation(() => {
-                const aiAnalysis = {
-                    errorKey: generateSHA256(errorMessage),
-                    timestamp: new Date().toISOString(),
-                    analysis: {
-                        errorType: 'TypeError',
-                        probableCause: 'Attempting to access property on undefined object',
-                        suggestedFix: 'Add null check: if (data && data.user) { ... }',
-                        relatedFiles: [
-                            '/app/services/user.js:45',
-                            '/app/controllers/user.js:23'
-                        ],
-                        prevention: 'Use optional chaining: data?.user?.id',
-                        confidence: 0.92
-                    },
-                    cacheHit: false,
-                    processingTime: '1.2s'
-                };
-                
-                metrics.totalErrors++;
-                metrics.aiAnalyses++;
-                updateResponse('aiAnalysisResponse', 'AI Analysis Result:\n' + JSON.stringify(aiAnalysis, null, 2), 'success');
-                updateMetrics();
-            });
-        }
-
-        function testAICaching() {
-            const errorMessageElement = document.getElementById('aiErrorMessage');
-            
-            if (!errorMessageElement) {
-                console.error('AI error message element not found');
-                return;
-            }
-            
-            const errorMessage = errorMessageElement.value || 'Default error message for caching';
-            
-            simulateAsyncOperation(() => {
-                const cachedAnalysis = {
-                    errorKey: generateSHA256(errorMessage),
-                    timestamp: new Date().toISOString(),
-                    analysis: {
-                        errorType: 'TypeError',
-                        probableCause: 'Cached analysis result',
-                        suggestedFix: 'Use cached fix suggestion',
-                        confidence: 0.92
-                    },
-                    cacheHit: true,
-                    processingTime: '15ms'
-                };
-                
-                metrics.totalErrors++;
-                metrics.cacheHits++;
-                updateResponse('aiAnalysisResponse', 'Cached AI Analysis:\n' + JSON.stringify(cachedAnalysis, null, 2), 'success');
-                updateMetrics();
-            });
-        }
-
-        function testQueueLoad() {
-            const loadElement = document.getElementById('queueLoad');
-            
-            if (!loadElement) {
-                console.error('Queue load element not found');
-                return;
-            }
-            
-            const load = parseInt(loadElement.value) || 10;
-            
-            if (load < 1 || load > 50) {
-                console.error('Queue load must be between 1 and 50');
-                return;
-            }
-            
-            const results = [];
-            
-            for (let i = 0; i < load; i++) {
-                results.push({
-                    id: i + 1,
-                    status: i < 5 ? 'processing' : 'queued',
-                    timestamp: new Date().toISOString()
-                });
-            }
-            
-            metrics.queueLength = load;
-            
-            simulateAsyncOperation(() => {
-                const queueResult = {
-                    loadTest: {
-                        concurrentErrors: load,
-                        processed: results.filter(r => r.status === 'processing').length,
-                        queued: results.filter(r => r.status === 'queued').length,
-                        avgProcessingTime: '800ms',
-                        maxConcurrency: 5
-                    },
-                    results: results
-                };
-                
-                metrics.totalErrors += load;
-                updateResponse('queueResponse', 'Queue Load Test:\n' + JSON.stringify(queueResult, null, 2), 'success');
-                updateMetrics();
-            });
-        }
-
-        function testQueueOverflow() {
-            simulateAsyncOperation(() => {
-                const overflowResult = {
-                    status: 'overflow',
-                    queueLimit: 100,
-                    currentLength: 100,
-                    rejected: 15,
-                    message: 'Queue overflow protection activated',
-                    actions: [
-                        'New requests being rejected',
-                        'Existing requests continue processing',
-                        'Consider increasing concurrency limit'
+                    recommendations: [
+                        'Anthropic model showing high latency, consider fallback',
+                        'All other models performing within acceptable ranges'
                     ]
                 };
                 
-                metrics.queueLength = 100;
-                metrics.totalErrors += 15;
-                updateResponse('queueResponse', 'Queue Overflow Test:\n' + JSON.stringify(overflowResult, null, 2), 'error');
-                updateMetrics();
-            });
+                updateResponse('error-response', JSON.stringify(healthCheck, null, 2), 'success');
+            }, 1500);
         }
 
-        function compareModels() {
-            simulateAsyncOperation(() => {
-                const modelComparison = {
-                    openai: {
-                        model: 'gpt-4',
-                        responseTime: '1.2s',
-                        accuracy: 0.94,
-                        cost: '$0.03',
-                        tokensUsed: 850
-                    },
-                    google: {
-                        model: 'gemini-2.5-flash-lite',
-                        responseTime: '0.8s',
-                        accuracy: 0.91,
-                        cost: '$0.001',
-                        tokensUsed: 650
-                    },
-                    recommendation: 'Google Gemini is more cost-effective for this use case',
-                    winner: 'google'
-                };
-                
-                updateResponse('modelComparisonResponse', 'Model Comparison:\n' + JSON.stringify(modelComparison, null, 2), 'success');
-            });
-        }
-
-        function testModelFallback() {
-            simulateAsyncOperation(() => {
-                const fallbackResult = {
-                    primaryProvider: 'openai',
-                    primaryStatus: 'failed',
-                    fallbackProvider: 'google',
-                    fallbackStatus: 'success',
-                    responseTime: '2.1s',
-                    message: 'Successfully fell back to Google Gemini after OpenAI failure',
-                    analysis: {
-                        errorType: 'NetworkError',
-                        probableCause: 'Primary provider unavailable',
-                        resolution: 'Automatic fallback successful'
-                    }
-                };
-                
-                updateResponse('modelComparisonResponse', 'Model Fallback Test:\n' + JSON.stringify(fallbackResult, null, 2), 'success');
-            });
-        }
-
-        function testCachePerformance() {
-            simulateAsyncOperation(() => {
-                const cachePerformance = {
-                    totalRequests: 1000,
-                    cacheHits: 743,
-                    cacheMisses: 257,
-                    hitRate: '74.3%',
-                    avgResponseTime: {
-                        cacheHit: '15ms',
-                        cacheMiss: '1250ms'
-                    },
-                    memoryUsage: '12.4MB',
-                    cacheSize: 50,
-                    ttl: 86400
-                };
-                
-                updateResponse('cacheResponse', 'Cache Performance:\n' + JSON.stringify(cachePerformance, null, 2), 'success');
-            });
-        }
-
-        function testCacheEviction() {
-            simulateAsyncOperation(() => {
-                const evictionResult = {
-                    action: 'LRU eviction triggered',
-                    evictedEntries: 12,
-                    reason: 'Cache limit reached',
-                    newCacheSize: 50,
-                    memoryFreed: '2.8MB',
-                    oldestEntryEvicted: '2.5h ago'
-                };
-                
-                updateResponse('cacheResponse', 'Cache Eviction Test:\n' + JSON.stringify(evictionResult, null, 2), 'success');
-            });
+        // Configuration functions
+        function toggleConfig(configName) {
+            config[configName] = !config[configName];
+            const toggle = document.getElementById(`${configName}-toggle`);
+            toggle.classList.toggle('active');
+            
+            // Show feedback
+            const status = config[configName] ? 'enabled' : 'disabled';
+            showNotification(`${configName.toUpperCase()} ${status}`, 'info');
         }
 
         function clearCache() {
             metrics.cacheHits = 0;
-            updateResponse('cacheResponse', 'Cache cleared successfully', 'success');
+            showNotification('Cache cleared successfully', 'success');
             updateMetrics();
         }
 
-        // Performance tests
-        function runLoadTest() {
-            const requestCountElement = document.getElementById('loadTestCount');
-            const concurrencyElement = document.getElementById('loadTestConcurrency');
-            
-            if (!requestCountElement || !concurrencyElement) {
-                console.error('Load test form elements not found');
-                return;
-            }
-            
-            const requestCount = parseInt(requestCountElement.value) || 100;
-            const concurrency = parseInt(concurrencyElement.value) || 10;
-            
-            if (requestCount < 10 || requestCount > 1000 || concurrency < 1 || concurrency > 50) {
-                console.error('Invalid load test parameters');
-                return;
-            }
-            
-            simulateAsyncOperation(() => {
-                const loadTestResult = {
-                    totalRequests: requestCount,
-                    concurrency: concurrency,
-                    duration: '45.2s',
-                    requestsPerSecond: Math.round(requestCount / 45.2),
-                    responseTime: {
-                        avg: '125ms',
-                        min: '23ms',
-                        max: '1.2s',
-                        p95: '340ms',
-                        p99: '580ms'
-                    },
-                    errors: 23,
-                    errorRate: '2.3%',
-                    statusCodes: {
-                        200: 977,
-                        500: 23
-                    }
-                };
-                
-                metrics.totalErrors += 23;
-                updateResponse('loadTestResponse', 'Load Test Results:\n' + JSON.stringify(loadTestResult, null, 2), 'success');
-                updateMetrics();
-            });
+        function resetMetrics() {
+            metrics = {
+                totalErrors: 0,
+                queueLength: 0,
+                cacheHits: 0,
+                aiRequests: 0
+            };
+            showNotification('Metrics reset successfully', 'success');
+            updateMetrics();
         }
 
-        function testMemoryUsage() {
-            simulateAsyncOperation(() => {
-                const memoryUsage = {
-                    heapUsed: '45.2MB',
-                    heapTotal: '78.6MB',
-                    external: '12.3MB',
-                    rss: '98.7MB',
-                    uptime: '2h 34m',
-                    gcStats: {
-                        collections: 156,
-                        duration: '234ms',
-                        reclaimed: '12.4MB'
-                    }
-                };
-                
-                updateResponse('memoryResponse', 'Memory Usage:\n' + JSON.stringify(memoryUsage, null, 2), 'success');
-            });
+        function exportLogs() {
+            const logs = {
+                timestamp: new Date().toISOString(),
+                metrics: metrics,
+                config: config,
+                demoSession: {
+                    duration: '5 minutes',
+                    errorsTested: metrics.totalErrors,
+                    aiRequests: metrics.aiRequests
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `qerrors-demo-logs-${Date.now()}.json`;
+            a.click();
+            
+            showNotification('Logs exported successfully', 'success');
         }
 
-        function testMemoryLeaks() {
-            simulateAsyncOperation(() => {
-                const leakTest = {
-                    status: 'no_leaks_detected',
-                    iterations: 10000,
-                    memoryGrowth: '0.2MB',
-                    threshold: '5.0MB',
-                    result: 'PASS',
-                    recommendations: [
-                        'Memory usage stable',
-                        'No obvious leaks detected',
-                        'Continue monitoring'
+        // Utility functions
+        function updateResponse(elementId, content, type = 'info') {
+            const responseArea = document.getElementById(elementId);
+            responseArea.className = 'response-area';
+            
+            if (type === 'error') {
+                responseArea.classList.add('error-response');
+            } else if (type === 'success') {
+                responseArea.classList.add('success-response');
+            }
+            
+            if (type === 'loading') {
+                responseArea.innerHTML = `<div style="text-align: center;"><div class="loading"></div><p>${content}</p></div>`;
+            } else {
+                responseArea.innerHTML = `<pre>${content}</pre>`;
+            }
+        }
+
+        function clearResponse() {
+            updateResponse('error-response', 'Response will appear here...');
+        }
+
+        function updateMetrics() {
+            document.getElementById('total-errors').textContent = metrics.totalErrors;
+            document.getElementById('queue-length').textContent = metrics.queueLength;
+            document.getElementById('cache-hits').textContent = metrics.cacheHits;
+            document.getElementById('ai-requests').textContent = metrics.aiRequests;
+        }
+
+        function updateStatus(severity = 'normal') {
+            const statusElement = document.getElementById('server-status');
+            if (severity === 'critical') {
+                statusElement.textContent = 'Server: Critical';
+                statusElement.style.background = '#dc3545';
+                statusElement.style.color = 'white';
+                statusElement.style.borderColor = '#dc3545';
+            } else {
+                statusElement.textContent = 'Server: Connected';
+                statusElement.className = 'status-item active';
+            }
+        }
+
+        function generateErrorId() {
+            return 'ERR_' + Math.random().toString(36).substr(2, 9).toUpperCase();
+        }
+
+        function getSeverityForType(type) {
+            const severityMap = {
+                validation: 'low',
+                authentication: 'medium',
+                authorization: 'medium',
+                network: 'high',
+                system: 'high',
+                database: 'critical'
+            };
+            return severityMap[type] || 'medium';
+        }
+
+        function generateAIAdvice(errorType) {
+            const adviceMap = {
+                validation: 'Check input validation rules and sanitize user data',
+                authentication: 'Verify authentication tokens and check user session validity',
+                authorization: 'Review user permissions and access control mechanisms',
+                network: 'Check network connectivity and external service availability',
+                system: 'Review system logs and check resource utilization',
+                database: 'Verify database connection and check query performance'
+            };
+            return {
+                suggestion: adviceMap[errorType] || 'Review error context and system logs',
+                confidence: Math.floor(Math.random() * 20) + 80,
+                relatedDocs: `https://docs.qerrors.com/errors/${errorType}`
+            };
+        }
+
+        function generateScenarioAnalysis(scenario) {
+            const scenarios = {
+                'database-connection': {
+                    diagnosis: 'Database connection pool exhausted',
+                    causes: ['High concurrent connections', 'Connection leaks', 'Database overload'],
+                    solutions: [
+                        'Increase connection pool size',
+                        'Implement connection timeout',
+                        'Add connection health checks'
                     ]
-                };
-                
-                updateResponse('memoryResponse', 'Memory Leak Test:\n' + JSON.stringify(leakTest, null, 2), 'success');
-            });
+                },
+                'api-timeout': {
+                    diagnosis: 'External API service unresponsive',
+                    causes: ['Network latency', 'Service degradation', 'Rate limiting'],
+                    solutions: [
+                        'Implement exponential backoff',
+                        'Add circuit breaker pattern',
+                        'Set appropriate timeouts'
+                    ]
+                },
+                'memory-leak': {
+                    diagnosis: 'Memory usage increasing continuously',
+                    causes: ['Unclosed connections', 'Large object retention', 'Event listener leaks'],
+                    solutions: [
+                        'Profile memory usage',
+                        'Implement object cleanup',
+                        'Add memory monitoring'
+                    ]
+                },
+                'race-condition': {
+                    diagnosis: 'Concurrent access causing data inconsistency',
+                    causes: ['Missing locks', 'Shared state mutation', 'Async operation ordering'],
+                    solutions: [
+                        'Implement proper locking',
+                        'Use atomic operations',
+                        'Add transaction boundaries'
+                    ]
+                },
+                'file-permission': {
+                    diagnosis: 'Insufficient file system permissions',
+                    causes: ['Incorrect user permissions', 'Missing directory', 'SELinux restrictions'],
+                    solutions: [
+                        'Check file permissions',
+                        'Verify directory existence',
+                        'Review security policies'
+                    ]
+                }
+            };
+            return scenarios[scenario] || scenarios['database-connection'];
         }
 
-        function testCircuitBreaker() {
-            simulateAsyncOperation(() => {
-                const circuitBreakerTest = {
-                    status: 'open',
-                    failures: 5,
-                    threshold: 5,
-                    timeout: '30s',
-                    nextAttempt: new Date(Date.now() + 30000).toISOString(),
-                    halfOpenAttempts: 0,
-                    message: 'Circuit breaker opened after 5 consecutive failures'
-                };
-                
-                updateResponse('circuitResponse', 'Circuit Breaker Test:\n' + JSON.stringify(circuitBreakerTest, null, 2), 'error');
-            });
+        function showNotification(message, type = 'info') {
+            // Simple notification - in production would use a proper notification system
+            console.log(`[${type.toUpperCase()}] ${message}`);
         }
 
-        function testRetryLogic() {
-            simulateAsyncOperation(() => {
-                const retryTest = {
-                    attempt: 3,
-                    maxAttempts: 3,
-                    strategy: 'exponential_backoff',
-                    delays: [1000, 2000, 4000],
-                    totalDelay: '7s',
-                    result: 'success',
-                    message: 'Operation succeeded on 3rd attempt'
-                };
-                
-                updateResponse('circuitResponse', 'Retry Logic Test:\n' + JSON.stringify(retryTest, null, 2), 'success');
-            });
-        }
+        
 
-        function testPerformanceTimers() {
-            simulateAsyncOperation(() => {
-                const timerResults = {
-                    operation1: '45.2ms',
-                    operation2: '123.7ms',
-                    operation3: '12.8ms',
-                    operation4: '234.1ms',
-                    operation5: '67.3ms',
-                    average: '96.6ms',
-                    total: '483.1ms'
-                };
-                
-                updateResponse('timerResponse', 'Performance Timers:\n' + JSON.stringify(timerResults, null, 2), 'success');
-            });
-        }
+        
 
-        function benchmarkOperations() {
-            simulateAsyncOperation(() => {
-                const benchmark = {
-                    errorGeneration: {
-                        ops: 10000,
-                        time: '234ms',
-                        opsPerSec: 42735
-                    },
-                    cacheLookup: {
-                        ops: 10000,
-                        time: '45ms',
-                        opsPerSec: 222222
-                    },
-                    responseBuilding: {
-                        ops: 10000,
-                        time: '123ms',
-                        opsPerSec: 81301
-                    },
-                    logging: {
-                        ops: 10000,
-                        time: '567ms',
-                        opsPerSec: 17637
-                    }
-                };
-                
-                updateResponse('timerResponse', 'Benchmark Results:\n' + JSON.stringify(benchmark, null, 2), 'success');
-            });
-        }
+        
 
-        // Environment tests
-        function testEnvironmentValidation() {
-            const requiredElement = document.getElementById('requiredEnvVars');
-            const optionalElement = document.getElementById('optionalEnvVars');
-            
-            if (!requiredElement || !optionalElement) {
-                console.error('Environment form elements not found');
-                return;
-            }
+        
+
+        
+
+
             
             const required = requiredElement.value.split(',').map(v => v.trim()).filter(v => v);
             const optional = optionalElement.value.split(',').map(v => v.trim()).filter(v => v);
@@ -2042,15 +1249,7 @@
             });
         }
 
-        // Integration tests
-        function testExpressMiddleware() {
-            const routeElement = document.getElementById('middlewareRoute');
-            const methodElement = document.getElementById('middlewareMethod');
-            
-            if (!routeElement || !methodElement) {
-                console.error('Express middleware form elements not found');
-                return;
-            }
+
             
             const route = routeElement.value || '/api/test';
             const method = methodElement.value || 'GET';
@@ -2303,15 +1502,7 @@
             });
         }
 
-        // Advanced tests
-        function testCustomErrorType() {
-            const nameElement = document.getElementById('customErrorName');
-            const messageElement = document.getElementById('customErrorMessage');
-            
-            if (!nameElement || !messageElement) {
-                console.error('Custom error form elements not found');
-                return;
-            }
+
             
             const errorName = nameElement.value || 'CustomError';
             const errorMessage = messageElement.value || 'Custom error message';
@@ -2716,13 +1907,7 @@
             });
         }
 
-        // Utility functions
-        function updateResponse(elementId, content, type = 'info') {
-            const element = document.getElementById(elementId);
-            if (!element) {
-                console.error(`Element with id '${elementId}' not found`);
-                return;
-            }
+
             element.textContent = content;
             element.className = `response-area ${type}`;
         }
