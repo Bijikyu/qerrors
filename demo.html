@@ -762,24 +762,32 @@
         }
 
         // Advanced tab switching
-        function switchAdvancedTab(tabId) {
+        function switchAdvancedTab(tabId, event) {
             const advancedTabs = document.querySelectorAll('#circuit-breaker, #queue-stress, #cache-performance, #ai-fallback');
             const advancedTabButtons = document.querySelectorAll('.card:nth-child(3) .tab');
             
             advancedTabButtons.forEach(tab => tab.classList.remove('active'));
             advancedTabs.forEach(content => content.classList.remove('active'));
             
-            // Fix: 'event' is not defined in function scope
-            if (window.event && window.event.target) {
-                window.event.target.classList.add('active');
+            // Fix: Use event parameter instead of undefined global event
+            if (event && event.target) {
+                event.target.classList.add('active');
             }
             document.getElementById(tabId).classList.add('active');
         }
 
         // Advanced testing functions
         function testCircuitBreaker() {
-            const threshold = parseInt(document.getElementById('circuitThreshold').value);
-            const timeout = parseInt(document.getElementById('circuitTimeout').value);
+            const thresholdElement = document.getElementById('circuitThreshold');
+            const timeoutElement = document.getElementById('circuitTimeout');
+            
+            if (!thresholdElement || !timeoutElement) {
+                console.error('Circuit breaker elements not found');
+                return;
+            }
+            
+            const threshold = parseInt(thresholdElement.value) || 5;
+            const timeout = parseInt(timeoutElement.value) || 60000;
             
             updateResponse('advanced-response', 'Testing circuit breaker...', 'loading');
             
@@ -846,8 +854,16 @@
         }
 
         function startStressTest() {
-            const concurrency = parseInt(document.getElementById('stressConcurrency').value);
-            const duration = parseInt(document.getElementById('stressDuration').value);
+            const concurrencyElement = document.getElementById('stressConcurrency');
+            const durationElement = document.getElementById('stressDuration');
+            
+            if (!concurrencyElement || !durationElement) {
+                console.error('Stress test elements not found');
+                return;
+            }
+            
+            const concurrency = parseInt(concurrencyElement.value) || 100;
+            const duration = parseInt(durationElement.value) || 30000;
             
             updateResponse('advanced-response', `Starting stress test: ${concurrency} concurrent requests for ${duration}s...`, 'loading');
             
@@ -889,8 +905,16 @@
         }
 
         function benchmarkCache() {
-            const size = parseInt(document.getElementById('cacheSize').value);
-            const ttl = parseInt(document.getElementById('cacheTTL').value);
+            const sizeElement = document.getElementById('cacheSize');
+            const ttlElement = document.getElementById('cacheTTL');
+            
+            if (!sizeElement || !ttlElement) {
+                console.error('Cache configuration elements not found');
+                return;
+            }
+            
+            const size = parseInt(sizeElement.value) || 100;
+            const ttl = parseInt(ttlElement.value) || 3600;
             
             updateResponse('advanced-response', 'Running cache benchmark...', 'loading');
             
@@ -955,8 +979,16 @@
         }
 
         function testAIFallback() {
-            const primary = document.getElementById('primaryAI').value;
-            const fallback = document.getElementById('fallbackAI').value;
+            const primaryElement = document.getElementById('primaryAI');
+            const fallbackElement = document.getElementById('fallbackAI');
+            
+            if (!primaryElement || !fallbackElement) {
+                console.error('AI model elements not found');
+                return;
+            }
+            
+            const primary = primaryElement.value || 'openai';
+            const fallback = fallbackElement.value || 'google';
             
             updateResponse('advanced-response', `Testing AI fallback: ${primary} → ${fallback}...`, 'loading');
             
@@ -1010,8 +1042,16 @@
 
         // Error triggering functions
         async function triggerError() {
-            const errorType = document.getElementById('error-type').value;
-            const message = document.getElementById('error-message').value;
+            const errorTypeElement = document.getElementById('error-type');
+            const messageElement = document.getElementById('error-message');
+            
+            if (!errorTypeElement || !messageElement) {
+                console.error('Error test elements not found');
+                return;
+            }
+            
+            const errorType = errorTypeElement.value || 'ValidationError';
+            const message = messageElement.value || 'Test error message';
             const contextStr = document.getElementById('error-context').value;
             
             let context;
@@ -1833,6 +1873,14 @@
         }
 
 
+        function testCustomError() {
+            const nameElement = document.getElementById('errorName');
+            const messageElement = document.getElementById('errorMessage');
+            
+            if (!nameElement || !messageElement) {
+                console.error('Custom error elements not found');
+                return;
+            }
             
             const errorName = nameElement.value || 'CustomError';
             const errorMessage = messageElement.value || 'Custom error message';
