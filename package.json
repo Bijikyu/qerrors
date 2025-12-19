@@ -2,7 +2,7 @@
   "name": "qerrors",
   "version": "1.2.7",
   "description": "Intelligent error handling middleware with AI-powered analysis, environment validation, caching, and production-ready logging. Uses industry-standard libraries (opossum, dotenv, lodash) for enhanced reliability and ecosystem integration. Provides OpenAI-based error suggestions, queue management, retry mechanisms, and comprehensive configuration options for Node.js applications.",
-  "type": "module",
+  
   "main": "dist/index.js",
   "keywords": [
     "error",
