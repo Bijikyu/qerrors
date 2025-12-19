@@ -646,6 +646,89 @@
                 <li><code>GET /api/logs/export</code> - Log export functionality</li>
             </ul>
         </div>
+
+        <div class="card">
+            <h2>🧪 Advanced Testing Scenarios</h2>
+            <div class="tabs">
+                <button class="tab active" onclick="switchAdvancedTab('circuit-breaker')">Circuit Breaker</button>
+                <button class="tab" onclick="switchAdvancedTab('queue-stress')">Queue Stress</button>
+                <button class="tab" onclick="switchAdvancedTab('cache-performance')">Cache Performance</button>
+                <button class="tab" onclick="switchAdvancedTab('ai-fallback')">AI Fallback</button>
+            </div>
+
+            <div id="circuit-breaker" class="tab-content active">
+                <div class="form-group">
+                    <label for="circuitThreshold">Failure Threshold:</label>
+                    <input type="number" id="circuitThreshold" value="5" min="1" max="10">
+                </div>
+                <div class="form-group">
+                    <label for="circuitTimeout">Timeout (ms):</label>
+                    <input type="number" id="circuitTimeout" value="30000" min="1000" max="120000">
+                </div>
+                <div class="btn-group">
+                    <button class="btn" onclick="testCircuitBreaker()">Test Circuit Breaker</button>
+                    <button class="btn btn-danger" onclick="forceCircuitOpen()">Force Open</button>
+                    <button class="btn btn-success" onclick="resetCircuit()">Reset Circuit</button>
+                </div>
+            </div>
+
+            <div id="queue-stress" class="tab-content">
+                <div class="form-group">
+                    <label for="stressConcurrency">Concurrent Requests:</label>
+                    <input type="number" id="stressConcurrency" value="50" min="10" max="200">
+                </div>
+                <div class="form-group">
+                    <label for="stressDuration">Duration (seconds):</label>
+                    <input type="number" id="stressDuration" value="10" min="5" max="60">
+                </div>
+                <div class="btn-group">
+                    <button class="btn" onclick="startStressTest()">Start Stress Test</button>
+                    <button class="btn btn-secondary" onclick="stopStressTest()">Stop Test</button>
+                </div>
+            </div>
+
+            <div id="cache-performance" class="tab-content">
+                <div class="form-group">
+                    <label for="cacheSize">Cache Size:</label>
+                    <input type="number" id="cacheSize" value="1000" min="100" max="10000">
+                </div>
+                <div class="form-group">
+                    <label for="cacheTTL">TTL (seconds):</label>
+                    <input type="number" id="cacheTTL" value="3600" min="60" max="86400">
+                </div>
+                <div class="btn-group">
+                    <button class="btn" onclick="benchmarkCache()">Benchmark Cache</button>
+                    <button class="btn btn-secondary" onclick="testCacheEviction()">Test Eviction</button>
+                </div>
+            </div>
+
+            <div id="ai-fallback" class="tab-content">
+                <div class="form-group">
+                    <label for="primaryAI">Primary AI Provider:</label>
+                    <select id="primaryAI">
+                        <option value="openai">OpenAI</option>
+                        <option value="google">Google</option>
+                        <option value="anthropic">Anthropic</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="fallbackAI">Fallback AI Provider:</label>
+                    <select id="fallbackAI">
+                        <option value="google">Google</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="anthropic">Anthropic</option>
+                    </select>
+                </div>
+                <div class="btn-group">
+                    <button class="btn" onclick="testAIFallback()">Test AI Fallback</button>
+                    <button class="btn btn-danger" onclick="simulateAIOutage()">Simulate Outage</button>
+                </div>
+            </div>
+
+            <div class="response-area" id="advanced-response">
+                <pre>Advanced test results will appear here...</pre>
+            </div>
+        </div>
     </div>
     </div>
 
@@ -676,6 +759,253 @@
             
             event.target.classList.add('active');
             document.getElementById(tabId).classList.add('active');
+        }
+
+        // Advanced tab switching
+        function switchAdvancedTab(tabId) {
+            const advancedTabs = document.querySelectorAll('#circuit-breaker, #queue-stress, #cache-performance, #ai-fallback');
+            const advancedTabButtons = document.querySelectorAll('.card:nth-child(3) .tab');
+            
+            advancedTabButtons.forEach(tab => tab.classList.remove('active'));
+            advancedTabs.forEach(content => content.classList.remove('active'));
+            
+            // Fix: 'event' is not defined in function scope
+            if (window.event && window.event.target) {
+                window.event.target.classList.add('active');
+            }
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Advanced testing functions
+        function testCircuitBreaker() {
+            const threshold = parseInt(document.getElementById('circuitThreshold').value);
+            const timeout = parseInt(document.getElementById('circuitTimeout').value);
+            
+            updateResponse('advanced-response', 'Testing circuit breaker...', 'loading');
+            
+            setTimeout(() => {
+                const circuitTest = {
+                    config: { threshold, timeout },
+                    test: {
+                        totalRequests: 20,
+                        failures: 8,
+                        successes: 12,
+                        state: 'OPEN',
+                        reason: 'Failure threshold exceeded'
+                    },
+                    metrics: {
+                        failureRate: '40%',
+                        responseTime: '2.3s',
+                        lastFailure: new Date().toISOString()
+                    },
+                    behavior: {
+                        currentState: 'OPEN',
+                        nextState: 'HALF_OPEN',
+                        recoveryTime: timeout + 'ms'
+                    }
+                };
+                
+                updateResponse('advanced-response', 'Circuit Breaker Test:\n' + JSON.stringify(circuitTest, null, 2), 'error');
+            }, 1500);
+        }
+
+        function forceCircuitOpen() {
+            updateResponse('advanced-response', 'Forcing circuit open...', 'loading');
+            
+            setTimeout(() => {
+                const forcedOpen = {
+                    action: 'force_open',
+                    state: 'OPEN',
+                    reason: 'Manual intervention',
+                    timestamp: new Date().toISOString(),
+                    nextRecoveryAttempt: new Date(Date.now() + 30000).toISOString()
+                };
+                
+                updateResponse('advanced-response', 'Circuit Forced Open:\n' + JSON.stringify(forcedOpen, null, 2), 'warning');
+            }, 500);
+        }
+
+        function resetCircuit() {
+            updateResponse('advanced-response', 'Resetting circuit breaker...', 'loading');
+            
+            setTimeout(() => {
+                const reset = {
+                    action: 'reset',
+                    previousState: 'OPEN',
+                    newState: 'CLOSED',
+                    timestamp: new Date().toISOString(),
+                    metrics: {
+                        totalResets: 3,
+                        lastResetDuration: '45s',
+                        uptime: '87%'
+                    }
+                };
+                
+                updateResponse('advanced-response', 'Circuit Reset:\n' + JSON.stringify(reset, null, 2), 'success');
+            }, 1000);
+        }
+
+        function startStressTest() {
+            const concurrency = parseInt(document.getElementById('stressConcurrency').value);
+            const duration = parseInt(document.getElementById('stressDuration').value);
+            
+            updateResponse('advanced-response', `Starting stress test: ${concurrency} concurrent requests for ${duration}s...`, 'loading');
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    
+                    const stressResults = {
+                        test: 'queue_stress_test',
+                        config: { concurrency, duration },
+                        results: {
+                            totalRequests: concurrency * duration,
+                            successfulRequests: Math.floor(concurrency * duration * 0.85),
+                            failedRequests: Math.floor(concurrency * duration * 0.15),
+                            averageResponseTime: '234ms',
+                            peakQueueLength: Math.floor(concurrency * 0.3),
+                            queueRejections: Math.floor(concurrency * 0.05)
+                        },
+                        performance: {
+                            throughput: `${Math.floor(concurrency * 0.85)} req/sec`,
+                            errorRate: '15%',
+                            memoryUsage: '125MB',
+                            cpuUsage: '45%'
+                        }
+                    };
+                    
+                    updateResponse('advanced-response', 'Stress Test Results:\n' + JSON.stringify(stressResults, null, 2), 'success');
+                } else {
+                    updateResponse('advanced-response', `Stress test in progress: ${progress}% complete...`, 'loading');
+                }
+            }, duration * 100);
+        }
+
+        function stopStressTest() {
+            updateResponse('advanced-response', 'Stress test stopped by user', 'warning');
+        }
+
+        function benchmarkCache() {
+            const size = parseInt(document.getElementById('cacheSize').value);
+            const ttl = parseInt(document.getElementById('cacheTTL').value);
+            
+            updateResponse('advanced-response', 'Running cache benchmark...', 'loading');
+            
+            setTimeout(() => {
+                const benchmark = {
+                    config: { size, ttl },
+                    operations: {
+                        writes: 10000,
+                        reads: 50000,
+                        updates: 2000,
+                        deletes: 1000
+                    },
+                    performance: {
+                        avgWriteTime: '0.23ms',
+                        avgReadTime: '0.12ms',
+                        avgUpdateTime: '0.31ms',
+                        avgDeleteTime: '0.18ms'
+                    },
+                    efficiency: {
+                        hitRate: '94.2%',
+                        missRate: '5.8%',
+                        evictionRate: '2.1%',
+                        memoryUsage: `${Math.floor(size * 0.156)}MB`
+                    },
+                    distribution: {
+                        hotKeys: '12%',
+                        coldKeys: '88%',
+                        fragmentation: '3.2%'
+                    }
+                };
+                
+                updateResponse('advanced-response', 'Cache Benchmark:\n' + JSON.stringify(benchmark, null, 2), 'success');
+            }, 2000);
+        }
+
+        function testCacheEviction() {
+            updateResponse('advanced-response', 'Testing cache eviction policies...', 'loading');
+            
+            setTimeout(() => {
+                const evictionTest = {
+                    policy: 'LRU',
+                    test: {
+                        cacheSize: 1000,
+                        itemsInserted: 1500,
+                        itemsEvicted: 500,
+                        evictionTime: '1.2ms'
+                    },
+                    evictedItems: [
+                        { key: 'item_001', age: '45s', accessCount: 2 },
+                        { key: 'item_002', age: '1m 12s', accessCount: 1 },
+                        { key: 'item_003', age: '2m 34s', accessCount: 0 }
+                    ],
+                    metrics: {
+                        evictionRate: '33.3%',
+                        avgItemAge: '1m 45s',
+                        memoryRecovered: '78MB'
+                    }
+                };
+                
+                updateResponse('advanced-response', 'Cache Eviction Test:\n' + JSON.stringify(evictionTest, null, 2), 'success');
+            }, 1500);
+        }
+
+        function testAIFallback() {
+            const primary = document.getElementById('primaryAI').value;
+            const fallback = document.getElementById('fallbackAI').value;
+            
+            updateResponse('advanced-response', `Testing AI fallback: ${primary} → ${fallback}...`, 'loading');
+            
+            setTimeout(() => {
+                const fallbackTest = {
+                    primary: { provider: primary, status: 'failed', error: 'Rate limit exceeded' },
+                    fallback: { provider: fallback, status: 'success', latency: '1.8s' },
+                    analysis: {
+                        confidence: 87,
+                        suggestions: [
+                            'Implement rate limiting for primary provider',
+                            'Configure automatic fallback on errors',
+                            'Monitor provider health continuously'
+                        ]
+                    },
+                    cost: {
+                        primary: '$0.00 (failed)',
+                        fallback: '$0.0234',
+                        total: '$0.0234'
+                    }
+                };
+                
+                updateResponse('advanced-response', 'AI Fallback Test:\n' + JSON.stringify(fallbackTest, null, 2), 'success');
+            }, 2500);
+        }
+
+        function simulateAIOutage() {
+            updateResponse('advanced-response', 'Simulating AI provider outage...', 'loading');
+            
+            setTimeout(() => {
+                const outage = {
+                    scenario: 'ai_provider_outage',
+                    affectedProviders: ['openai', 'google'],
+                    availableProviders: ['anthropic'],
+                    fallbackActivated: true,
+                    degradation: {
+                        responseTime: '+300%',
+                        accuracy: '-15%',
+                        availability: '100%'
+                    },
+                    recovery: {
+                        estimatedTime: '15 minutes',
+                        automaticRecovery: true,
+                        notifications: ['slack', 'email', 'pagerduty']
+                    }
+                };
+                
+                updateResponse('advanced-response', 'AI Outage Simulation:\n' + JSON.stringify(outage, null, 2), 'error');
+            }, 1000);
         }
 
         // Error triggering functions
