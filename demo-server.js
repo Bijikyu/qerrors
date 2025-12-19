@@ -29,7 +29,8 @@ const server = http.createServer((req, res) => {
   const requestedPath = path.resolve(ROOT, relativePath);
 
   // Security: ensure requested path is within ROOT
-  if (!requestedPath.startsWith(ROOT)) {
+  const relativePathGuard = path.relative(ROOT, requestedPath);
+  if (relativePathGuard.startsWith('..') || path.isAbsolute(relativePathGuard)) {
     res.writeHead(403, { 'Content-Type': 'text/plain' });
     res.end('Forbidden');
     return;

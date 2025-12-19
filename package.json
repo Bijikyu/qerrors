@@ -64,7 +64,8 @@
     "test": "node test/basic.test.cjs",
     "test:ts": "tsc --noEmit && npm run test",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm run build",
+    "demo-server": "node demo-server.js"
   },
   "devDependencies": {
     "@babel/core": "^7.28.4",
@@ -80,7 +81,7 @@
     "loqatevars": "^1.0.6",
     "madge": "^8.0.0",
     "npmcontext": "^1.0.4",
-    "opencode-ai": "1.0.167",
+    "opencode-ai": "1.0.169",
     "quantumagent": "^1.0.5",
     "ts-node": "^10.9.0",
     "typescript": "^5.9.2",

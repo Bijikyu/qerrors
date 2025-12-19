@@ -256,11 +256,13 @@
             border-radius: 12px 12px 0 0;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 0;
+            flex-wrap: wrap;
         }
 
         .tab {
             flex: 1;
-            padding: 15px;
+            min-width: 120px;
+            padding: 12px 8px;
             background: #f8f9fa;
             border: none;
             border-radius: 12px 12px 0 0;
@@ -268,6 +270,8 @@
             font-weight: 600;
             color: #666;
             transition: all 0.3s ease;
+            font-size: 13px;
+            text-align: center;
         }
 
         .tab.active {
@@ -380,6 +384,9 @@
             <button class="tab" onclick="switchTab('ai-analysis', this)">AI Analysis</button>
             <button class="tab" onclick="switchTab('performance', this)">Performance</button>
             <button class="tab" onclick="switchTab('security', this)">Security</button>
+            <button class="tab" onclick="switchTab('environment', this)">Environment</button>
+            <button class="tab" onclick="switchTab('integration', this)">Integration</button>
+            <button class="tab" onclick="switchTab('advanced', this)">Advanced</button>
         </div>
 
         <!-- Basic Tests Tab -->
@@ -625,6 +632,279 @@
                     <button onclick="testResponseSecurity()" class="secondary">Test Response Security</button>
                     <div id="contentResponse" class="response-area"></div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Environment Tab -->
+        <div id="environment-tab" class="tab-content hidden">
+            <div class="demo-grid">
+                <div class="card">
+                    <h2>Environment Validation</h2>
+                    <div class="form-group">
+                        <label for="requiredEnvVars">Required Variables (comma-separated)</label>
+                        <input type="text" id="requiredEnvVars" value="NODE_ENV,PORT,DATABASE_URL" placeholder="Enter required env vars">
+                    </div>
+                    <div class="form-group">
+                        <label for="optionalEnvVars">Optional Variables (comma-separated)</label>
+                        <input type="text" id="optionalEnvVars" value="LOG_LEVEL,API_KEY,REDIS_URL" placeholder="Enter optional env vars">
+                    </div>
+                    <button onclick="testEnvironmentValidation()">Validate Environment</button>
+                    <button onclick="testEnvironmentHealth()" class="secondary">Check Health</button>
+                    <div id="environmentResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Configuration Management</h2>
+                    <div class="form-group">
+                        <label for="configKey">Config Key</label>
+                        <input type="text" id="configKey" value="QERRORS_AI_PROVIDER" placeholder="Enter config key">
+                    </div>
+                    <div class="form-group">
+                        <label for="configValue">Config Value</label>
+                        <input type="text" id="configValue" value="openai" placeholder="Enter config value">
+                    </div>
+                    <button onclick="testConfigRetrieval()">Test Config Retrieval</button>
+                    <button onclick="testConfigValidation()" class="secondary">Test Config Validation</button>
+                    <div id="configResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Local Variables</h2>
+                    <button onclick="testLocalVariables()">Test Local Variables</button>
+                    <button onclick="testVariableDefaults()" class="secondary">Test Variable Defaults</button>
+                    <div id="localVarsResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Environment Switching</h2>
+                    <div class="form-group">
+                        <label for="targetEnvironment">Target Environment</label>
+                        <select id="targetEnvironment">
+                            <option value="development">Development</option>
+                            <option value="staging">Staging</option>
+                            <option value="production">Production</option>
+                            <option value="test">Test</option>
+                        </select>
+                    </div>
+                    <button onclick="testEnvironmentSwitch()">Test Environment Switch</button>
+                    <button onclick="testEnvironmentDetection()" class="secondary">Test Environment Detection</button>
+                    <div id="envSwitchResponse" class="response-area"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integration Tab -->
+        <div id="integration-tab" class="tab-content hidden">
+            <div class="demo-grid">
+                <div class="card">
+                    <h2>Express Middleware</h2>
+                    <div class="form-group">
+                        <label for="middlewareRoute">Route Path</label>
+                        <input type="text" id="middlewareRoute" value="/api/test" placeholder="Enter route path">
+                    </div>
+                    <div class="form-group">
+                        <label for="middlewareMethod">HTTP Method</label>
+                        <select id="middlewareMethod">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+                    </div>
+                    <button onclick="testExpressMiddleware()">Test Express Middleware</button>
+                    <button onclick="testErrorMiddleware()" class="secondary">Test Error Middleware</button>
+                    <div id="expressResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Database Integration</h2>
+                    <div class="form-group">
+                        <label for="dbQuery">Sample Query</label>
+                        <input type="text" id="dbQuery" value="SELECT * FROM users WHERE id = ?" placeholder="Enter sample query">
+                    </div>
+                    <button onclick="testDatabaseIntegration()">Test DB Integration</button>
+                    <button onclick="testConnectionPool()" class="secondary">Test Connection Pool</button>
+                    <div id="databaseResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>External Service Integration</h2>
+                    <div class="form-group">
+                        <label for="serviceUrl">Service URL</label>
+                        <input type="text" id="serviceUrl" value="https://api.example.com/data" placeholder="Enter service URL">
+                    </div>
+                    <div class="form-group">
+                        <label for="serviceTimeout">Timeout (ms)</label>
+                        <input type="number" id="serviceTimeout" value="5000" placeholder="Enter timeout">
+                    </div>
+                    <button onclick="testExternalService()">Test External Service</button>
+                    <button onclick="testServiceFallback()" class="secondary">Test Service Fallback</button>
+                    <div id="externalServiceResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Message Queue Integration</h2>
+                    <div class="form-group">
+                        <label for="queueName">Queue Name</label>
+                        <input type="text" id="queueName" value="error-processing" placeholder="Enter queue name">
+                    </div>
+                    <button onclick="testMessageQueue()">Test Message Queue</button>
+                    <button onclick="testQueueErrorHandling()" class="secondary">Test Queue Error Handling</button>
+                    <div id="messageQueueResponse" class="response-area"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Tab -->
+        <div id="advanced-tab" class="tab-content hidden">
+            <div class="demo-grid">
+                <div class="card">
+                    <h2>Custom Error Types</h2>
+                    <div class="form-group">
+                        <label for="customErrorName">Error Name</label>
+                        <input type="text" id="customErrorName" value="BusinessLogicError" placeholder="Enter error name">
+                    </div>
+                    <div class="form-group">
+                        <label for="customErrorMessage">Error Message</label>
+                        <input type="text" id="customErrorMessage" value="Business rule violation occurred" placeholder="Enter error message">
+                    </div>
+                    <button onclick="testCustomErrorType()">Test Custom Error Type</button>
+                    <button onclick="testErrorInheritance()" class="secondary">Test Error Inheritance</button>
+                    <div id="customErrorResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Error Context Enhancement</h2>
+                    <div class="form-group">
+                        <label for="contextData">Context Data (JSON)</label>
+                        <textarea id="contextData" rows="3" placeholder="Enter context data as JSON">{"userId": "123", "action": "update", "resource": "profile"}</textarea>
+                    </div>
+                    <button onclick="testContextEnhancement()">Test Context Enhancement</button>
+                    <button onclick="testContextChaining()" class="secondary">Test Context Chaining</button>
+                    <div id="contextResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Error Aggregation</h2>
+                    <div class="form-group">
+                        <label for="errorCount">Number of Errors</label>
+                        <input type="number" id="errorCount" value="5" min="1" max="20">
+                    </div>
+                    <button onclick="testErrorAggregation()">Test Error Aggregation</button>
+                    <button onclick="testErrorBatching()" class="secondary">Test Error Batching</button>
+                    <div id="aggregationResponse" class="response-area"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Advanced Caching</h2>
+                    <div class="form-group">
+                        <label for="cacheStrategy">Cache Strategy</label>
+                        <select id="cacheStrategy">
+                            <option value="lru">LRU</option>
+                            <option value="fifo">FIFO</option>
+                            <option value="ttl">TTL</option>
+                            <option value="adaptive">Adaptive</option>
+                        </select>
+                    </div>
+                    <button onclick="testAdvancedCaching()">Test Advanced Caching</button>
+                    <button onclick="testCacheDistribution()" class="secondary">Test Cache Distribution</button>
+                    <div id="advancedCacheResponse" class="response-area"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documentation Section -->
+    <div class="container" style="margin-top: 40px;">
+        <div class="card" style="background: rgba(255, 255, 255, 0.95);">
+            <h2 style="color: #667eea; margin-bottom: 20px;">📚 Feature Documentation</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div>
+                    <h3 style="color: #764ba2; margin-bottom: 10px;">Basic Tests</h3>
+                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
+                        <li><strong>Basic Error Generation:</strong> Creates standard error responses in JSON/HTML format</li>
+                        <li><strong>Controller Error Handling:</strong> Tests Express.js controller error patterns</li>
+                        <li><strong>Response Builder:</strong> Validates structured API response creation</li>
+                        <li><strong>Logging System:</strong> Demonstrates severity-based error logging</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: #764ba2; margin-bottom: 10px;">Error Types</h3>
+                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
+                        <li><strong>Validation Errors:</strong> Input validation failure scenarios</li>
+                        <li><strong>Authentication/Authorization:</strong> Auth and permission errors</li>
+                        <li><strong>Network & Database:</strong> External service and DB connectivity issues</li>
+                        <li><strong>Rate Limiting:</strong> API throttling and quota exceeded errors</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: #764ba2; margin-bottom: 10px;">AI Analysis</h3>
+                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
+                        <li><strong>AI Error Analysis:</strong> OpenAI/Google Gemini-powered error suggestions</li>
+                        <li><strong>Queue Management:</strong> Concurrent error processing with limits</li>
+                        <li><strong>Model Comparison:</strong> Performance testing across AI providers</li>
+                        <li><strong>Cache Management:</strong> LRU caching for AI analysis results</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: #764ba2; margin-bottom: 10px;">Performance</h3>
+                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
+                        <li><strong>Load Testing:</strong> High-volume error generation testing</li>
+                        <li><strong>Memory Usage:</strong> Memory leak detection and monitoring</li>
+                        <li><strong>Circuit Breaker:</strong> Opossum-based circuit breaker patterns</li>
+                        <li><strong>Performance Timers:</strong> Operation timing and benchmarking</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: #764ba2; margin-bottom: 10px;">Security</h3>
+                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
+                        <li><strong>XSS Protection:</strong> HTML escaping and script injection prevention</li>
+                        <li><strong>Input Sanitization:</strong> Control character and malicious content filtering</li>
+                        <li><strong>API Key Security:</strong> Sensitive data protection and logging safety</li>
+                        <li><strong>Content Security:</strong> HTTP headers and CSP configuration</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: #764ba2; margin-bottom: 10px;">Environment</h3>
+                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
+                        <li><strong>Environment Validation:</strong> Required/optional environment variable checking</li>
+                        <li><strong>Configuration Management:</strong> Dynamic config retrieval and validation</li>
+                        <li><strong>Local Variables:</strong> Built-in configuration defaults and constants</li>
+                        <li><strong>Environment Switching:</strong> Runtime environment change testing</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: #764ba2; margin-bottom: 10px;">Integration</h3>
+                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
+                        <li><strong>Express Middleware:</strong> Express.js integration and error handling</li>
+                        <li><strong>Database Integration:</strong> DB connection pooling and query error handling</li>
+                        <li><strong>External Service:</strong> HTTP client with circuit breaker and retry logic</li>
+                        <li><strong>Message Queue:</strong> Async error processing with queue management</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: #764ba2; margin-bottom: 10px;">Advanced</h3>
+                    <ul style="color: #666; font-size: 14px; line-height: 1.6;">
+                        <li><strong>Custom Error Types:</strong> Business logic error creation and inheritance</li>
+                        <li><strong>Error Context:</strong> Rich context enhancement and chaining</li>
+                        <li><strong>Error Aggregation:</strong> Batch error processing and analysis</li>
+                        <li><strong>Advanced Caching:</strong> Multi-node cache distribution and strategies</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">🚀 Quick Start Guide</h3>
+                <ol style="color: #666; font-size: 14px; line-height: 1.8;">
+                    <li><strong>Configure AI Provider:</strong> Select OpenAI or Google Gemini and optionally provide an API key</li>
+                    <li><strong>Test Basic Functionality:</strong> Start with "Basic Tests" tab to understand core error handling</li>
+                    <li><strong>Explore Error Types:</strong> Test different error categories in the "Error Types" tab</li>
+                    <li><strong>Try AI Analysis:</strong> Enable AI and test intelligent error suggestions</li>
+                    <li><strong>Performance Testing:</strong> Use load testing to validate system behavior under stress</li>
+                    <li><strong>Security Validation:</strong> Verify XSS protection and input sanitization</li>
+                    <li><strong>Environment Setup:</strong> Test environment variable validation and configuration</li>
+                    <li><strong>Integration Testing:</strong> Validate Express.js and database integration</li>
+                </ol>
             </div>
         </div>
     </div>
@@ -1555,6 +1835,760 @@
                 };
                 
                 updateResponse('timerResponse', 'Benchmark Results:\n' + JSON.stringify(benchmark, null, 2), 'success');
+            });
+        }
+
+        // Environment tests
+        function testEnvironmentValidation() {
+            const requiredElement = document.getElementById('requiredEnvVars');
+            const optionalElement = document.getElementById('optionalEnvVars');
+            
+            if (!requiredElement || !optionalElement) {
+                console.error('Environment form elements not found');
+                return;
+            }
+            
+            const required = requiredElement.value.split(',').map(v => v.trim()).filter(v => v);
+            const optional = optionalElement.value.split(',').map(v => v.trim()).filter(v => v);
+            
+            simulateAsyncOperation(() => {
+                const envValidation = {
+                    timestamp: new Date().toISOString(),
+                    environment: 'development',
+                    hasEnvFile: true,
+                    isHealthy: required.length > 2, // Simulate some missing vars
+                    required: {
+                        total: required.length,
+                        configured: required.length - 1,
+                        missing: required.slice(0, 1)
+                    },
+                    optional: {
+                        total: optional.length,
+                        configured: optional.length - 2,
+                        missing: optional.slice(0, 2)
+                    },
+                    summary: {
+                        totalVars: required.length + optional.length,
+                        configuredVars: (required.length - 1) + (optional.length - 2)
+                    },
+                    recommendations: [
+                        'Add missing required variables to .env file',
+                        'Consider setting optional variables for full functionality'
+                    ]
+                };
+                
+                updateResponse('environmentResponse', 'Environment Validation:\n' + JSON.stringify(envValidation, null, 2), envValidation.isHealthy ? 'success' : 'error');
+            });
+        }
+
+        function testEnvironmentHealth() {
+            simulateAsyncOperation(() => {
+                const healthCheck = {
+                    status: 'healthy',
+                    timestamp: new Date().toISOString(),
+                    environment: 'development',
+                    checks: {
+                        envFile: { status: 'pass', message: '.env file found' },
+                        requiredVars: { status: 'pass', message: 'All required vars present' },
+                        optionalVars: { status: 'warn', message: 'Some optional vars missing' },
+                        nodeVersion: { status: 'pass', message: 'Node.js 18.17.0' },
+                        memory: { status: 'pass', message: 'Sufficient memory available' }
+                    },
+                    overall: 'HEALTHY'
+                };
+                
+                updateResponse('environmentResponse', 'Environment Health:\n' + JSON.stringify(healthCheck, null, 2), 'success');
+            });
+        }
+
+        function testConfigRetrieval() {
+            const keyElement = document.getElementById('configKey');
+            const valueElement = document.getElementById('configValue');
+            
+            if (!keyElement || !valueElement) {
+                console.error('Config form elements not found');
+                return;
+            }
+            
+            const key = keyElement.value || 'UNKNOWN_KEY';
+            const value = valueElement.value || 'unknown';
+            
+            simulateAsyncOperation(() => {
+                const configResult = {
+                    key: key,
+                    value: value,
+                    source: 'environment',
+                    type: typeof value,
+                    isDefault: false,
+                    metadata: {
+                        retrievedAt: new Date().toISOString(),
+                        fromCache: false,
+                        validationStatus: 'valid'
+                    }
+                };
+                
+                updateResponse('configResponse', 'Config Retrieval:\n' + JSON.stringify(configResult, null, 2), 'success');
+            });
+        }
+
+        function testConfigValidation() {
+            simulateAsyncOperation(() => {
+                const validation = {
+                    configKey: 'QERRORS_AI_PROVIDER',
+                    configValue: 'openai',
+                    isValid: true,
+                    allowedValues: ['openai', 'google', 'anthropic', 'none'],
+                    validationRules: [
+                        { rule: 'required', passed: true },
+                        { rule: 'enum', passed: true },
+                        { rule: 'type', passed: true, expected: 'string' }
+                    ],
+                    errors: [],
+                    warnings: []
+                };
+                
+                updateResponse('configResponse', 'Config Validation:\n' + JSON.stringify(validation, null, 2), 'success');
+            });
+        }
+
+        function testLocalVariables() {
+            simulateAsyncOperation(() => {
+                const localVars = {
+                    ERROR_TYPES: ['VALIDATION', 'AUTHENTICATION', 'AUTHORIZATION', 'NETWORK', 'SYSTEM'],
+                    ERROR_SEVERITY: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
+                    HTTP_STATUS: { OK: 200, BAD_REQUEST: 400, UNAUTHORIZED: 401, FORBIDDEN: 403, NOT_FOUND: 404, INTERNAL_ERROR: 500 },
+                    DEFAULT_MESSAGES: {
+                        success: 'Operation completed successfully',
+                        error: 'An error occurred',
+                        notFound: 'Resource not found',
+                        unauthorized: 'Access denied'
+                    },
+                    MODEL_CONFIGS: {
+                        openai: { model: 'gpt-4', timeout: 30000 },
+                        google: { model: 'gemini-2.5-flash-lite', timeout: 25000 }
+                    }
+                };
+                
+                updateResponse('localVarsResponse', 'Local Variables:\n' + JSON.stringify(localVars, null, 2), 'success');
+            });
+        }
+
+        function testVariableDefaults() {
+            simulateAsyncOperation(() => {
+                const defaults = {
+                    QERRORS_AI_PROVIDER: 'openai',
+                    QERRORS_AI_MODEL: 'gpt-4',
+                    QERRORS_CACHE_LIMIT: 50,
+                    QERRORS_CONCURRENCY_LIMIT: 5,
+                    QERRORS_LOG_LEVEL: 'info',
+                    QERRORS_TIMEOUT: 30000,
+                    QERRORS_RETRY_ATTEMPTS: 3,
+                    QERRORS_CIRCUIT_BREAKER_THRESHOLD: 5
+                };
+                
+                updateResponse('localVarsResponse', 'Variable Defaults:\n' + JSON.stringify(defaults, null, 2), 'success');
+            });
+        }
+
+        function testEnvironmentSwitch() {
+            const targetElement = document.getElementById('targetEnvironment');
+            
+            if (!targetElement) {
+                console.error('Target environment element not found');
+                return;
+            }
+            
+            const targetEnv = targetElement.value || 'development';
+            
+            simulateAsyncOperation(() => {
+                const envSwitch = {
+                    from: 'development',
+                    to: targetEnv,
+                    timestamp: new Date().toISOString(),
+                    changes: [
+                        { var: 'NODE_ENV', old: 'development', new: targetEnv },
+                        { var: 'LOG_LEVEL', old: 'debug', new: targetEnv === 'production' ? 'error' : 'info' },
+                        { var: 'QERRORS_AI_ENABLED', old: 'true', new: targetEnv === 'test' ? 'false' : 'true' }
+                    ],
+                    restartRequired: targetEnv === 'production',
+                    status: 'success'
+                };
+                
+                updateResponse('envSwitchResponse', 'Environment Switch:\n' + JSON.stringify(envSwitch, null, 2), 'success');
+            });
+        }
+
+        function testEnvironmentDetection() {
+            simulateAsyncOperation(() => {
+                const detection = {
+                    current: 'development',
+                    detected: 'development',
+                    indicators: {
+                        NODE_ENV: 'development',
+                        npm_lifecycle_event: 'start',
+                        npm_config_loglevel: 'info',
+                        platform: 'linux',
+                        isTest: false,
+                        isProduction: false
+                    },
+                    confidence: 0.95,
+                    recommendations: [
+                        'Environment correctly detected',
+                        'Consider using .env files for configuration'
+                    ]
+                };
+                
+                updateResponse('envSwitchResponse', 'Environment Detection:\n' + JSON.stringify(detection, null, 2), 'success');
+            });
+        }
+
+        // Integration tests
+        function testExpressMiddleware() {
+            const routeElement = document.getElementById('middlewareRoute');
+            const methodElement = document.getElementById('middlewareMethod');
+            
+            if (!routeElement || !methodElement) {
+                console.error('Express middleware form elements not found');
+                return;
+            }
+            
+            const route = routeElement.value || '/api/test';
+            const method = methodElement.value || 'GET';
+            
+            simulateAsyncOperation(() => {
+                const middlewareTest = {
+                    route: route,
+                    method: method,
+                    middleware: ['qerrors', 'auth', 'cors', 'rateLimit'],
+                    request: {
+                        headers: { 'content-type': 'application/json' },
+                        body: { test: 'data' },
+                        params: { id: '123' },
+                        query: { debug: 'true' }
+                    },
+                    response: {
+                        statusCode: 200,
+                        headers: { 'x-powered-by': 'qerrors' },
+                        body: { success: true, data: 'test response' }
+                    },
+                    processingTime: '45ms',
+                    errorsHandled: 0
+                };
+                
+                updateResponse('expressResponse', 'Express Middleware Test:\n' + JSON.stringify(middlewareTest, null, 2), 'success');
+            });
+        }
+
+        function testErrorMiddleware() {
+            simulateAsyncOperation(() => {
+                const errorMiddleware = {
+                    error: {
+                        name: 'ValidationError',
+                        message: 'Invalid input data',
+                        statusCode: 400,
+                        stack: 'Error: Invalid input\n    at validateInput (/app/middleware/validation.js:15:10)'
+                    },
+                    request: {
+                        method: 'POST',
+                        url: '/api/users',
+                        headers: { 'content-type': 'application/json' }
+                    },
+                    response: {
+                        statusCode: 400,
+                        body: {
+                            success: false,
+                            error: {
+                                message: 'Invalid input data',
+                                type: 'ValidationError',
+                                details: [
+                                    { field: 'email', message: 'Invalid email format' },
+                                    { field: 'age', message: 'Must be between 18 and 120' }
+                                ]
+                            }
+                        }
+                    },
+                    logged: true,
+                    notified: false
+                };
+                
+                metrics.totalErrors++;
+                updateResponse('expressResponse', 'Error Middleware Test:\n' + JSON.stringify(errorMiddleware, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        function testDatabaseIntegration() {
+            const queryElement = document.getElementById('dbQuery');
+            
+            if (!queryElement) {
+                console.error('Database query element not found');
+                return;
+            }
+            
+            const query = queryElement.value || 'SELECT * FROM users';
+            
+            simulateAsyncOperation(() => {
+                const dbTest = {
+                    query: query,
+                    parameters: ['123'],
+                    connection: {
+                        host: 'localhost',
+                        database: 'testdb',
+                        pool: { active: 2, idle: 8, total: 10 }
+                    },
+                    execution: {
+                        duration: '23ms',
+                        rowsAffected: 1,
+                        result: [{ id: 123, name: 'Test User', email: 'test@example.com' }]
+                    },
+                    errors: [],
+                    transaction: false
+                };
+                
+                updateResponse('databaseResponse', 'Database Integration Test:\n' + JSON.stringify(dbTest, null, 2), 'success');
+            });
+        }
+
+        function testConnectionPool() {
+            simulateAsyncOperation(() => {
+                const poolTest = {
+                    status: 'healthy',
+                    pool: {
+                        total: 10,
+                        active: 3,
+                        idle: 7,
+                        waiting: 0
+                    },
+                    metrics: {
+                        totalRequests: 1250,
+                        totalConnections: 45,
+                        avgConnectionTime: '12ms',
+                        maxConnectionTime: '45ms'
+                    },
+                    health: {
+                        isHealthy: true,
+                        lastError: null,
+                        uptime: '2h 34m'
+                    }
+                };
+                
+                updateResponse('databaseResponse', 'Connection Pool Test:\n' + JSON.stringify(poolTest, null, 2), 'success');
+            });
+        }
+
+        function testExternalService() {
+            const urlElement = document.getElementById('serviceUrl');
+            const timeoutElement = document.getElementById('serviceTimeout');
+            
+            if (!urlElement || !timeoutElement) {
+                console.error('External service form elements not found');
+                return;
+            }
+            
+            const url = urlElement.value || 'https://api.example.com';
+            const timeout = parseInt(timeoutElement.value) || 5000;
+            
+            simulateAsyncOperation(() => {
+                const serviceTest = {
+                    url: url,
+                    method: 'GET',
+                    timeout: timeout,
+                    request: {
+                        headers: { 'user-agent': 'qerrors-demo/1.0' },
+                        body: null
+                    },
+                    response: {
+                        statusCode: 200,
+                        headers: { 'content-type': 'application/json' },
+                        body: { status: 'ok', data: 'test response' },
+                        duration: '234ms'
+                    },
+                    circuitBreaker: {
+                        state: 'closed',
+                        failures: 0,
+                        successes: 15
+                    },
+                    retries: 0
+                };
+                
+                updateResponse('externalServiceResponse', 'External Service Test:\n' + JSON.stringify(serviceTest, null, 2), 'success');
+            });
+        }
+
+        function testServiceFallback() {
+            simulateAsyncOperation(() => {
+                const fallbackTest = {
+                    primaryService: {
+                        url: 'https://api.primary.com',
+                        status: 'failed',
+                        error: 'Connection timeout',
+                        attempts: 3
+                    },
+                    fallbackService: {
+                        url: 'https://api.backup.com',
+                        status: 'success',
+                        response: { data: 'fallback response' },
+                        duration: '1.2s'
+                    },
+                    totalDuration: '3.7s',
+                    fallbackTriggered: true,
+                    circuitBreakerState: 'open'
+                };
+                
+                metrics.totalErrors += 3;
+                updateResponse('externalServiceResponse', 'Service Fallback Test:\n' + JSON.stringify(fallbackTest, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        function testMessageQueue() {
+            const queueElement = document.getElementById('queueName');
+            
+            if (!queueElement) {
+                console.error('Queue name element not found');
+                return;
+            }
+            
+            const queueName = queueElement.value || 'error-processing';
+            
+            simulateAsyncOperation(() => {
+                const queueTest = {
+                    queue: queueName,
+                    operation: 'publish',
+                    message: {
+                        id: generateUUID(),
+                        type: 'error',
+                        data: { error: 'Test error', context: 'demo' },
+                        timestamp: new Date().toISOString()
+                    },
+                    result: {
+                        success: true,
+                        messageId: generateUUID(),
+                        queueSize: 5,
+                        consumers: 2
+                    },
+                    processing: {
+                        enqueued: true,
+                        priority: 'normal',
+                        ttl: 3600
+                    }
+                };
+                
+                updateResponse('messageQueueResponse', 'Message Queue Test:\n' + JSON.stringify(queueTest, null, 2), 'success');
+            });
+        }
+
+        function testQueueErrorHandling() {
+            simulateAsyncOperation(() => {
+                const queueErrorTest = {
+                    queue: 'error-processing',
+                    operation: 'consume',
+                    error: {
+                        type: 'ProcessingError',
+                        message: 'Failed to process error message',
+                        originalMessage: { id: '123', data: 'test' }
+                    },
+                    handling: {
+                        retryAttempt: 2,
+                        maxRetries: 3,
+                        deadLetterQueue: 'error-processing-dlq',
+                        backoffDelay: 5000
+                    },
+                    resolution: 'message_requeued'
+                };
+                
+                metrics.totalErrors++;
+                updateResponse('messageQueueResponse', 'Queue Error Handling:\n' + JSON.stringify(queueErrorTest, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        // Advanced tests
+        function testCustomErrorType() {
+            const nameElement = document.getElementById('customErrorName');
+            const messageElement = document.getElementById('customErrorMessage');
+            
+            if (!nameElement || !messageElement) {
+                console.error('Custom error form elements not found');
+                return;
+            }
+            
+            const errorName = nameElement.value || 'CustomError';
+            const errorMessage = messageElement.value || 'Custom error message';
+            
+            simulateAsyncOperation(() => {
+                const customError = {
+                    name: errorName,
+                    message: errorMessage,
+                    statusCode: 422,
+                    severity: 'MEDIUM',
+                    isOperational: true,
+                    context: { businessLogic: true, domain: 'user-management' },
+                    timestamp: new Date().toISOString(),
+                    stack: `${errorName}: ${errorMessage}\n    at BusinessRuleValidator.validate (/app/validators/business.js:23:10)`,
+                    metadata: {
+                        errorCode: 'BUSINESS_VIOLATION',
+                        category: 'domain-error',
+                        recoverable: true
+                    }
+                };
+                
+                metrics.totalErrors++;
+                updateResponse('customErrorResponse', 'Custom Error Type:\n' + JSON.stringify(customError, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        function testErrorInheritance() {
+            simulateAsyncOperation(() => {
+                const inheritanceTest = {
+                    baseError: {
+                        name: 'Error',
+                        properties: ['message', 'name', 'stack']
+                    },
+                    serviceError: {
+                        name: 'ServiceError',
+                        extends: 'Error',
+                        properties: ['type', 'context', 'statusCode', 'severity', 'timestamp'],
+                        methods: ['toJSON', 'toString']
+                    },
+                    customError: {
+                        name: 'BusinessLogicError',
+                        extends: 'ServiceError',
+                        properties: ['rule', 'domain', 'recoverable'],
+                        methods: ['getSuggestions', 'isRecoverable']
+                    },
+                    prototypeChain: ['BusinessLogicError', 'ServiceError', 'Error', 'Object'],
+                    instanceof: {
+                        error: true,
+                        serviceError: true,
+                        businessLogicError: true
+                    }
+                };
+                
+                updateResponse('customErrorResponse', 'Error Inheritance Test:\n' + JSON.stringify(inheritanceTest, null, 2), 'success');
+            });
+        }
+
+        function testContextEnhancement() {
+            const contextElement = document.getElementById('contextData');
+            
+            if (!contextElement) {
+                console.error('Context data element not found');
+                return;
+            }
+            
+            let contextData;
+            try {
+                contextData = JSON.parse(contextElement.value || '{}');
+            } catch (e) {
+                contextData = { userId: '123', action: 'update' };
+            }
+            
+            simulateAsyncOperation(() => {
+                const enhancedContext = {
+                    base: contextData,
+                    enhanced: {
+                        ...contextData,
+                        requestId: generateUUID(),
+                        timestamp: new Date().toISOString(),
+                        sessionId: 'sess_' + generateUUID().slice(0, 8),
+                        userAgent: 'Demo Browser/1.0',
+                        ip: '192.168.1.100',
+                        environment: 'development',
+                        version: '1.2.7',
+                        correlationId: generateUUID()
+                    },
+                    security: {
+                        authenticated: true,
+                        authorized: true,
+                        permissions: ['read', 'write'],
+                        roles: ['user']
+                    },
+                    performance: {
+                        startTime: new Date().toISOString(),
+                        duration: null,
+                        memoryUsage: '45.2MB'
+                    }
+                };
+                
+                updateResponse('contextResponse', 'Context Enhancement:\n' + JSON.stringify(enhancedContext, null, 2), 'success');
+            });
+        }
+
+        function testContextChaining() {
+            simulateAsyncOperation(() => {
+                const chaining = {
+                    step1: {
+                        context: { operation: 'validate', step: 1 },
+                        result: 'success',
+                        timestamp: new Date().toISOString()
+                    },
+                    step2: {
+                        context: { operation: 'process', step: 2, previousStep: 'validate' },
+                        result: 'success',
+                        timestamp: new Date().toISOString()
+                    },
+                    step3: {
+                        context: { operation: 'persist', step: 3, previousStep: 'process' },
+                        result: 'error',
+                        error: 'Database connection failed',
+                        timestamp: new Date().toISOString()
+                    },
+                    chain: {
+                        totalSteps: 3,
+                        successfulSteps: 2,
+                        failedStep: 3,
+                        overallResult: 'error',
+                        contextFlow: ['validate', 'process', 'persist']
+                    }
+                };
+                
+                metrics.totalErrors++;
+                updateResponse('contextResponse', 'Context Chaining:\n' + JSON.stringify(chaining, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        function testErrorAggregation() {
+            const countElement = document.getElementById('errorCount');
+            
+            if (!countElement) {
+                console.error('Error count element not found');
+                return;
+            }
+            
+            const count = parseInt(countElement.value) || 5;
+            
+            simulateAsyncOperation(() => {
+                const errors = [];
+                for (let i = 0; i < count; i++) {
+                    errors.push({
+                        id: `error_${i + 1}`,
+                        type: ['ValidationError', 'NetworkError', 'SystemError'][i % 3],
+                        message: `Error ${i + 1} in batch processing`,
+                        timestamp: new Date(Date.now() - i * 1000).toISOString()
+                    });
+                }
+                
+                const aggregation = {
+                    batchId: generateUUID(),
+                    timestamp: new Date().toISOString(),
+                    totalErrors: count,
+                    errorTypes: {
+                        ValidationError: Math.ceil(count / 3),
+                        NetworkError: Math.ceil(count / 3),
+                        SystemError: Math.floor(count / 3)
+                    },
+                    errors: errors,
+                    summary: {
+                        mostFrequent: 'ValidationError',
+                        timeSpan: `${count} seconds`,
+                        severity: 'MEDIUM'
+                    }
+                };
+                
+                metrics.totalErrors += count;
+                updateResponse('aggregationResponse', 'Error Aggregation:\n' + JSON.stringify(aggregation, null, 2), 'error');
+                updateMetrics();
+            });
+        }
+
+        function testErrorBatching() {
+            simulateAsyncOperation(() => {
+                const batching = {
+                    batchId: generateUUID(),
+                    batchSize: 10,
+                    processing: {
+                        batchSize: 10,
+                        maxBatchSize: 50,
+                        currentBatch: 1,
+                        totalBatches: 3
+                    },
+                    errors: [
+                        { id: 1, type: 'ValidationError', batch: 1 },
+                        { id: 2, type: 'NetworkError', batch: 1 },
+                        { id: 3, type: 'SystemError', batch: 2 }
+                    ],
+                    performance: {
+                        batchProcessingTime: '234ms',
+                        avgErrorProcessingTime: '23ms',
+                        throughput: '43 errors/sec'
+                    }
+                };
+                
+                updateResponse('aggregationResponse', 'Error Batching:\n' + JSON.stringify(batching, null, 2), 'success');
+            });
+        }
+
+        function testAdvancedCaching() {
+            const strategyElement = document.getElementById('cacheStrategy');
+            
+            if (!strategyElement) {
+                console.error('Cache strategy element not found');
+                return;
+            }
+            
+            const strategy = strategyElement.value || 'lru';
+            
+            simulateAsyncOperation(() => {
+                const advancedCache = {
+                    strategy: strategy,
+                    config: {
+                        maxSize: 100,
+                        ttl: 3600,
+                        cleanupInterval: 300
+                    },
+                    performance: {
+                        hitRate: '78.5%',
+                        missRate: '21.5%',
+                        avgLookupTime: '2.3ms',
+                        memoryUsage: '15.6MB'
+                    },
+                    distribution: {
+                        hotKeys: 15,
+                        coldKeys: 85,
+                        evictionRate: '5.2%',
+                        fragmentation: '2.1%'
+                    },
+                    metrics: {
+                        totalRequests: 10000,
+                        cacheHits: 7850,
+                        cacheMisses: 2150,
+                        evictions: 52
+                    }
+                };
+                
+                updateResponse('advancedCacheResponse', 'Advanced Caching:\n' + JSON.stringify(advancedCache, null, 2), 'success');
+            });
+        }
+
+        function testCacheDistribution() {
+            simulateAsyncOperation(() => {
+                const distribution = {
+                    nodes: [
+                        { id: 'node1', host: 'localhost', port: 11211, keys: 1250, memory: '45.2MB' },
+                        { id: 'node2', host: 'localhost', port: 11212, keys: 1180, memory: '42.8MB' },
+                        { id: 'node3', host: 'localhost', port: 11213, keys: 1320, memory: '48.1MB' }
+                    ],
+                    consistency: {
+                        algorithm: 'consistent_hashing',
+                        replicationFactor: 2,
+                        syncStatus: 'healthy'
+                    },
+                    loadBalancing: {
+                        strategy: 'round_robin',
+                        distribution: 'even',
+                        hotNodeDetection: true
+                    },
+                    health: {
+                        overall: 'healthy',
+                        failedNodes: 0,
+                        recoveryTime: '0ms'
+                    }
+                };
+                
+                updateResponse('advancedCacheResponse', 'Cache Distribution:\n' + JSON.stringify(distribution, null, 2), 'success');
             });
         }
 
