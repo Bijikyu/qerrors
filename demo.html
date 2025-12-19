@@ -1061,35 +1061,53 @@
                 context = { parseError: e.message };
             }
 
-            const errorData = {
-                type: errorType,
-                message: message,
-                context: context,
-                timestamp: new Date().toISOString(),
-                severity: getSeverityForType(errorType)
-            };
-
             updateResponse('error-response', 'Processing error...', 'loading');
             
-            // Simulate API call
-            setTimeout(() => {
+            try {
+                const response = await fetch('/api/errors/trigger', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        type: errorType.toLowerCase(), 
+                        message, 
+                        context 
+                    })
+                });
+                
+                const data = await response.json();
+                metrics.totalErrors++;
+                updateResponse('error-response', JSON.stringify(data, null, 2), 'success');
+                updateMetrics();
+            } catch (error) {
+                // Fallback to mock response if backend is unavailable
+                console.warn('Backend unavailable, using fallback:', error.message);
+                
+                const errorData = {
+                    type: errorType,
+                    message: message,
+                    context: context,
+                    timestamp: new Date().toISOString(),
+                    severity: getSeverityForType(errorType)
+                };
+                
                 metrics.totalErrors++;
                 metrics.queueLength = Math.max(0, metrics.queueLength - 1);
                 
-                const response = {
+                const fallbackResponse = {
                     success: true,
                     errorId: generateErrorId(),
                     error: errorData,
                     aiAdvice: config.ai ? generateAIAdvice(errorType) : null,
-                    cached: config.cache && Math.random() > 0.7
+                    cached: config.cache && Math.random() > 0.7,
+                    fallback: true
                 };
                 
-                if (response.cached) metrics.cacheHits++;
+                if (fallbackResponse.cached) metrics.cacheHits++;
                 if (config.ai) metrics.aiRequests++;
                 
-                updateResponse('error-response', JSON.stringify(response, null, 2), 'success');
+                updateResponse('error-response', JSON.stringify(fallbackResponse, null, 2), 'success');
                 updateMetrics();
-            }, 1000);
+            }
         }
 
         async function triggerCriticalError() {
@@ -1131,42 +1149,67 @@
             }, 1500);
         }
 
-        async function triggerCustomError() {
+async function triggerCustomError() {
             const name = document.getElementById('custom-error-name').value;
             const code = document.getElementById('custom-error-code').value;
             const severity = document.getElementById('custom-error-severity').value;
 
-            const customError = {
-                name: name,
-                code: code,
-                message: `Custom business error: ${code}`,
-                type: 'business',
-                severity: severity,
-                context: {
-                    businessRule: 'Custom validation failed',
-                    department: 'engineering',
-                    impact: 'medium'
-                },
-                timestamp: new Date().toISOString()
-            };
-
             updateResponse('error-response', 'Processing custom error...', 'loading');
             
-            setTimeout(() => {
+            try {
+                const response = await fetch('/api/errors/custom', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name, 
+                        code, 
+                        message: `Custom business error: ${code}`,
+                        severity,
+                        context: {
+                            businessRule: 'Custom validation failed',
+                            department: 'engineering',
+                            impact: 'medium'
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                metrics.totalErrors++;
+                updateResponse('error-response', JSON.stringify(data, null, 2), 'success');
+                updateMetrics();
+            } catch (error) {
+                // Fallback to mock response if backend is unavailable
+                console.warn('Backend unavailable, using fallback:', error.message);
+                
+                const customError = {
+                    name: name,
+                    code: code,
+                    message: `Custom business error: ${code}`,
+                    type: 'business',
+                    severity: severity,
+                    context: {
+                        businessRule: 'Custom validation failed',
+                        department: 'engineering',
+                        impact: 'medium'
+                    },
+                    timestamp: new Date().toISOString()
+                };
+                
                 metrics.totalErrors++;
                 
-                const response = {
+                const fallbackResponse = {
                     success: true,
                     errorId: generateErrorId(),
                     error: customError,
                     workflow: 'custom_error_handler',
                     businessLogic: 'Applied custom business rules',
-                    recovery: 'Error handled by custom middleware'
+                    recovery: 'Error handled by custom middleware',
+                    fallback: true
                 };
                 
-                updateResponse('error-response', JSON.stringify(response, null, 2), 'success');
+                updateResponse('error-response', JSON.stringify(fallbackResponse, null, 2), 'success');
                 updateMetrics();
-            }, 800);
+            }
         }
 
         async function testErrorRecovery() {
@@ -1195,21 +1238,43 @@
 
             updateResponse('error-response', `Analyzing with ${provider} AI...`, 'loading');
             
-            setTimeout(() => {
+            try {
+                const response = await fetch('/api/errors/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        error: { 
+                            message: `Test error for ${scenario} analysis`,
+                            name: 'AnalysisTestError',
+                            stack: new Error().stack
+                        }, 
+                        context: { scenario, provider } 
+                    })
+                });
+                
+                const data = await response.json();
+                metrics.aiRequests++;
+                updateResponse('error-response', JSON.stringify(data, null, 2), 'success');
+                updateMetrics();
+            } catch (error) {
+                // Fallback to mock response if backend is unavailable
+                console.warn('Backend unavailable, using fallback:', error.message);
+                
                 metrics.aiRequests++;
                 
-                const analysis = {
+                const fallbackAnalysis = {
                     provider: provider,
                     scenario: scenario,
                     analysis: generateScenarioAnalysis(scenario),
                     confidence: Math.floor(Math.random() * 20) + 80,
                     processingTime: Math.floor(Math.random() * 1000) + 500,
-                    cost: `$${(Math.random() * 0.05 + 0.01).toFixed(4)}`
+                    cost: `$${(Math.random() * 0.05 + 0.01).toFixed(4)}`,
+                    fallback: true
                 };
                 
-                updateResponse('error-response', JSON.stringify(analysis, null, 2), 'success');
+                updateResponse('error-response', JSON.stringify(fallbackAnalysis, null, 2), 'success');
                 updateMetrics();
-            }, 2000);
+            }
         }
 
         async function testAIHealth() {

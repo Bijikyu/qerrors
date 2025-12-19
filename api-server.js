@@ -84,6 +84,102 @@ app.post('/api/validate', (req, res, next) => {
   }
 });
 
+// POST /api/errors/trigger - Triggers various error types
+app.post('/api/errors/trigger', (req, res, next) => {
+  try {
+    const { type, message, context } = req.body;
+    
+    const errorTypes = {
+      validation: 'Validation error occurred',
+      authentication: 'Authentication failed',
+      authorization: 'Access denied',
+      network: 'Network connection error',
+      database: 'Database operation failed',
+      system: 'System error occurred',
+      configuration: 'Configuration error'
+    };
+    
+    const errorType = type || 'validation';
+    const errorMessage = message || errorTypes[errorType] || 'Unknown error';
+    
+    const error = createError(errorType, errorMessage);
+    error.context = context || {};
+    error.statusCode = errorType === 'validation' ? 400 : 
+                     errorType === 'authentication' ? 401 :
+                     errorType === 'authorization' ? 403 : 500;
+    
+    next(error);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/errors/custom - Creates custom business errors
+app.post('/api/errors/custom', (req, res, next) => {
+  try {
+    const { name, code, message, severity, context } = req.body;
+    
+    if (!name || !message) {
+      const error = createError('validation', 'Error name and message are required');
+      error.statusCode = 400;
+      throw error;
+    }
+    
+    const error = new Error(message);
+    error.name = name;
+    error.code = code || 'CUSTOM_ERROR';
+    error.severity = severity || 'medium';
+    error.context = context || {};
+    error.isCustom = true;
+    error.statusCode = 400;
+    
+    next(error);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/errors/analyze - AI-powered error analysis
+app.post('/api/errors/analyze', async (req, res, next) => {
+  try {
+    const { error: errorData, context } = req.body;
+    
+    if (!errorData) {
+      const error = createError('validation', 'Error data is required for analysis');
+      error.statusCode = 400;
+      throw error;
+    }
+    
+    // Create a proper error object from the data
+    const error = new Error(errorData.message || 'Sample error for analysis');
+    error.name = errorData.name || 'Error';
+    error.stack = errorData.stack || new Error().stack;
+    error.context = context || {};
+    
+    // Trigger qerrors analysis
+    if (qerrors) {
+      await qerrors(error, 'AI Analysis Request', req, res, () => {
+        // Send response after qerrors processing
+        res.json({
+          success: true,
+          analysis: 'Error analysis triggered via qerrors AI system',
+          errorId: error.uniqueErrorName,
+          timestamp: new Date().toISOString()
+        });
+      });
+    } else {
+      // Fallback if qerrors not available
+      res.json({
+        success: false,
+        error: 'qerrors not available for analysis',
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /html/error - HTML error response
 app.get('/html/error', (req, res, next) => {
   const error = createError('html', 'HTML error response test');
