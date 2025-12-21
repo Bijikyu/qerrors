@@ -5,7 +5,7 @@
       "npm": "@ai-sdk/openai-compatible",
       "name": "Durin",
       "options": {
-        "baseURL": "https://e00xsyx3734kd9rnqg1.notebookseu.jarvislabs.net/v1",
+        "baseURL": "https://e00ffhjskea6mb29yf1.notebookseu.jarvislabs.net/v1",
         "apiKey": "{env:JARVIS_API_KEY}"
       },
       "models": {
