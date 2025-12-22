@@ -66,6 +66,9 @@ const responseHelpers = require('./lib/responseHelpers'); // Standardized API re
 // Resilience and circuit breaking
 const circuitBreaker = require('./lib/circuitBreaker');  // Circuit breaker pattern implementation
 
+// Async operation contracts and retry utilities
+const asyncContracts = require('./lib/shared/asyncContracts');  // Retry, circuit breaker, async patterns
+
 /**
  * Error logger middleware that logs errors and provides AI-powered suggestions.
  * @param {Error} error - The error object
@@ -232,6 +235,16 @@ module.exports = {
   createCircuitBreaker: circuitBreaker.createCircuitBreaker, // Circuit breaker factory
   
   // ====================================================================
+  // RETRY UTILITIES - Retry orchestration and presets
+  // ====================================================================
+  RetryHandler: asyncContracts.RetryHandler,                // Retry handler class
+  withRetry: asyncContracts.withRetry,                      // Method decorator for retries
+  retryOperation: asyncContracts.retryOperation,            // Functional retry wrapper
+  StandardAsyncExecutor: asyncContracts.StandardAsyncExecutor, // Async executor with retry/circuit
+  AsyncOperationFactory: asyncContracts.AsyncOperationFactory, // Factory for async operations
+  RetryConfigPresets: require('./config/localVars').RetryConfigPresets, // Retry config presets
+  
+  // ====================================================================
   // AI MANAGEMENT - Model abstraction and analysis
   // ====================================================================
   getAIModelManager: aiModelManager.getAIModelManager,      // AI model manager
@@ -256,7 +269,8 @@ module.exports = {
   dependencyInterfaces, // Dependency injection
   entityGuards,        // Entity guards
   responseHelpers,     // Response helpers
-  circuitBreaker       // Circuit breaker
+  circuitBreaker,      // Circuit breaker
+  asyncContracts       // Async contracts and retry utilities
 };
 
 /**

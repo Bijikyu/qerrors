@@ -341,8 +341,72 @@ const DEFAULT_ASYNC_CONFIG = {
   retryAttempts: 0,
   retryDelayMs: 1000,
   retryBackoffMultiplier: 2,
+  retryMaxDelayMs: null,
+  retryJitter: false,
   circuitBreakerThreshold: 5,
   circuitBreakerTimeoutMs: 60000
+};
+
+// ====================================================================
+// RETRY CONFIGURATION PRESETS - Common workload retry strategies
+// ====================================================================
+
+/**
+ * Predefined retry configurations for common workload types
+ * 
+ * These presets provide sensible defaults for different operation types,
+ * eliminating the need for developers to manually tune retry parameters.
+ * Each preset is optimized for the specific characteristics of its workload:
+ * - Network: Higher attempts with longer delays for transient network issues
+ * - Database: Moderate attempts with shorter delays for connection issues
+ * - ExternalAPI: Higher delays to respect rate limits
+ * - Filesystem: Quick retries for temporary file locks
+ * - Aggressive: Many quick retries for critical operations
+ * - Conservative: Few retries with long delays to minimize load
+ */
+const RetryConfigPresets = {
+  network: {
+    maxAttempts: 5,
+    baseDelay: 1000,
+    maxDelay: 30000,
+    backoffFactor: 2,
+    jitter: true
+  },
+  database: {
+    maxAttempts: 3,
+    baseDelay: 500,
+    maxDelay: 5000,
+    backoffFactor: 2,
+    jitter: true
+  },
+  externalAPI: {
+    maxAttempts: 4,
+    baseDelay: 2000,
+    maxDelay: 60000,
+    backoffFactor: 2.5,
+    jitter: true
+  },
+  filesystem: {
+    maxAttempts: 3,
+    baseDelay: 100,
+    maxDelay: 1000,
+    backoffFactor: 2,
+    jitter: false
+  },
+  aggressive: {
+    maxAttempts: 10,
+    baseDelay: 200,
+    maxDelay: 10000,
+    backoffFactor: 1.5,
+    jitter: true
+  },
+  conservative: {
+    maxAttempts: 2,
+    baseDelay: 5000,
+    maxDelay: 15000,
+    backoffFactor: 2,
+    jitter: true
+  }
 };
 
 // ====================================================================
@@ -422,5 +486,8 @@ module.exports = {
   ERROR_SEVERITY_MAP_CONTRACTS, // Contract-based severity mapping
   
   // Async Operation Configuration
-  DEFAULT_ASYNC_CONFIG        // Default async operation settings
+  DEFAULT_ASYNC_CONFIG,       // Default async operation settings
+  
+  // Retry Configuration Presets
+  RetryConfigPresets          // Predefined retry configs for common workloads
 };
