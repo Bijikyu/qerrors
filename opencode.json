@@ -1,22 +1,19 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "provider": {
-    "jarvis": {
+    "zen": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "Durin",
+      "name": "Big Pickle",
       "options": {
-        "baseURL": "https://e00ffhjskea6mb29yf1.notebookseu.jarvislabs.net/v1",
-        "apiKey": "{env:JARVIS_API_KEY}"
+        "baseURL": "https://opencode.ai/zen/v1",
+        "apiKey": "{env:OPENCODE_ZEN_API_KEY}"
       },
       "models": {
-        "gpt-oss-120b": {
-          "name": "GPT-OSS 120B (Safe Mode)"
-        },
-        "gpt-oss-120b-fast": {
-          "name": "GPT-OSS 120B (Fast Mode)"
+        "big-pickle": {
+          "name": "Big Pickle"
         }
       }
     }
   },
-  "model": "jarvis/gpt-oss-120b"
+  "model": "zen/big-pickle"
 }
