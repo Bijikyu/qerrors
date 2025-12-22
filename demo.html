@@ -1386,6 +1386,11 @@ async function triggerCustomError() {
         // Utility functions
         function updateResponse(elementId, content, type = 'info') {
             const responseArea = document.getElementById(elementId);
+            if (!responseArea) {
+                console.error(`Element with ID '${elementId}' not found`);
+                return;
+            }
+            
             responseArea.className = 'response-area';
             
             if (type === 'error') {
@@ -1395,9 +1400,13 @@ async function triggerCustomError() {
             }
             
             if (type === 'loading') {
-                responseArea.innerHTML = `<div style="text-align: center;"><div class="loading"></div><p>${content}</p></div>`;
+                responseArea.innerHTML = `<div style="text-align: center;"><div class="loading"></div><p></p></div>`;
+                const pElement = responseArea.querySelector('p');
+                if (pElement) pElement.textContent = content;
             } else {
-                responseArea.innerHTML = `<pre>${content}</pre>`;
+                responseArea.innerHTML = `<pre></pre>`;
+                const preElement = responseArea.querySelector('pre');
+                if (preElement) preElement.textContent = content;
             }
         }
 
@@ -2419,11 +2428,6 @@ async function triggerCustomError() {
             });
         }
 
-
-            element.textContent = content;
-            element.className = `response-area ${type}`;
-        }
-
         function updateMetrics() {
             const totalErrorsElement = document.getElementById('totalErrors');
             const queueLengthElement = document.getElementById('queueLength');
@@ -2435,7 +2439,11 @@ async function triggerCustomError() {
             if (queueLengthElement) queueLengthElement.textContent = metrics.queueLength;
             if (cacheHitsElement) cacheHitsElement.textContent = metrics.cacheHits;
             if (aiAnalysesElement) aiAnalysesElement.textContent = metrics.aiAnalyses;
-            if (statusIndicatorElement) statusIndicatorElement.className = `status-indicator ${metrics.systemStatus}`;
+            if (statusIndicatorElement) {
+                const allowedStatuses = ['healthy', 'warning', 'error', 'unknown'];
+                const safeStatus = allowedStatuses.includes(metrics.systemStatus) ? metrics.systemStatus : 'unknown';
+                statusIndicatorElement.className = `status-indicator ${safeStatus}`;
+            }
         }
 
         function updateAvgResponseTime() {
@@ -2474,15 +2482,25 @@ async function triggerCustomError() {
             });
         }
 
-        function generateSHA256(input) {
-            // Simple hash simulation (not real SHA256)
-            let hash = 0;
-            for (let i = 0; i < input.length; i++) {
-                const char = input.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash;
+        async function generateSHA256(input) {
+            try {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(input);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            } catch (error) {
+                console.error('SHA256 generation failed:', error);
+                // Fallback to simple hash for browsers without Web Crypto API
+                // Handles Unicode properly by iterating over code points
+                let hash = 0;
+                for (const char of input) {
+                    const code = char.codePointAt(0);
+                    hash = ((hash << 5) - hash) + code;
+                    hash = hash & hash;
+                }
+                return Math.abs(hash).toString(16);
             }
-            return Math.abs(hash).toString(16);
         }
 
         function escapeHtml(text) {

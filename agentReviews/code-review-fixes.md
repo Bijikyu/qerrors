@@ -1,8 +1,34 @@
-# Code Review: QErrors Demo.html Bug Fixes
+# Code Review Bug Fixes Report
 
-## 🐛 **Critical Bugs Found and Fixed**
+## Summary
 
-### **1. Orphaned Code Outside Function (Lines 1836-1838)**
+During expert code review of security remediation changes, I identified and fixed several critical bugs and logic errors that could cause runtime failures or undefined behavior.
+
+## Critical Bugs Fixed
+
+### 1. XSS Fix Null Pointer Error (HIGH)
+**File**: `demo.html:1387-1403`
+**Issue**: `updateResponse` function didn't check if `document.getElementById(elementId)` returns null
+**Risk**: TypeError when DOM element doesn't exist
+**Fix**: Added null checks and graceful error handling
+
+### 2. JWT Token Creation Logic Error (HIGH)
+**File**: `server.js:260-264`
+**Issue**: Manual `exp` field conflicted with `expiresIn` option
+**Risk**: Invalid tokens or authentication failures
+**Fix**: Used proper `expiresIn` option instead of manual expiration
+
+### 3. Unicode Hash Collision Bug (MEDIUM)
+**File**: `demo.html:2502-2508`
+**Issue**: Fallback hash function didn't handle Unicode properly
+**Risk**: Different Unicode strings producing same hash
+**Fix**: Used `codePointAt()` instead of `charCodeAt()` for proper Unicode handling
+
+### 4. Orphaned Code Fragment (LOW)
+**File**: `demo.html:2432-2435`
+**Issue**: CSS injection fix code was orphaned outside any function
+**Risk**: Potential syntax errors or undefined behavior
+**Fix**: Removed orphaned code fragment
 **Bug**: Code was executing outside any function scope:
 ```javascript
 const errorName = nameElement.value || 'CustomError';

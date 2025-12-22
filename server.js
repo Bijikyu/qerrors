@@ -19,6 +19,7 @@
 const express = require('express');  // Web framework
 const cors = require('cors');        // Cross-origin resource sharing
 const path = require('path');        // Path utilities
+const jwt = require('jsonwebtoken');  // JWT token generation and validation
 
 // Import qerrors for intelligent error handling
 const qerrorsModule = require('./index.js');
@@ -247,15 +248,24 @@ app.post('/auth/login', async (req, res, next) => {
       throw error;
     }
     
-    if (username !== 'admin' || password !== 'password') {
+    const validUsername = process.env.ADMIN_USERNAME || 'admin';
+    const validPassword = process.env.ADMIN_PASSWORD || 'secure_password_change_me';
+    
+    if (username !== validUsername || password !== validPassword) {
       const error = createError('auth', 'Invalid credentials');
       error.statusCode = 401;
       throw error;
     }
     
+    const token = jwt.sign(
+      { username, id: 1 },
+      process.env.JWT_SECRET || 'change_this_in_production_jwt_secret_key',
+      { expiresIn: '1h' }
+    );
+    
     res.json({ 
       success: true, 
-      token: 'mock-jwt-token',
+      token,
       user: { username, id: 1 }
     });
   } catch (error) {
