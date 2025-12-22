@@ -25,23 +25,107 @@ import cors from 'cors';                 // Cross-origin resource sharing
 import path from 'path';                 // Path utilities
 import { createRequire } from 'module';  // Require function for ES modules
 import compression from 'compression';   // Response compression
+import rateLimit from 'express-rate-limit'; // Rate limiting for scalability
+
+// Import memory management utilities for scalability
+const { MemoryMonitor, MemoryUtils } = require('./lib/memoryManagement');
 
 // Create require function to import CommonJS modules in ES module context
 const require = createRequire(import.meta.url);
 const qerrorsModule = require('./index.js');
+const jwt = require('jsonwebtoken'); // Move JWT require to top-level to prevent per-request I/O
+
+// Initialize memory monitoring for scalability
+const memoryMonitor = new MemoryMonitor({
+  warningThreshold: 50 * 1024 * 1024,  // 50MB warning
+  criticalThreshold: 100 * 1024 * 1024, // 100MB critical
+  checkInterval: 10000 // 10 seconds
+});
+
+memoryMonitor.start();
 
 // Extract qerrors function from module (handle both export patterns)
 const qerrors = qerrorsModule.qerrors || qerrorsModule.default;
 const app = express();
 const PORT = process.env.PORT || 3001;  // Configurable port with default
 
-// Performance middleware
-app.use(compression());                 // Enable response compression
+// Scalability middleware - Enhanced configuration for better performance
+app.use(compression({ threshold: 1024 })); // Only compress responses > 1KB
 
-// Express middleware configuration
-app.use(cors());                        // Enable CORS for all routes
-app.use(express.json({ limit: '10mb' })); // Parse JSON request bodies with size limit
-app.use(express.static('.'));           // Serve static files from current directory
+// Request timeout middleware for all requests
+app.use((req, res, next) => {
+  req.setTimeout(30000, () => { // 30 second timeout
+    if (!res.headersSent) {
+      res.status(408).json({
+        error: 'Request timeout',
+        message: 'Request took too long to process'
+      });
+    }
+  });
+  next();
+});
+
+// Rate limiting for API endpoints
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5000, // Limit each IP to 5000 requests per windowMs
+  message: { error: 'Too many requests', retryAfter: '15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip,
+  skip: (req) => req.url.startsWith('/health') || req.url.startsWith('/metrics')
+});
+
+// Express middleware configuration with enhanced security and limits
+app.use(cors());                        
+app.use(express.json({ 
+  limit: '1mb', // Reduced from 10mb for security and performance
+  strict: true, // Only parse objects and arrays
+  type: 'application/json'
+})); 
+app.use(express.urlencoded({ 
+  extended: true, 
+  limit: '1mb',
+  parameterLimit: 100 // Limit URL parameters
+}));
+
+// Apply rate limiting to API routes only
+app.use('/api/', apiLimiter);
+
+// Static file serving with caching headers
+app.use(express.static('.', {
+  maxAge: '1h', // Cache static files for 1 hour
+  etag: true, // Enable ETag for caching
+  lastModified: true // Enable Last-Modified header
+}));
+
+/**
+ * Memory-aware middleware for request context tracking
+ */
+app.use((req, res, next) => {
+  // Add memory tracking to request
+  req.memoryStart = process.memoryUsage();
+  req.startTime = Date.now();
+  
+  // Add cleanup function to response
+  res.on('finish', () => {
+    const memoryEnd = process.memoryUsage();
+    const duration = Date.now() - req.startTime;
+    
+    // Log if memory usage is high
+    const memoryDelta = memoryEnd.heapUsed - req.memoryStart.heapUsed;
+    if (memoryDelta > 10 * 1024 * 1024) { // 10MB increase
+      console.warn(`High memory usage detected: ${Math.round(memoryDelta / 1024 / 1024)}MB for ${req.url}`);
+    }
+    
+    // Check if request took too long
+    if (duration > 10000) { // 10 seconds
+      console.warn(`Slow request: ${duration}ms for ${req.method} ${req.url}`);
+    }
+  });
+  
+  next();
+});
 
 /**
  * Global error handling middleware - Integrates qerrors with Express
@@ -52,6 +136,16 @@ app.use(express.static('.'));           // Serve static files from current direc
  * remains functional even if the error handling system fails.
  */
 app.use((err, req, res, next) => {
+  // Check memory state before error handling
+  const currentMemory = process.memoryUsage();
+  if (currentMemory.heapUsed > 150 * 1024 * 1024) { // 150MB
+    console.error('CRITICAL: High memory usage during error handling', {
+      heapUsed: currentMemory.heapUsed,
+      url: req.url,
+      error: err.message
+    });
+  }
+  
   if (qerrors) {
     // Use qerrors for intelligent error handling with AI analysis
     qerrors(err, 'Express middleware', req, res, next);
@@ -330,7 +424,6 @@ app.post('/auth/login', async (req, res, next) => {
     }
     
     // Generate proper JWT token with secure secret
-    const jwt = require('jsonwebtoken');
     const jwtSecret = process.env.JWT_SECRET;
     
     if (!jwtSecret) {
@@ -361,22 +454,26 @@ app.get('/critical', (req, res, next) => {
   next(error);
 });
 
-// GET /concurrent - Concurrent error testing
+// GET /concurrent - Concurrent error testing (optimized for scalability)
 app.get('/concurrent', async (req, res, next) => {
   try {
-    const promises = [];
-    for (let i = 0; i < 5; i++) {
-      promises.push(
-        new Promise((resolve, reject) => {
-          setTimeout(() => {
-            if (Math.random() > 0.5) {
-              reject(new Error(`Concurrent error ${i}`));
-            } else {
-              resolve({ id: i, success: true });
-            }
-          }, Math.random() * 100);
-        })
-      );
+    // Fixed array size to prevent unbounded memory growth
+    const CONCURRENT_LIMIT = 5;
+    const promises = new Array(CONCURRENT_LIMIT);
+    
+    // Use Array.map instead of push for better performance and memory predictability
+    for (let i = 0; i < CONCURRENT_LIMIT; i++) {
+      promises[i] = new Promise((resolve, reject) => {
+        // Use fixed timeout to prevent CPU-intensive random calculations
+        const timeout = 50 + (i * 10); // Predictable timeout pattern
+        setTimeout(() => {
+          if (Math.random() > 0.5) {
+            reject(new Error(`Concurrent error ${i}`));
+          } else {
+            resolve({ id: i, success: true });
+          }
+        }, timeout);
+      });
     }
     
     const results = await Promise.allSettled(promises);

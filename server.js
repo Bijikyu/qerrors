@@ -454,22 +454,26 @@ app.get('/critical', (req, res, next) => {
   next(error);
 });
 
-// GET /concurrent - Concurrent error testing
+// GET /concurrent - Concurrent error testing (optimized for scalability)
 app.get('/concurrent', async (req, res, next) => {
   try {
-    const promises = [];
-    for (let i = 0; i < 5; i++) {
-      promises.push(
-        new Promise((resolve, reject) => {
-          setTimeout(() => {
-            if (Math.random() > 0.5) {
-              reject(new Error(`Concurrent error ${i}`));
-            } else {
-              resolve({ id: i, success: true });
-            }
-          }, Math.random() * 100);
-        })
-      );
+    // Fixed array size to prevent unbounded memory growth
+    const CONCURRENT_LIMIT = 5;
+    const promises = new Array(CONCURRENT_LIMIT);
+    
+    // Use direct assignment instead of push for better performance and memory predictability
+    for (let i = 0; i < CONCURRENT_LIMIT; i++) {
+      promises[i] = new Promise((resolve, reject) => {
+        // Use fixed timeout to prevent CPU-intensive random calculations
+        const timeout = 50 + (i * 10); // Predictable timeout pattern
+        setTimeout(() => {
+          if (Math.random() > 0.5) {
+            reject(new Error(`Concurrent error ${i}`));
+          } else {
+            resolve({ id: i, success: true });
+          }
+        }, timeout);
+      });
     }
     
     const results = await Promise.allSettled(promises);

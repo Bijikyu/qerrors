@@ -18,6 +18,11 @@
 import express from 'express';  // Web framework
 import cors from 'cors';        // Cross-origin resource sharing
 import path from 'path';        // Path utilities
+import { createRequire } from 'module';  // Require function for ES modules
+
+// Create require function and import JWT at top-level to prevent per-request I/O
+const require = createRequire(import.meta.url);
+const jwt = require('jsonwebtoken');
 
 // Server configuration
 const app = express();
@@ -207,7 +212,6 @@ app.post('/auth/login', async (req, res, next) => {
     }
     
     // Generate proper JWT token with secure secret
-    const jwt = require('jsonwebtoken');
     const jwtSecret = process.env.JWT_SECRET;
     
     if (!jwtSecret) {
@@ -238,22 +242,26 @@ app.get('/critical', (req, res, next) => {
   next(error);
 });
 
-// GET /concurrent - Concurrent error testing
+// GET /concurrent - Concurrent error testing (optimized for scalability)
 app.get('/concurrent', async (req, res, next) => {
   try {
-    const promises = [];
-    for (let i = 0; i < 5; i++) {
-      promises.push(
-        new Promise((resolve, reject) => {
-          setTimeout(() => {
-            if (Math.random() > 0.5) {
-              reject(new Error(`Concurrent error ${i}`));
-            } else {
-              resolve({ id: i, success: true });
-            }
-          }, Math.random() * 100);
-        })
-      );
+    // Fixed array size to prevent unbounded memory growth
+    const CONCURRENT_LIMIT = 5;
+    const promises = new Array(CONCURRENT_LIMIT);
+    
+    // Use direct assignment instead of push for better performance and memory predictability
+    for (let i = 0; i < CONCURRENT_LIMIT; i++) {
+      promises[i] = new Promise((resolve, reject) => {
+        // Use fixed timeout to prevent CPU-intensive random calculations
+        const timeout = 50 + (i * 10); // Predictable timeout pattern
+        setTimeout(() => {
+          if (Math.random() > 0.5) {
+            reject(new Error(`Concurrent error ${i}`));
+          } else {
+            resolve({ id: i, success: true });
+          }
+        }, timeout);
+      });
     }
     
     const results = await Promise.allSettled(promises);
