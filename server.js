@@ -221,6 +221,17 @@ app.post('/api/errors/custom', (req, res, next) => {
 
 // POST /api/errors/analyze - AI-powered error analysis
 app.post('/api/errors/analyze', strictLimiter, async (req, res, next) => {
+  // Set request timeout for AI analysis (30 seconds)
+  req.setTimeout(30000, () => {
+    if (!res.headersSent) {
+      res.status(408).json({
+        success: false,
+        error: 'Request timeout - AI analysis took too long',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   try {
     const { error: errorData, context } = req.body;
     
@@ -236,17 +247,32 @@ app.post('/api/errors/analyze', strictLimiter, async (req, res, next) => {
     error.stack = errorData.stack || new Error().stack;
     error.context = context || {};
     
-    // Trigger qerrors analysis
+    // Trigger qerrors analysis with timeout protection
     if (qerrors) {
-      await qerrors(error, 'AI Analysis Request', req, res, () => {
-        // Send response after qerrors processing
-        res.json({
-          success: true,
-          analysis: 'Error analysis triggered via qerrors AI system',
-          errorId: error.uniqueErrorName,
-          timestamp: new Date().toISOString()
-        });
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('AI analysis timeout'));
+        }, 25000); // 25 second timeout for AI processing
       });
+
+      // Race between qerrors analysis and timeout
+      await Promise.race([
+        new Promise((resolve) => {
+          qerrors(error, 'AI Analysis Request', req, res, () => {
+            if (!res.headersSent) {
+              res.json({
+                success: true,
+                analysis: 'Error analysis triggered via qerrors AI system',
+                errorId: error.uniqueErrorName,
+                timestamp: new Date().toISOString()
+              });
+            }
+            resolve();
+          });
+        }),
+        timeoutPromise
+      ]);
     } else {
       // Fallback if qerrors not available
       res.json({
@@ -256,7 +282,83 @@ app.post('/api/errors/analyze', strictLimiter, async (req, res, next) => {
       });
     }
   } catch (error) {
-    next(error);
+    if (error.message === 'AI analysis timeout') {
+      if (!res.headersSent) {
+        res.status(408).json({
+          success: false,
+          error: 'AI analysis timeout - please try again',
+          timestamp: new Date().toISOString()
+        });
+      }
+    } else {
+      next(error);
+    }
+  }
+});
+    }
+  });
+
+  try {
+    const { error: errorData, context } = req.body;
+    
+    if (!errorData) {
+      const error = createError('validation', 'Error data is required for analysis');
+      error.statusCode = 400;
+      throw error;
+    }
+    
+    // Create a proper error object from the data
+    const error = new Error(errorData.message || 'Sample error for analysis');
+    error.name = errorData.name || 'Error';
+    error.stack = errorData.stack || new Error().stack;
+    error.context = context || {};
+    
+    // Trigger qerrors analysis with timeout protection
+    if (qerrors) {
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('AI analysis timeout'));
+        }, 25000); // 25 second timeout for AI processing
+      });
+
+      // Race between qerrors analysis and timeout
+      await Promise.race([
+        new Promise((resolve) => {
+          qerrors(error, 'AI Analysis Request', req, res, () => {
+            if (!res.headersSent) {
+              res.json({
+                success: true,
+                analysis: 'Error analysis triggered via qerrors AI system',
+                errorId: error.uniqueErrorName,
+                timestamp: new Date().toISOString()
+              });
+            }
+            resolve();
+          });
+        }),
+        timeoutPromise
+      ]);
+    } else {
+      // Fallback if qerrors not available
+      res.json({
+        success: false,
+        error: 'qerrors not available for analysis',
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error) {
+    if (error.message === 'AI analysis timeout') {
+      if (!res.headersSent) {
+        res.status(408).json({
+          success: false,
+          error: 'AI analysis timeout - please try again',
+          timestamp: new Date().toISOString()
+        });
+      }
+    } else {
+      next(error);
+    }
   }
 });
 
