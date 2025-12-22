@@ -228,72 +228,6 @@ app.post('/api/errors/analyze', strictLimiter, async (req, res, next) => {
         success: false,
         error: 'Request timeout - AI analysis took too long',
         timestamp: new Date().toISOString()
-      });
-    }
-  });
-
-  try {
-    const { error: errorData, context } = req.body;
-    
-    if (!errorData) {
-      const error = createError('validation', 'Error data is required for analysis');
-      error.statusCode = 400;
-      throw error;
-    }
-    
-    // Create a proper error object from the data
-    const error = new Error(errorData.message || 'Sample error for analysis');
-    error.name = errorData.name || 'Error';
-    error.stack = errorData.stack || new Error().stack;
-    error.context = context || {};
-    
-    // Trigger qerrors analysis with timeout protection
-    if (qerrors) {
-      // Create a timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('AI analysis timeout'));
-        }, 25000); // 25 second timeout for AI processing
-      });
-
-      // Race between qerrors analysis and timeout
-      await Promise.race([
-        new Promise((resolve) => {
-          qerrors(error, 'AI Analysis Request', req, res, () => {
-            if (!res.headersSent) {
-              res.json({
-                success: true,
-                analysis: 'Error analysis triggered via qerrors AI system',
-                errorId: error.uniqueErrorName,
-                timestamp: new Date().toISOString()
-              });
-            }
-            resolve();
-          });
-        }),
-        timeoutPromise
-      ]);
-    } else {
-      // Fallback if qerrors not available
-      res.json({
-        success: false,
-        error: 'qerrors not available for analysis',
-        timestamp: new Date().toISOString()
-      });
-    }
-  } catch (error) {
-    if (error.message === 'AI analysis timeout') {
-      if (!res.headersSent) {
-        res.status(408).json({
-          success: false,
-          error: 'AI analysis timeout - please try again',
-          timestamp: new Date().toISOString()
-        });
-      }
-    } else {
-      next(error);
-    }
-  }
 });
     }
   });
@@ -457,37 +391,93 @@ app.get('/critical', (req, res, next) => {
 // GET /concurrent - Concurrent error testing (optimized for scalability)
 app.get('/concurrent', async (req, res, next) => {
   try {
-    // Fixed array size to prevent unbounded memory growth
-    const CONCURRENT_LIMIT = 5;
-    const promises = new Array(CONCURRENT_LIMIT);
+    // Further reduced concurrent limit for better resource management
+    const CONCURRENT_LIMIT = 2; // Reduced from 5 to minimize memory usage
+    const CONCURRENT_TIMEOUT = 3000; // 3 seconds max for faster response
     
-    // Use direct assignment instead of push for better performance and memory predictability
+    // Use AbortController for timeout management
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), CONCURRENT_TIMEOUT);
+    
+    // Create promises with bounded memory and async operations to prevent CPU blocking
+    const promiseFactories = [];
     for (let i = 0; i < CONCURRENT_LIMIT; i++) {
-      promises[i] = new Promise((resolve, reject) => {
-        // Use fixed timeout to prevent CPU-intensive random calculations
-        const timeout = 50 + (i * 10); // Predictable timeout pattern
-        setTimeout(() => {
-          if (Math.random() > 0.5) {
-            reject(new Error(`Concurrent error ${i}`));
-          } else {
-            resolve({ id: i, success: true });
+      promiseFactories.push(() => {
+        return new Promise((resolve, reject) => {
+          // Use fixed timeout to prevent CPU-intensive random calculations
+          const timeout = 200 + (i * 100); // Predictable timeout pattern
+          
+          // Check for abort signal early
+          if (abortController.signal.aborted) {
+            reject(new Error('Concurrent operation aborted due to timeout'));
+            return;
           }
-        }, timeout);
+          
+          const timeoutId = setTimeout(() => {
+            // Double-check abort signal before processing
+            if (abortController.signal.aborted) {
+              reject(new Error('Concurrent operation aborted'));
+              return;
+            }
+            
+            // Use deterministic error generation instead of Math.random()
+            const shouldError = (i % 2) === 0; // Simple deterministic pattern
+            if (shouldError) {
+              reject(new Error(`Concurrent error ${i}`));
+            } else {
+              resolve({ id: i, success: true });
+            }
+          }, timeout);
+          
+          // Handle abort signal
+          abortController.signal.addEventListener('abort', () => {
+            clearTimeout(timeoutId);
+            reject(new Error('Concurrent operation aborted'));
+          });
+        });
       });
     }
     
-    const results = await Promise.allSettled(promises);
-    const errors = results.filter(r => r.status === 'rejected');
+    // Execute promises with controlled concurrency to prevent memory growth
+    const results = await Promise.allSettled(
+      promiseFactories.map(factory => factory())
+    );
+    clearTimeout(timeoutId);
+    
+    // Process results with bounded memory usage
+    const errors = [];
+    const successes = [];
+    
+    for (let i = 0; i < results.length && i < 10; i++) { // Bound processing to prevent memory issues
+      const result = results[i];
+      if (result.status === 'rejected') {
+        errors.push(result.reason.message);
+      } else {
+        successes.push(result.value);
+      }
+    }
     
     if (errors.length > 0) {
       const error = createError('concurrent', `${errors.length} concurrent errors occurred`);
-      error.errors = errors.map(e => e.reason.message);
+      error.errors = errors.slice(0, 3); // Further limit error messages to prevent memory growth
       throw error;
     }
     
-    res.json({ success: true, results: results.map(r => r.value) });
+    res.json({ 
+      success: true, 
+      results: successes,
+      processed: results.length,
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    next(error);
+    if (error.message === 'Concurrent operation aborted due to timeout' || 
+        error.message === 'Concurrent operation aborted') {
+      if (!res.headersSent) {
+        res.status(408).json({ error: 'Concurrent operations timed out' });
+      }
+    } else {
+      next(error);
+    }
   }
 });
 

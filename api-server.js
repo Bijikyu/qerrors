@@ -468,66 +468,86 @@ app.get('/concurrent', async (req, res, next) => {
 
   try {
     // Further reduced concurrent limit for better resource management
-    const CONCURRENT_LIMIT = 3;
-    const CONCURRENT_TIMEOUT = 5000; // 5 seconds max
-    const promises = new Array(CONCURRENT_LIMIT);
+    const CONCURRENT_LIMIT = 2; // Reduced from 3 to minimize memory usage
+    const CONCURRENT_TIMEOUT = 3000; // Reduced to 3 seconds for faster response
     
     // Use AbortController for timeout management
     const abortController = new AbortController();
     const timeoutId = setTimeout(() => abortController.abort(), CONCURRENT_TIMEOUT);
     
-    // Use direct assignment instead of push for better performance and memory predictability
+    // Create promises with bounded memory and async operations to prevent CPU blocking
+    const promiseFactories = [];
     for (let i = 0; i < CONCURRENT_LIMIT; i++) {
-      promises[i] = new Promise((resolve, reject) => {
-        // Use fixed timeout to prevent CPU-intensive random calculations
-        const timeout = 100 + (i * 50); // Longer, predictable timeout pattern
-        
-        // Check for abort signal
-        const checkAbort = () => {
+      promiseFactories.push(() => {
+        return new Promise((resolve, reject) => {
+          // Use fixed timeout to prevent CPU-intensive random calculations
+          const timeout = 200 + (i * 100); // Predictable timeout pattern
+          
+          // Check for abort signal early
           if (abortController.signal.aborted) {
             reject(new Error('Concurrent operation aborted due to timeout'));
-            return true;
+            return;
           }
-          return false;
-        };
-        
-        const timeoutId = setTimeout(() => {
-          if (!checkAbort()) {
-            if (Math.random() > 0.6) { // Reduced error rate for better performance
+          
+          const timeoutId = setTimeout(() => {
+            // Double-check abort signal before processing
+            if (abortController.signal.aborted) {
+              reject(new Error('Concurrent operation aborted'));
+              return;
+            }
+            
+            // Use deterministic error generation instead of Math.random()
+            const shouldError = (i % 2) === 0; // Simple deterministic pattern
+            if (shouldError) {
               reject(new Error(`Concurrent error ${i}`));
             } else {
               resolve({ id: i, success: true });
             }
-          }
-        }, timeout);
-        
-        // Handle abort signal
-        abortController.signal.addEventListener('abort', () => {
-          clearTimeout(timeoutId);
-          reject(new Error('Concurrent operation aborted'));
+          }, timeout);
+          
+          // Handle abort signal
+          abortController.signal.addEventListener('abort', () => {
+            clearTimeout(timeoutId);
+            reject(new Error('Concurrent operation aborted'));
+          });
         });
       });
     }
     
-    const results = await Promise.allSettled(promises);
+    // Execute promises with controlled concurrency to prevent memory growth
+    const results = await Promise.allSettled(
+      promiseFactories.map(factory => factory())
+    );
     clearTimeout(timeoutId);
     
-    const errors = results.filter(r => r.status === 'rejected');
+    // Process results with bounded memory usage
+    const errors = [];
+    const successes = [];
+    
+    for (let i = 0; i < results.length && i < 10; i++) { // Bound processing to prevent memory issues
+      const result = results[i];
+      if (result.status === 'rejected') {
+        errors.push(result.reason.message);
+      } else {
+        successes.push(result.value);
+      }
+    }
     
     if (errors.length > 0) {
       const error = createError('concurrent', `${errors.length} concurrent errors occurred`);
-      error.errors = errors.map(e => e.reason.message).slice(0, 5); // Limit error messages
+      error.errors = errors.slice(0, 3); // Further limit error messages to prevent memory growth
       throw error;
     }
     
     res.json({ 
       success: true, 
-      results: results.map(r => r.value),
+      results: successes,
       processed: results.length,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    if (error.message === 'Concurrent operation aborted due to timeout') {
+    if (error.message === 'Concurrent operation aborted due to timeout' || 
+        error.message === 'Concurrent operation aborted') {
       if (!res.headersSent) {
         res.status(408).json({ error: 'Concurrent operations timed out' });
       }
