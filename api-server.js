@@ -24,6 +24,7 @@ import express from 'express';           // Web framework
 import cors from 'cors';                 // Cross-origin resource sharing
 import path from 'path';                 // Path utilities
 import { createRequire } from 'module';  // Require function for ES modules
+import compression from 'compression';   // Response compression
 
 // Create require function to import CommonJS modules in ES module context
 const require = createRequire(import.meta.url);
@@ -34,9 +35,12 @@ const qerrors = qerrorsModule.qerrors || qerrorsModule.default;
 const app = express();
 const PORT = process.env.PORT || 3001;  // Configurable port with default
 
+// Performance middleware
+app.use(compression());                 // Enable response compression
+
 // Express middleware configuration
 app.use(cors());                        // Enable CORS for all routes
-app.use(express.json());                // Parse JSON request bodies
+app.use(express.json({ limit: '10mb' })); // Parse JSON request bodies with size limit
 app.use(express.static('.'));           // Serve static files from current directory
 
 /**

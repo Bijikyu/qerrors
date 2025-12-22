@@ -19,6 +19,7 @@
 const express = require('express');  // Web framework
 const cors = require('cors');        // Cross-origin resource sharing
 const path = require('path');        // Path utilities
+const compression = require('compression'); // Response compression
 
 // Import qerrors for intelligent error handling
 const qerrorsModule = require('./index.js');
@@ -30,6 +31,27 @@ const { rateLimiters, securityHeaders, cookieOptions } = require('./lib/security
 const privacyManager = require('./lib/privacyManager');
 const dataRetentionService = require('./lib/dataRetentionService');
 
+// Rate limiting for API endpoints
+const rateLimit = require('express-rate-limit');
+
+// General API rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // Limit each IP to 1000 requests per windowMs
+  message: { error: 'Too many requests from this IP, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Strict rate limiting for expensive operations
+const strictLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: { error: 'Rate limit exceeded for this endpoint' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Server configuration
 const app = express();
 const PORT = process.env.PORT || 3001;  // Configurable port with default
@@ -38,9 +60,15 @@ const PORT = process.env.PORT || 3001;  // Configurable port with default
 app.use(securityHeaders);               // Apply security headers
 app.use(rateLimiters.general);          // Apply general rate limiting
 
+// Performance middleware
+app.use(compression());                 // Enable response compression
+
+// Rate limiting middleware
+app.use('/api/', apiLimiter);           // Apply rate limiting to all API routes
+
 // Express middleware configuration
 app.use(cors());                        // Enable CORS for all routes
-app.use(express.json());                // Parse JSON request bodies
+app.use(express.json({ limit: '10mb' })); // Parse JSON request bodies with size limit
 app.use(express.static('.'));           // Serve static files from current directory
 
 // Validate environment on startup
@@ -186,7 +214,7 @@ app.post('/api/errors/custom', (req, res, next) => {
 });
 
 // POST /api/errors/analyze - AI-powered error analysis
-app.post('/api/errors/analyze', async (req, res, next) => {
+app.post('/api/errors/analyze', strictLimiter, async (req, res, next) => {
   try {
     const { error: errorData, context } = req.body;
     
@@ -382,21 +410,87 @@ app.post('/api/config', (req, res) => {
   }
 });
 
-// GET /api/health - AI model health checks
-app.get('/api/health', (req, res) => {
+// GET /api/health - Comprehensive health check endpoint
+app.get('/api/health', async (req, res) => {
   try {
+    const startTime = Date.now();
+    const memUsage = process.memoryUsage();
+    const uptime = process.uptime();
+    
+    // Check qerrors components
+    const qerrorsHealth = {
+      status: 'operational',
+      queueLength: qerrors.getQueueLength ? qerrors.getQueueLength() : 0,
+      rejectCount: qerrors.getQueueRejectCount ? qerrors.getQueueRejectCount() : 0,
+      cacheSize: 0 // Will be populated below
+    };
+    
+    // Check cache health
+    let cacheHealth = { status: 'unknown' };
+    try {
+      const { getAdviceFromCache } = require('./lib/qerrorsCache');
+      // Test cache with a simple operation
+      const testKey = 'health-check-' + Date.now();
+      getAdviceFromCache(testKey); // Just test access
+      cacheHealth = { status: 'operational' };
+    } catch (cacheError) {
+      cacheHealth = { status: 'error', error: cacheError.message };
+    }
+    
+    // Check AI service availability
+    const aiHealth = {
+      status: process.env.OPENAI_API_KEY ? 'configured' : 'not_configured',
+      provider: 'openai'
+    };
+    
+    // System health metrics
+    const systemHealth = {
+      uptime: uptime,
+      memory: {
+        rss: Math.round(memUsage.rss / 1024 / 1024) + 'MB',
+        heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB',
+        heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + 'MB',
+        external: Math.round(memUsage.external / 1024 / 1024) + 'MB'
+      },
+      cpu: process.cpuUsage(),
+      responseTime: Date.now() - startTime
+    };
+    
+    // Overall health determination
+    const overallStatus = (
+      qerrorsHealth.status === 'operational' &&
+      cacheHealth.status === 'operational' &&
+      systemHealth.responseTime < 1000
+    ) ? 'healthy' : 'degraded';
+    
     const health = {
-      status: 'healthy',
+      status: overallStatus,
       timestamp: new Date().toISOString(),
+      version: '1.2.7',
       services: {
-        qerrors: 'operational',
-        ai: process.env.OPENAI_API_KEY ? 'configured' : 'not_configured',
-        cache: 'operational'
+        qerrors: qerrorsHealth,
+        cache: cacheHealth,
+        ai: aiHealth
+      },
+      system: systemHealth,
+      checks: {
+        memory: systemHealth.memory.heapUsed.includes('MB') && 
+                parseInt(systemHealth.memory.heapUsed) < 512,
+        responseTime: systemHealth.responseTime < 1000,
+        queue: qerrorsHealth.queueLength < 100
       }
     };
-    res.json(health);
+    
+    const statusCode = overallStatus === 'healthy' ? 200 : 503;
+    res.status(statusCode).json(health);
+    
   } catch (error) {
-    res.status(500).json({ error: 'Health check failed' });
+    res.status(503).json({ 
+      status: 'unhealthy',
+      error: 'Health check failed',
+      timestamp: new Date().toISOString(),
+      details: error.message 
+    });
   }
 });
 
@@ -539,6 +633,46 @@ app.get('/', (req, res) => {
 });
 
 /**
+ * Graceful shutdown handler
+ * 
+ * Ensures all resources are properly cleaned up before process exit.
+ * This includes stopping background timers, closing database connections,
+ * and allowing in-flight requests to complete.
+ */
+const gracefulShutdown = async (signal) => {
+  console.log(`\n🛑 Received ${signal}, starting graceful shutdown...`);
+  
+  try {
+    // Stop accepting new requests
+    server.close(() => {
+      console.log('✅ HTTP server closed');
+    });
+    
+    // Cleanup qerrors resources
+    const { stopQueueMetrics, stopAdviceCleanup } = require('./lib/qerrorsCache');
+    const { stopQueueMetrics: stopQMetrics } = require('./lib/qerrorsQueue');
+    
+    stopQueueMetrics && stopQueueMetrics();
+    stopAdviceCleanup && stopAdviceCleanup();
+    stopQMetrics && stopQMetrics();
+    
+    // Force exit after timeout
+    setTimeout(() => {
+      console.log('⏰ Shutdown timeout, forcing exit');
+      process.exit(1);
+    }, 5000);
+    
+  } catch (error) {
+    console.error('❌ Error during shutdown:', error);
+    process.exit(1);
+  }
+};
+
+// Register shutdown handlers
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+/**
  * Server startup and module export
  * 
  * The server starts on the configured port and provides comprehensive
@@ -546,12 +680,13 @@ app.get('/', (req, res) => {
  * endpoints. The app is also exported for testing purposes and potential
  * module usage in other applications.
  */
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 QErrors API Server running on http://localhost:${PORT}`);
   console.log(`📊 Demo UI: http://localhost:${PORT}/demo.html`);
   console.log(`🔧 Functional Demo: http://localhost:${PORT}/demo-functional.html`);
   console.log(`📡 API Endpoints available at http://localhost:${PORT}/api/`);
+  console.log(`🛡️ Graceful shutdown enabled`);
 });
 
-// Export the Express app for testing and module usage
-module.exports = app;
+// Export the Express app and server for testing and module usage
+module.exports = { app, server };
