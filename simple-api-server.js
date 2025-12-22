@@ -190,15 +190,39 @@ app.post('/auth/login', async (req, res, next) => {
       throw error;
     }
     
-    if (username !== 'admin' || password !== 'password') {
+    // For this simple demo server, use environment variables with secure defaults
+    const validUsername = process.env.ADMIN_USERNAME || 'admin';
+    const validPassword = process.env.ADMIN_PASSWORD;
+    
+    if (!validPassword) {
+      const error = createError('auth', 'Server not properly configured');
+      error.status = 500;
+      throw error;
+    }
+    
+    if (username !== validUsername || password !== validPassword) {
       const error = createError('auth', 'Invalid credentials');
       error.status = 401;
       throw error;
     }
     
+    // Generate proper JWT token with secure secret
+    const jwt = require('jsonwebtoken');
+    const jwtSecret = process.env.JWT_SECRET;
+    
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET environment variable is required for secure authentication');
+    }
+    
+    const token = jwt.sign(
+      { username, id: 1, iat: Math.floor(Date.now() / 1000) },
+      jwtSecret,
+      { expiresIn: '24h' }
+    );
+    
     res.json({ 
       success: true, 
-      token: 'mock-jwt-token',
+      token,
       user: { username, id: 1 }
     });
   } catch (error) {

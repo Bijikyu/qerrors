@@ -19,20 +19,38 @@
 const express = require('express');  // Web framework
 const cors = require('cors');        // Cross-origin resource sharing
 const path = require('path');        // Path utilities
-const jwt = require('jsonwebtoken');  // JWT token generation and validation
 
 // Import qerrors for intelligent error handling
 const qerrorsModule = require('./index.js');
 const qerrors = qerrorsModule.qerrors;  // Extract main qerrors function
 
+// Security imports
+const auth = require('./lib/auth');
+const { rateLimiters, securityHeaders, cookieOptions } = require('./lib/securityMiddleware');
+const privacyManager = require('./lib/privacyManager');
+const dataRetentionService = require('./lib/dataRetentionService');
+
 // Server configuration
 const app = express();
 const PORT = process.env.PORT || 3001;  // Configurable port with default
+
+// Security middleware
+app.use(securityHeaders);               // Apply security headers
+app.use(rateLimiters.general);          // Apply general rate limiting
 
 // Express middleware configuration
 app.use(cors());                        // Enable CORS for all routes
 app.use(express.json());                // Parse JSON request bodies
 app.use(express.static('.'));           // Serve static files from current directory
+
+// Validate environment on startup
+try {
+  auth.validateEnvironment();
+} catch (error) {
+  console.error('SECURITY ERROR:', error.message);
+  console.error('Please set proper environment variables before starting the server.');
+  process.exit(1);
+}
 
 /**
  * Global error handling middleware with qerrors integration
@@ -237,37 +255,56 @@ app.post('/controller/error', (req, res, next) => {
   next(error);
 });
 
-// POST /auth/login - Authentication error testing
-app.post('/auth/login', async (req, res, next) => {
+// POST /auth/login - Secure authentication with rate limiting
+app.post('/auth/login', rateLimiters.auth, async (req, res, next) => {
   try {
     const { username, password } = req.body;
     
     if (!username || !password) {
-      const error = createError('auth', 'Missing credentials');
+      const error = qerrors.createTypedError('Missing credentials', qerrors.ErrorTypes.AUTHENTICATION, 'AUTH_ERROR');
       error.statusCode = 401;
       throw error;
     }
     
-    const validUsername = process.env.ADMIN_USERNAME || 'admin';
-    const validPassword = process.env.ADMIN_PASSWORD || 'secure_password_change_me';
+    const validUsername = process.env.ADMIN_USERNAME;
     
-    if (username !== validUsername || password !== validPassword) {
-      const error = createError('auth', 'Invalid credentials');
+    // Validate credentials securely
+    if (username !== validUsername) {
+      const error = qerrors.createTypedError('Invalid credentials', qerrors.ErrorTypes.AUTHENTICATION, 'AUTH_ERROR');
       error.statusCode = 401;
       throw error;
     }
     
-    const token = jwt.sign(
-      { username, id: 1 },
-      process.env.JWT_SECRET || 'change_this_in_production_jwt_secret_key',
-      { expiresIn: '1h' }
-    );
+    // In a real application, you would retrieve the hashed password from a database
+    // For this demo, we'll hash the environment password on startup
+    const storedPasswordHash = await auth.hashPassword(process.env.ADMIN_PASSWORD);
+    const isValidPassword = await auth.verifyPassword(password, storedPasswordHash);
+    
+    if (!isValidPassword) {
+      const error = qerrors.createTypedError('Invalid credentials', qerrors.ErrorTypes.AUTHENTICATION, 'AUTH_ERROR');
+      error.statusCode = 401;
+      throw error;
+    }
+    
+    const token = auth.generateToken({ username, id: 1 });
+    
+    // Set secure HTTP-only cookie
+    res.cookie('authToken', token, cookieOptions);
     
     res.json({ 
       success: true, 
-      token,
       user: { username, id: 1 }
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /auth/logout - Logout endpoint
+app.post('/auth/logout', (req, res, next) => {
+  try {
+    res.clearCookie('authToken', cookieOptions);
+    res.json({ success: true, message: 'Logged out successfully' });
   } catch (error) {
     next(error);
   }
@@ -383,6 +420,116 @@ app.get('/api/logs/export', (req, res) => {
     res.json({ logs });
   } catch (error) {
     res.status(500).json({ error: 'Failed to export logs' });
+  }
+});
+
+// Privacy and GDPR/CCPA Compliance Endpoints
+
+// GET /privacy/consent - Get consent request form
+app.get('/privacy/consent', (req, res, next) => {
+  try {
+    const consentRequest = privacyManager.getConsentRequest({
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+    res.json(consentRequest);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /privacy/consent - Record user consent
+app.post('/privacy/consent', rateLimiters.general, (req, res, next) => {
+  try {
+    const { userId, purposes, marketing, analytics, essential } = req.body;
+    
+    if (!userId) {
+      const error = qerrors.createTypedError('User ID required', qerrors.errorTypes.VALIDATION, 'VALIDATION_ERROR');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const consent = privacyManager.recordConsent(userId, {
+      purposes,
+      marketing,
+      analytics,
+      essential,
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
+    res.json({ success: true, consent });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// PUT /privacy/consent/:userId - Update user consent
+app.put('/privacy/consent/:userId', rateLimiters.general, (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const updates = req.body;
+
+    const updatedConsent = privacyManager.updateConsent(userId, updates);
+    res.json({ success: true, consent: updatedConsent });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /privacy/consent/:userId - Withdraw consent (Right to be Forgotten)
+app.delete('/privacy/consent/:userId', rateLimiters.general, (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    
+    const withdrawnConsent = privacyManager.withdrawConsent(userId);
+    res.json({ success: true, message: 'Consent withdrawn', consent: withdrawnConsent });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /privacy/data/:userId - Get user data (Data Portability)
+app.get('/privacy/data/:userId', (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    
+    const userData = privacyManager.getUserData(userId);
+    res.json(userData);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /privacy/policy - Get privacy policy
+app.get('/privacy/policy', (req, res, next) => {
+  try {
+    const policy = privacyManager.getPrivacyPolicy();
+    res.json(policy);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Data Retention Management Endpoints
+
+// GET /admin/retention/stats - Get data retention statistics
+app.get('/admin/retention/stats', (req, res, next) => {
+  try {
+    const stats = dataRetentionService.getStats();
+    res.json(stats);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /admin/retention/cleanup - Trigger manual cleanup
+app.post('/admin/retention/cleanup', async (req, res, next) => {
+  try {
+    await dataRetentionService.triggerManualCleanup();
+    res.json({ success: true, message: 'Manual cleanup triggered' });
+  } catch (error) {
+    next(error);
   }
 });
 
