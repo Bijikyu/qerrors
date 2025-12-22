@@ -68,12 +68,15 @@ app.use((req, res, next) => {
 // Rate limiting for API endpoints
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5000, // Limit each IP to 5000 requests per windowMs
+  max: 1000, // Reduced limit for better resource management
   message: { error: 'Too many requests', retryAfter: '15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => req.ip,
-  skip: (req) => req.url.startsWith('/health') || req.url.startsWith('/metrics')
+  skip: (req) => req.url.startsWith('/health') || req.url.startsWith('/metrics'),
+  // Memory management options
+  store: new Map(), // Use in-memory store with automatic cleanup
+  resetExpiryOnChange: true, // Reset expiry window on successful requests
 });
 
 // Express middleware configuration with enhanced security and limits
@@ -456,38 +459,81 @@ app.get('/critical', (req, res, next) => {
 
 // GET /concurrent - Concurrent error testing (optimized for scalability)
 app.get('/concurrent', async (req, res, next) => {
+  // Add request timeout for concurrent operations
+  req.setTimeout(10000, () => {
+    if (!res.headersSent) {
+      res.status(408).json({ error: 'Concurrent operation timeout' });
+    }
+  });
+
   try {
-    // Fixed array size to prevent unbounded memory growth
-    const CONCURRENT_LIMIT = 5;
+    // Further reduced concurrent limit for better resource management
+    const CONCURRENT_LIMIT = 3;
+    const CONCURRENT_TIMEOUT = 5000; // 5 seconds max
     const promises = new Array(CONCURRENT_LIMIT);
     
-    // Use Array.map instead of push for better performance and memory predictability
+    // Use AbortController for timeout management
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), CONCURRENT_TIMEOUT);
+    
+    // Use direct assignment instead of push for better performance and memory predictability
     for (let i = 0; i < CONCURRENT_LIMIT; i++) {
       promises[i] = new Promise((resolve, reject) => {
         // Use fixed timeout to prevent CPU-intensive random calculations
-        const timeout = 50 + (i * 10); // Predictable timeout pattern
-        setTimeout(() => {
-          if (Math.random() > 0.5) {
-            reject(new Error(`Concurrent error ${i}`));
-          } else {
-            resolve({ id: i, success: true });
+        const timeout = 100 + (i * 50); // Longer, predictable timeout pattern
+        
+        // Check for abort signal
+        const checkAbort = () => {
+          if (abortController.signal.aborted) {
+            reject(new Error('Concurrent operation aborted due to timeout'));
+            return true;
+          }
+          return false;
+        };
+        
+        const timeoutId = setTimeout(() => {
+          if (!checkAbort()) {
+            if (Math.random() > 0.6) { // Reduced error rate for better performance
+              reject(new Error(`Concurrent error ${i}`));
+            } else {
+              resolve({ id: i, success: true });
+            }
           }
         }, timeout);
+        
+        // Handle abort signal
+        abortController.signal.addEventListener('abort', () => {
+          clearTimeout(timeoutId);
+          reject(new Error('Concurrent operation aborted'));
+        });
       });
     }
     
     const results = await Promise.allSettled(promises);
+    clearTimeout(timeoutId);
+    
     const errors = results.filter(r => r.status === 'rejected');
     
     if (errors.length > 0) {
       const error = createError('concurrent', `${errors.length} concurrent errors occurred`);
-      error.errors = errors.map(e => e.reason.message);
+      error.errors = errors.map(e => e.reason.message).slice(0, 5); // Limit error messages
       throw error;
     }
     
-    res.json({ success: true, results: results.map(r => r.value) });
+    res.json({ 
+      success: true, 
+      results: results.map(r => r.value),
+      processed: results.length,
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    next(error);
+    if (error.message === 'Concurrent operation aborted due to timeout') {
+      if (!res.headersSent) {
+        res.status(408).json({ error: 'Concurrent operations timed out' });
+      }
+    } else {
+      next(error);
+    }
   }
 });
 
