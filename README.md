@@ -138,10 +138,10 @@ qerrors provides a comprehensive suite of utilities organized into logical group
 qerrors reads several environment variables to tune its behavior. A small configuration file in the library sets sensible defaults when these variables are not defined. 
 
 **Default Configuration (when no environment variables are set):**
-- **AI Provider**: Google Gemini (`QERRORS_AI_PROVIDER='google'`)  
+- **AI Provider**: Google Gemini (`QERRORS_AI_PROVIDER='google'`) - **Primary provider**
 - **AI Model**: Gemini 2.5 Flash-lite (`QERRORS_AI_MODEL='gemini-2.5-flash-lite'`)
 
-The `GEMINI_API_KEY` must be provided to enable AI analysis with Google Gemini (default provider). Alternatively, you can use `OPENAI_API_KEY` for OpenAI models.
+The `GEMINI_API_KEY` must be provided to enable AI analysis with Google Gemini (default provider). Alternatively, you can use `OPENAI_API_KEY` for OpenAI models as a secondary option.
 
 If both API keys are omitted, qerrors still logs errors, but AI-generated advice will be skipped.
 
@@ -149,10 +149,10 @@ If both API keys are omitted, qerrors still logs errors, but AI-generated advice
 
 **Dependencies**: This package includes production-grade security improvements with the `escape-html` library for safe HTML output.
 
-* `GEMINI_API_KEY` &ndash; your Google Gemini API key (primary AI provider).
+* `GEMINI_API_KEY` &ndash; your Google Gemini API key (primary AI provider, required for default setup).
 * `OPENAI_API_KEY` &ndash; your OpenAI API key (optional alternative provider).
 
-* `QERRORS_AI_PROVIDER` &ndash; AI provider selection: 'google' (default) or 'openai'.
+* `QERRORS_AI_PROVIDER` &ndash; AI provider selection: 'google' (default, primary) or 'openai' (alternative).
 * `QERRORS_AI_MODEL` &ndash; specific AI model to use (optional, uses provider default if not set):
   - Google Gemini models: 'gemini-2.5-flash-lite' (default), 'gemini-2.0-flash-exp', 'gemini-pro', 'gemini-1.5-pro', 'gemini-1.5-flash'
   - OpenAI models: 'gpt-4o' (default), 'gpt-4o-mini', 'gpt-4', 'gpt-3.5-turbo'
@@ -173,7 +173,7 @@ If both API keys are omitted, qerrors still logs errors, but AI-generated advice
 * `QERRORS_MAX_SOCKETS` &ndash; maximum sockets per agent (default `50`, increase for high traffic).
 * `QERRORS_MAX_FREE_SOCKETS` &ndash; maximum idle sockets per agent (default `256`).
 
-* `QERRORS_MAX_TOKENS` &ndash; max tokens for each OpenAI request (default `2048`). Uses GPT-4o model for error analysis.
+* `QERRORS_MAX_TOKENS` &ndash; max tokens for each AI request (default `2048`). Applies to both Google Gemini and OpenAI models.
 
 * `QERRORS_METRIC_INTERVAL_MS` &ndash; interval for queue metric logging in milliseconds (default `30000`, set to `0` to disable).
 
@@ -600,7 +600,7 @@ readability.
 qerrors supports multiple AI providers through LangChain integration, with Google Gemini as the primary provider for error analysis:
 
 #### Supported Providers
-- **Google Gemini**: Gemini 2.5 Flash-lite model (default, recommended)
+- **Google Gemini**: Gemini 2.5 Flash-lite model (default, primary, recommended)
 - **OpenAI**: GPT-4o model (optional alternative)
 
 #### Configuration
@@ -644,14 +644,14 @@ console.log(`Using provider: ${currentInfo.provider}, model: ${currentInfo.model
 
 #### Complete Configuration Examples
 
-**Using Google Gemini with specific model:**
+**Using Google Gemini with specific model (Recommended Setup):**
 ```bash
 export GEMINI_API_KEY="your-gemini-api-key"
-export QERRORS_AI_PROVIDER="google"          # Optional (default)
+export QERRORS_AI_PROVIDER="google"          # Optional (default, primary)
 export QERRORS_AI_MODEL="gemini-2.5-flash-lite"  # Optional (default)
 ```
 
-**Using OpenAI with specific model:**
+**Using OpenAI with specific model (Alternative Setup):**
 ```bash
 export OPENAI_API_KEY="your-openai-api-key"
 export QERRORS_AI_PROVIDER="openai"
@@ -661,6 +661,442 @@ export QERRORS_AI_MODEL="gpt-4o"             # Optional (default for OpenAI)
 **Available Models by Provider:**
 - **Google Gemini**: `gemini-2.5-flash-lite` (default), `gemini-2.0-flash-exp`, `gemini-pro`, `gemini-1.5-pro`, `gemini-1.5-flash`
 - **OpenAI**: `gpt-4o` (default), `gpt-4o-mini`, `gpt-4`, `gpt-3.5-turbo`
+
+### Circuit Breaker (Resilience Patterns)
+
+qerrors includes a production-ready circuit breaker implementation using the opossum library for protecting external service calls and implementing resilience patterns:
+
+#### Circuit Breaker Features
+- **State Management**: Automatic state transitions (CLOSED → OPEN → HALF_OPEN)
+- **Failure Detection**: Configurable failure thresholds and timeout protection
+- **Performance Monitoring**: Built-in metrics collection and health checking
+- **Graceful Recovery**: Automatic recovery attempts with configurable timeouts
+- **Event Emission**: Real-time events for monitoring and alerting
+
+#### Basic Usage
+```javascript
+const { createCircuitBreaker } = require('qerrors');
+
+// Create circuit breaker for external API calls
+const apiBreaker = createCircuitBreaker(
+  async (userId) => fetchUserData(userId),
+  'UserAPI',
+  {
+    failureThreshold: 5,        // Open after 5 consecutive failures
+    recoveryTimeoutMs: 30000,  // Wait 30 seconds before recovery
+    timeoutMs: 10000          // Fail operations after 10 seconds
+  }
+);
+
+try {
+  const userData = await apiBreaker.execute('user-123');
+  console.log('User data:', userData);
+} catch (error) {
+  if (apiBreaker.getState() === 'OPEN') {
+    console.log('UserAPI is temporarily unavailable, using fallback');
+    return fallbackUserData;
+  }
+  throw error;
+}
+```
+
+#### Advanced Usage with Custom Configuration
+```javascript
+const { CircuitBreaker } = require('qerrors');
+
+class CustomServiceBreaker extends CircuitBreaker {
+  constructor() {
+    super(
+      async (data) => processExternalData(data),
+      'DataProcessor',
+      {
+        failureThreshold: 3,
+        recoveryTimeoutMs: 60000,
+        timeoutMs: 5000,
+        monitoringPeriodMs: 120000
+      }
+    );
+  }
+
+  // Custom error handling
+  async execute(data) {
+    try {
+      return await super.execute(data);
+    } catch (error) {
+      // Custom error processing
+      this.logFailure(error, data);
+      throw error;
+    }
+  }
+
+  // Custom health check
+  async healthCheck() {
+    const health = await super.healthCheck();
+    return {
+      ...health,
+      customMetrics: this.getCustomMetrics()
+    };
+  }
+}
+
+// Use custom breaker
+const customBreaker = new CustomServiceBreaker();
+```
+
+#### Monitoring and Metrics
+```javascript
+// Get comprehensive metrics
+const metrics = apiBreaker.getMetrics();
+console.log('Circuit breaker health:', {
+  successRate: apiBreaker.getSuccessRate(),
+  failureRate: apiBreaker.getFailureRate(),
+  totalRequests: metrics.totalRequests,
+  averageResponseTime: metrics.averageResponseTime,
+  lastFailureTime: metrics.lastFailureTime
+});
+
+// Health check
+const health = apiBreaker.healthCheck();
+if (!health.healthy) {
+  console.warn('Circuit breaker is unhealthy:', health.error);
+}
+
+// Event monitoring
+apiBreaker.breaker.on('open', () => {
+  console.warn('Circuit breaker opened - service unavailable');
+});
+
+apiBreaker.breaker.on('close', () => {
+  console.log('Circuit breaker closed - service recovered');
+});
+```
+
+### Dependency Injection System
+
+qerrors includes a comprehensive dependency injection (DI) system that enables advanced testing patterns, modular architecture, and flexible configuration management:
+
+#### DI System Features
+- **Lazy Initialization**: Dependencies are created only when needed
+- **Circular Dependency Resolution**: Smart handling of circular references
+- **Testing Support**: Easy mocking and dependency replacement for tests
+- **Configuration Flexibility**: Runtime dependency configuration
+- **Memory Efficiency**: Shared instances with proper lifecycle management
+
+#### Core Dependencies Management
+```javascript
+const { 
+  getDefaultQerrorsCoreDeps, 
+  createQerrorsCoreDeps,
+  resetDefaultQerrorsCoreDeps 
+} = require('qerrors');
+
+// Get default dependencies (lazy initialization)
+const deps = getDefaultQerrorsCoreDeps();
+console.log('Default dependencies loaded');
+
+// Create custom dependencies for testing
+const testDeps = createQerrorsCoreDeps({
+  logger: mockLogger,
+  config: testConfig,
+  errorTypes: mockErrorTypes
+});
+
+// Use custom dependencies with DI functions
+const { qerr, logErrorWithSeverityDI } = require('qerrors');
+await qerr(error, 'testFunction', { test: true }, testDeps);
+await logErrorWithSeverityDI({
+  error: testError,
+  functionName: 'testFunction',
+  context: { test: true },
+  deps: testDeps
+});
+```
+
+#### Advanced DI Patterns
+```javascript
+// Custom dependency injection for microservices
+const createServiceDeps = (serviceName, config) => {
+  return createQerrorsCoreDeps({
+    logger: createServiceLogger(serviceName),
+    config: { ...config, serviceName },
+    errorTypes: createServiceErrorTypes(serviceName),
+    circuitBreaker: createServiceCircuitBreaker(serviceName)
+  });
+};
+
+// Service-specific error handling with DI
+const handleServiceError = async (error, context, deps = null) => {
+  const serviceDeps = deps || createServiceDeps('user-service', config);
+  
+  await logErrorWithSeverityDI({
+    error,
+    functionName: 'userServiceOperation',
+    context: { ...context, service: 'user-service' },
+    severity: getErrorSeverity(error, serviceDeps),
+    deps: serviceDeps
+  });
+};
+
+// Testing with mocked dependencies
+const createTestDeps = () => {
+  const mockLogger = {
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn()
+  };
+  
+  const mockConfig = {
+    QERRORS_AI_PROVIDER: 'test',
+    QERRORS_VERBOSE: 'false'
+  };
+  
+  return createQerrorsCoreDeps({
+    logger: mockLogger,
+    config: mockConfig,
+    errorTypes: testErrorTypes
+  });
+};
+
+// Test with DI
+describe('Service with DI', () => {
+  let testDeps;
+  
+  beforeEach(() => {
+    testDeps = createTestDeps();
+  });
+  
+  afterEach(() => {
+    resetDefaultQerrorsCoreDeps();
+  });
+  
+  it('should handle errors with mocked dependencies', async () => {
+    const error = new Error('Test error');
+    
+    await qerr(error, 'testFunction', { test: true }, testDeps);
+    
+    expect(testDeps.logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Test error',
+        context: 'testFunction'
+      })
+    );
+  });
+});
+```
+
+#### DI for Error Handling Wrappers
+```javascript
+// Create error wrapper with custom dependencies
+const createErrorWrapper = (customDeps) => {
+  return withErrorHandlingDI(customDeps);
+};
+
+// Use wrapper with custom configuration
+const customWrapper = createErrorWrapper({
+  logger: enhancedLogger,
+  config: customConfig,
+  errorTypes: customErrorTypes
+});
+
+const result = await customWrapper(
+  async () => {
+    return await riskyOperation();
+  },
+  'riskyOperation',
+  { timeout: 5000 }
+);
+```
+
+### Entity Guards (Validation System)
+
+qerrors includes a comprehensive entity validation system that provides standardized guards for checking entity existence and throwing descriptive errors:
+
+#### Entity Guard Features
+- **Existence Validation**: Check if entities exist before processing
+- **Descriptive Errors**: Clear error messages with entity context
+- **Batch Validation**: Validate multiple entities efficiently
+- **Flexible Patterns**: Support for different validation approaches
+- **Error Integration**: Seamless integration with qerrors error system
+
+#### Basic Entity Validation
+```javascript
+const { 
+  throwIfNotFound, 
+  entityExists, 
+  assertEntityExists 
+} = require('qerrors');
+
+// Single entity validation
+const getUser = async (userId) => {
+  const user = await database.users.findById(userId);
+  throwIfNotFound(user, 'User', { userId });
+  return user;
+};
+
+// Non-throwing existence check
+const userExists = async (userId) => {
+  const user = await database.users.findById(userId);
+  return entityExists(user); // Returns true/false
+};
+
+// Typed assertion with custom error type
+const getPost = async (postId) => {
+  const post = await database.posts.findById(postId);
+  assertEntityExists(post, 'Post', ErrorTypes.NOT_FOUND);
+  return post;
+};
+```
+
+#### Advanced Validation Patterns
+```javascript
+// Object-based validation with detailed results
+const validateUser = async (userData) => {
+  const result = throwIfNotFoundObj({
+    entity: userData,
+    entityName: 'User',
+    required: ['id', 'email', 'name']
+  });
+  
+  if (!result.found) {
+    throw ErrorFactory.validation('User data is incomplete', 'userData');
+  }
+  
+  return result.entity;
+};
+
+// Batch validation for multiple entities
+const validatePosts = async (postIds) => {
+  const posts = await database.posts.findByIds(postIds);
+  const missingPosts = throwIfNotFoundMany(posts, 'Posts');
+  
+  if (missingPosts.length > 0) {
+    throw ErrorFactory.notFound(`Posts: ${missingPosts.join(', ')}`);
+  }
+  
+  return posts;
+};
+
+// Custom message validation
+const validatePermission = async (userId, resource) => {
+  const permission = await database.permissions.find(userId, resource);
+  throwIfNotFoundWithMessage(
+    permission, 
+    `User ${userId} does not have permission to access ${resource}`
+  );
+  return permission;
+};
+```
+
+#### Integration with Error Handling
+```javascript
+// Controller with entity guards
+const getUserController = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Validate user exists
+    const user = await database.users.findById(userId);
+    throwIfNotFound(user, 'User', { 
+      userId, 
+      endpoint: '/users/:id' 
+    });
+    
+    // Validate user permissions
+    const permission = await database.permissions.find(userId, 'read');
+    throwIfNotFoundWithMessage(
+      permission, 
+      `User ${userId} lacks read permissions`
+    );
+    
+    return sendSuccessResponse(res, user);
+  } catch (error) {
+    return handleControllerError(res, error, 'getUserController', {
+      userId: req.params.userId
+    });
+  }
+};
+
+// Service layer with comprehensive validation
+const userService = {
+  async updateUser(userId, updateData) {
+    // Validate user exists
+    const user = await database.users.findById(userId);
+    throwIfNotFound(user, 'User', { userId, operation: 'update' });
+    
+    // Validate related entities
+    if (updateData.departmentId) {
+      const department = await database.departments.findById(updateData.departmentId);
+      throwIfNotFound(department, 'Department', { 
+        departmentId: updateData.departmentId 
+      });
+    }
+    
+    // Perform update
+    const updatedUser = await database.users.update(userId, updateData);
+    
+    // Validate update succeeded
+    throwIfNotFound(updatedUser, 'Updated User', { 
+      userId, 
+      operation: 'update' 
+    });
+    
+    return updatedUser;
+  },
+  
+  async deleteUser(userId) {
+    // Check user exists before deletion
+    const user = await database.users.findById(userId);
+    throwIfNotFound(user, 'User', { userId, operation: 'delete' });
+    
+    // Check for dependent entities
+    const orders = await database.orders.findByUserId(userId);
+    if (orders.length > 0) {
+      throw ErrorFactory.validation(
+        'Cannot delete user with existing orders',
+        'userId'
+      );
+    }
+    
+    await database.users.delete(userId);
+  }
+};
+```
+
+#### Testing with Entity Guards
+```javascript
+// Test utilities for entity validation
+const createMockEntity = (id, data) => ({
+  id,
+  ...data,
+  exists: () => true
+});
+
+const createNullEntity = () => null;
+
+// Test entity guard behavior
+describe('Entity Guards', () => {
+  it('should throw when entity not found', () => {
+    const nullUser = createNullEntity();
+    
+    expect(() => {
+      throwIfNotFound(nullUser, 'User');
+    }).toThrow('User not found');
+  });
+  
+  it('should not throw when entity exists', () => {
+    const user = createMockEntity(123, { name: 'John' });
+    
+    expect(() => {
+      throwIfNotFound(user, 'User');
+    }).not.toThrow();
+  });
+  
+  it('should return correct existence status', () => {
+    expect(entityExists(createMockEntity(123))).toBe(true);
+    expect(entityExists(createNullEntity())).toBe(false);
+  });
+});
+```
 
 ### Enhanced Logging Features
 
