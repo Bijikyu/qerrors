@@ -1,32 +1,65 @@
 /**
  * Express.js API server for qerrors demo and integration testing
- * Provides the missing backend endpoints that frontend demos expect
+ * 
+ * This server provides a comprehensive backend API that demonstrates
+ * qerrors functionality and provides the endpoints that frontend demos
+ * expect. It integrates qerrors middleware for intelligent error handling
+ * and includes various test scenarios for validation.
+ * 
+ * Key features:
+ * - Full qerrors integration with AI-powered error analysis
+ * - Multiple error type generation for testing
+ * - Authentication and authorization testing endpoints
+ * - Metrics and health check endpoints
+ * - Static file serving for demo pages
+ * - Comprehensive error scenario coverage
  */
 
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
+// Core dependencies
+const express = require('express');  // Web framework
+const cors = require('cors');        // Cross-origin resource sharing
+const path = require('path');        // Path utilities
+
+// Import qerrors for intelligent error handling
 const qerrorsModule = require('./index.js');
+const qerrors = qerrorsModule.qerrors;  // Extract main qerrors function
 
-const qerrors = qerrorsModule.qerrors;
-
+// Server configuration
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3001;  // Configurable port with default
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static('.'));
+// Express middleware configuration
+app.use(cors());                        // Enable CORS for all routes
+app.use(express.json());                // Parse JSON request bodies
+app.use(express.static('.'));           // Serve static files from current directory
 
-// Error handling middleware
+/**
+ * Global error handling middleware with qerrors integration
+ * 
+ * This middleware catches all errors in the Express application and
+ * routes them through qerrors for intelligent error handling with
+ * AI-powered analysis. This ensures consistent error responses across
+ * all endpoints and provides the full qerrors functionality.
+ */
 app.use((err, req, res, next) => {
   qerrors(err, 'Express middleware', req, res, next);
 });
 
-// Helper function to simulate different error types
+/**
+ * Helper function to create test errors with type classification
+ * 
+ * This function creates Error objects with additional type information
+ * that qerrors can use for proper classification and analysis. It's used
+ * throughout the API endpoints to generate different error scenarios
+ * for testing and demonstration purposes.
+ * 
+ * @param {string} type - Error type for classification
+ * @param {string} message - Error message (optional, defaults to 'Test error')
+ * @returns {Error} Configured error object with type property
+ */
 function createError(type, message = 'Test error') {
   const error = new Error(message);
-  error.type = type;
+  error.type = type;  // Add type property for qerrors classification
   return error;
 }
 
@@ -348,7 +381,14 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'demo.html'));
 });
 
-// Start server
+/**
+ * Server startup and module export
+ * 
+ * The server starts on the configured port and provides comprehensive
+ * console output with URLs for all available demo interfaces and API
+ * endpoints. The app is also exported for testing purposes and potential
+ * module usage in other applications.
+ */
 app.listen(PORT, () => {
   console.log(`🚀 QErrors API Server running on http://localhost:${PORT}`);
   console.log(`📊 Demo UI: http://localhost:${PORT}/demo.html`);
@@ -356,4 +396,5 @@ app.listen(PORT, () => {
   console.log(`📡 API Endpoints available at http://localhost:${PORT}/api/`);
 });
 
+// Export the Express app for testing and module usage
 module.exports = app;

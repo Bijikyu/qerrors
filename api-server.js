@@ -3,92 +3,162 @@
  * Works with ES module setup
  */
 
-import express from 'express';
-import cors from 'cors';
-import path from 'path';
-import { createRequire } from 'module';
+/**
+ * Express.js API server for qerrors demo and integration testing
+ * 
+ * This server provides a comprehensive API for testing qerrors functionality
+ * including error generation, AI analysis, and various error scenarios.
+ * It's designed to work with ES module setup and provides both REST endpoints
+ * and static file serving for demo pages.
+ * 
+ * Key features:
+ * - Multiple error type generation for testing
+ * - AI-powered error analysis endpoints
+ * - Authentication and authorization testing
+ * - Concurrent error handling
+ * - Metrics and health check endpoints
+ * - Static file serving for demo UI
+ */
 
+import express from 'express';           // Web framework
+import cors from 'cors';                 // Cross-origin resource sharing
+import path from 'path';                 // Path utilities
+import { createRequire } from 'module';  // Require function for ES modules
+
+// Create require function to import CommonJS modules in ES module context
 const require = createRequire(import.meta.url);
 const qerrorsModule = require('./index.js');
 
+// Extract qerrors function from module (handle both export patterns)
 const qerrors = qerrorsModule.qerrors || qerrorsModule.default;
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3001;  // Configurable port with default
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static('.'));
+// Express middleware configuration
+app.use(cors());                        // Enable CORS for all routes
+app.use(express.json());                // Parse JSON request bodies
+app.use(express.static('.'));           // Serve static files from current directory
 
-// Error handling middleware
+/**
+ * Global error handling middleware - Integrates qerrors with Express
+ * 
+ * This middleware catches all errors in the Express application and
+ * routes them through qerrors for intelligent error handling. It provides
+ * fallback behavior if qerrors is not available, ensuring the server
+ * remains functional even if the error handling system fails.
+ */
 app.use((err, req, res, next) => {
   if (qerrors) {
+    // Use qerrors for intelligent error handling with AI analysis
     qerrors(err, 'Express middleware', req, res, next);
   } else {
+    // Fallback to standard Express error handling
     next(err);
   }
 });
 
-// Helper function to simulate different error types
+/**
+ * Helper function to create test errors with specific types
+ * 
+ * This function creates Error objects with additional type information
+ * that qerrors can use for classification and analysis. It's used
+ * throughout the API endpoints to generate different error scenarios.
+ * 
+ * @param {string} type - Error type for classification
+ * @param {string} message - Error message (optional, defaults to 'Test error')
+ * @returns {Error} Configured error object with type property
+ */
 function createError(type, message = 'Test error') {
   const error = new Error(message);
-  error.type = type;
+  error.type = type;  // Add type property for qerrors classification
   return error;
 }
 
-// API Endpoints
+// ====================================================================
+// API ENDPOINTS - Comprehensive testing interface for qerrors
+// ====================================================================
 
-// GET /api/data - Missing endpoint that frontend expects
+/**
+ * GET /api/data - Basic data endpoint for frontend integration
+ * 
+ * This endpoint provides a simple success response that frontend
+ * applications can use to verify backend connectivity. It demonstrates
+ * normal operation without errors for comparison with error scenarios.
+ */
 app.get('/api/data', async (req, res, next) => {
   try {
-    // Simulate some data response
+    // Return sample data to demonstrate successful API operation
     res.json({
       success: true,
       data: {
         message: 'Data from backend',
         timestamp: new Date().toISOString(),
-        qerrors: 'integrated'
+        qerrors: 'integrated'  // Indicate qerrors is active
       }
     });
   } catch (error) {
-    next(error);
+    next(error);  // Route any errors through qerrors middleware
   }
 });
 
-// GET /api/error - Trigger test error
+/**
+ * GET /api/error - Simple test error endpoint
+ * 
+ * This endpoint triggers a basic test error to demonstrate qerrors
+ * functionality. It's the simplest way to test error handling without
+ * any complex logic or request parameters.
+ */
 app.get('/api/error', (req, res, next) => {
   const error = createError('test', 'This is a test error from API');
-  next(error);
+  next(error);  // Route through qerrors middleware
 });
 
-// POST /api/validate - Validation error testing
+/**
+ * POST /api/validate - Validation error testing endpoint
+ * 
+ * This endpoint demonstrates validation error handling by checking
+ * request body data and throwing appropriate validation errors.
+ * It tests multiple validation scenarios including missing data,
+ * invalid types, and length constraints.
+ */
 app.post('/api/validate', (req, res, next) => {
   try {
     const { data } = req.body;
     
+    // Check if data exists and is a string
     if (!data || typeof data !== 'string') {
       const error = createError('validation', 'Invalid data format');
-      error.statusCode = 400;
+      error.statusCode = 400;  // Bad Request for validation errors
       throw error;
     }
     
+    // Check minimum length requirement
     if (data.length < 3) {
       const error = createError('validation', 'Data too short');
       error.statusCode = 400;
       throw error;
     }
     
+    // Return success if validation passes
     res.json({ success: true, validated: true });
   } catch (error) {
-    next(error);
+    next(error);  // Route validation errors through qerrors
   }
 });
 
-// POST /api/errors/trigger - Triggers various error types
+/**
+ * POST /api/errors/trigger - Flexible error type generation
+ * 
+ * This endpoint allows testing different error types by accepting
+ * parameters that specify the error type, message, and context.
+ * It maps error types to appropriate HTTP status codes and provides
+ * a comprehensive way to test qerrors with various error scenarios.
+ */
 app.post('/api/errors/trigger', (req, res, next) => {
   try {
     const { type, message, context } = req.body;
     
+    // Define supported error types with default messages
     const errorTypes = {
       validation: 'Validation error occurred',
       authentication: 'Authentication failed',
@@ -99,76 +169,95 @@ app.post('/api/errors/trigger', (req, res, next) => {
       configuration: 'Configuration error'
     };
     
+    // Use provided type or default to validation
     const errorType = type || 'validation';
     const errorMessage = message || errorTypes[errorType] || 'Unknown error';
     
+    // Create error with additional properties
     const error = createError(errorType, errorMessage);
-    error.context = context || {};
+    error.context = context || {};  // Add context information
     error.statusCode = errorType === 'validation' ? 400 : 
                      errorType === 'authentication' ? 401 :
                      errorType === 'authorization' ? 403 : 500;
     
-    next(error);
+    next(error);  // Route through qerrors middleware
   } catch (error) {
-    next(error);
+    next(error);  // Handle any errors in error generation
   }
 });
 
-// POST /api/errors/custom - Creates custom business errors
+/**
+ * POST /api/errors/custom - Custom business error creation
+ * 
+ * This endpoint allows creation of fully customized errors with
+ * specific names, codes, severity levels, and context. It's useful
+ * for testing how qerrors handles business-specific errors and
+ * custom error classifications.
+ */
 app.post('/api/errors/custom', (req, res, next) => {
   try {
     const { name, code, message, severity, context } = req.body;
     
+    // Validate required fields
     if (!name || !message) {
       const error = createError('validation', 'Error name and message are required');
       error.statusCode = 400;
       throw error;
     }
     
+    // Create fully customized error object
     const error = new Error(message);
-    error.name = name;
-    error.code = code || 'CUSTOM_ERROR';
-    error.severity = severity || 'medium';
-    error.context = context || {};
-    error.isCustom = true;
-    error.statusCode = 400;
+    error.name = name;                    // Custom error name
+    error.code = code || 'CUSTOM_ERROR';   // Custom error code
+    error.severity = severity || 'medium'; // Custom severity level
+    error.context = context || {};         // Custom context
+    error.isCustom = true;                 // Mark as custom error
+    error.statusCode = 400;                // Bad Request for custom errors
     
-    next(error);
+    next(error);  // Route through qerrors middleware
   } catch (error) {
-    next(error);
+    next(error);  // Handle any errors in custom error creation
   }
 });
 
-// POST /api/errors/analyze - AI-powered error analysis
+/**
+ * POST /api/errors/analyze - AI-powered error analysis endpoint
+ * 
+ * This endpoint demonstrates the core AI analysis functionality of qerrors
+ * by accepting error data and triggering intelligent analysis. It creates
+ * a proper error object from the provided data and routes it through qerrors
+ * for AI-powered debugging suggestions and analysis.
+ */
 app.post('/api/errors/analyze', async (req, res, next) => {
   try {
     const { error: errorData, context } = req.body;
     
+    // Validate that error data is provided
     if (!errorData) {
       const error = createError('validation', 'Error data is required for analysis');
       error.statusCode = 400;
       throw error;
     }
     
-    // Create a proper error object from the data
+    // Reconstruct a proper error object from the provided data
     const error = new Error(errorData.message || 'Sample error for analysis');
     error.name = errorData.name || 'Error';
-    error.stack = errorData.stack || new Error().stack;
+    error.stack = errorData.stack || new Error().stack;  // Use provided stack or generate
     error.context = context || {};
     
-    // Trigger qerrors analysis
+    // Trigger qerrors AI analysis
     if (qerrors) {
       await qerrors(error, 'AI Analysis Request', req, res, () => {
-        // Send response after qerrors processing
+        // Send response after qerrors processing completes
         res.json({
           success: true,
           analysis: 'Error analysis triggered via qerrors AI system',
-          errorId: error.uniqueErrorName,
+          errorId: error.uniqueErrorName,  // Unique identifier for tracking
           timestamp: new Date().toISOString()
         });
       });
     } else {
-      // Fallback if qerrors not available
+      // Fallback response if qerrors is not available
       res.json({
         success: false,
         error: 'qerrors not available for analysis',
@@ -176,7 +265,7 @@ app.post('/api/errors/analyze', async (req, res, next) => {
       });
     }
   } catch (error) {
-    next(error);
+    next(error);  // Route any errors through qerrors middleware
   }
 });
 
@@ -354,7 +443,18 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(process.cwd(), 'demo.html'));
 });
 
-// Start server
+// ====================================================================
+// SERVER STARTUP - Initialize and start the API server
+// ====================================================================
+
+/**
+ * Start the Express server and log available endpoints
+ * 
+ * The server starts on the configured port and provides helpful
+ * console output with URLs for the demo interfaces and API endpoints.
+ * This makes it easy for developers to find and test the available
+ * functionality.
+ */
 app.listen(PORT, () => {
   console.log(`🚀 QErrors API Server running on http://localhost:${PORT}`);
   console.log(`📊 Demo UI: http://localhost:${PORT}/demo.html`);
@@ -362,4 +462,5 @@ app.listen(PORT, () => {
   console.log(`📡 API Endpoints available at http://localhost:${PORT}/api/`);
 });
 
+// Export the app for testing and potential module usage
 export default app;

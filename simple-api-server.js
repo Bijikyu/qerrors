@@ -1,35 +1,64 @@
 /**
  * Simple Express API server for demo integration testing
- * Provides the missing backend endpoints that frontend demos expect
+ * 
+ * This server provides a lightweight backend API for testing qerrors
+ * frontend integration without requiring the full qerrors middleware.
+ * It includes basic error handling and serves as a fallback when the
+ * main qerrors-integrated server is not available.
+ * 
+ * Key features:
+ * - Basic Express server without qerrors dependency
+ * - Simple error handling with HTML/JSON content negotiation
+ * - XSS protection through HTML escaping
+ * - Essential API endpoints for frontend testing
+ * - Static file serving for demo pages
  */
 
-import express from 'express';
-import cors from 'cors';
-import path from 'path';
+// Core dependencies
+import express from 'express';  // Web framework
+import cors from 'cors';        // Cross-origin resource sharing
+import path from 'path';        // Path utilities
 
+// Server configuration
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3001;  // Configurable port with default
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.static('.'));
+// Express middleware configuration
+app.use(cors());                        // Enable CORS for all routes
+app.use(express.json());                // Parse JSON request bodies
+app.use(express.static('.'));           // Serve static files from current directory
 
-// Basic error handling middleware (simplified)
+/**
+ * Basic error handling middleware with content negotiation
+ * 
+ * This simplified error handler provides content negotiation to serve
+ * either HTML or JSON error responses based on the Accept header.
+ * It includes XSS protection through HTML escaping for security.
+ * 
+ * Note: This is a simplified version that doesn't include qerrors
+ * AI analysis functionality.
+ */
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
   
+  // Determine response format based on Accept header
   const isHtml = req.accepts('html') && !req.accepts('json');
   
   if (isHtml) {
-    // Escape error message to prevent XSS
+    /**
+     * HTML error response with XSS protection
+     * 
+     * The error message is escaped to prevent XSS attacks when displaying
+     * user-provided error content in HTML responses.
+     */
     const escapedMessage = String(err.message || 'Unknown error')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+      .replace(/&/g, '&amp;')     // Escape ampersands
+      .replace(/</g, '&lt;')      // Escape less-than signs
+      .replace(/>/g, '&gt;')      // Escape greater-than signs
+      .replace(/"/g, '&quot;')    // Escape double quotes
+      .replace(/'/g, '&#39;');     // Escape single quotes
     
+    // Send HTML error page
     res.status(err.status || 500).send(`<!DOCTYPE html>
 <html>
 <head><title>Error</title></head>
@@ -40,21 +69,32 @@ app.use((err, req, res, next) => {
 </body>
 </html>`);
   } else {
+    // Send JSON error response
     res.status(err.status || 500).json({
       error: {
-        message: err.message,
-        type: err.type || 'unknown',
-        timestamp: new Date().toISOString(),
-        uniqueErrorName: err.name || 'Error'
+        message: err.message,                    // Error message
+        type: err.type || 'unknown',            // Error classification
+        timestamp: new Date().toISOString(),     // Error occurrence time
+        uniqueErrorName: err.name || 'Error'     // Error identifier
       }
     });
   }
 });
 
-// Helper function to simulate different error types
+/**
+ * Helper function to create test errors with type classification
+ * 
+ * This function creates Error objects with type information for
+ * basic error classification in the simple server. It mirrors the
+ * interface used in the full qerrors-integrated server for consistency.
+ * 
+ * @param {string} type - Error type for classification
+ * @param {string} message - Error message (optional, defaults to 'Test error')
+ * @returns {Error} Configured error object with type property
+ */
 function createError(type, message = 'Test error') {
   const error = new Error(message);
-  error.type = type;
+  error.type = type;  // Add type property for classification
   return error;
 }
 
@@ -283,7 +323,13 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(process.cwd(), 'demo.html'));
 });
 
-// Start server
+/**
+ * Server startup with ES module export
+ * 
+ * The server starts on the configured port and provides console output
+ * with URLs for demo interfaces and API endpoints. The app is exported
+ * as a default ES module for potential use in other applications.
+ */
 app.listen(PORT, () => {
   console.log(`🚀 QErrors API Server running on http://localhost:${PORT}`);
   console.log(`📊 Demo UI: http://localhost:${PORT}/demo.html`);
@@ -291,4 +337,5 @@ app.listen(PORT, () => {
   console.log(`📡 API Endpoints available at http://localhost:${PORT}/api/`);
 });
 
+// Export as default ES module
 export default app;
