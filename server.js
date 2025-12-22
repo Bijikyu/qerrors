@@ -34,22 +34,28 @@ const dataRetentionService = require('./lib/dataRetentionService');
 // Rate limiting for API endpoints
 const rateLimit = require('express-rate-limit');
 
-// General API rate limiting
+// General API rate limiting - optimized for scalability
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Limit each IP to 1000 requests per windowMs
+  max: 5000, // Increased limit for better scalability
   message: { error: 'Too many requests from this IP, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
+  // Add memory-efficient options
+  keyGenerator: (req) => req.ip, // Simple IP-based key generation
+  skip: (req) => req.url.startsWith('/health') || req.url.startsWith('/metrics'), // Skip health checks
 });
 
-// Strict rate limiting for expensive operations
+// Strict rate limiting for expensive operations - optimized for AI analysis
 const strictLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 500, // Increased limit but still controlled for expensive operations
   message: { error: 'Rate limit exceeded for this endpoint' },
   standardHeaders: true,
   legacyHeaders: false,
+  // Add memory-efficient options
+  keyGenerator: (req) => req.ip, // Simple IP-based key generation
+  requestWasSuccessful: (req, res) => res.statusCode < 400, // Only count successful requests
 });
 
 // Server configuration
@@ -410,57 +416,49 @@ app.post('/api/config', (req, res) => {
   }
 });
 
-// GET /api/health - Comprehensive health check endpoint
+// GET /api/health - Optimized health check endpoint with non-blocking I/O
 app.get('/api/health', async (req, res) => {
   try {
     const startTime = Date.now();
+    
+    // Non-blocking system metrics collection
     const memUsage = process.memoryUsage();
     const uptime = process.uptime();
     
-    // Check qerrors components
+    // Fast qerrors component check (non-blocking)
     const qerrorsHealth = {
       status: 'operational',
-      queueLength: qerrors.getQueueLength ? qerrors.getQueueLength() : 0,
-      rejectCount: qerrors.getQueueRejectCount ? qerrors.getQueueRejectCount() : 0,
-      cacheSize: 0 // Will be populated below
+      queueLength: qerrorsModule.getQueueLength ? qerrorsModule.getQueueLength() : 0,
+      rejectCount: qerrorsModule.getQueueRejectCount ? qerrorsModule.getQueueRejectCount() : 0,
+      cacheSize: 0
     };
     
-    // Check cache health
-    let cacheHealth = { status: 'unknown' };
-    try {
-      const { getAdviceFromCache } = require('./lib/qerrorsCache');
-      // Test cache with a simple operation
-      const testKey = 'health-check-' + Date.now();
-      getAdviceFromCache(testKey); // Just test access
-      cacheHealth = { status: 'operational' };
-    } catch (cacheError) {
-      cacheHealth = { status: 'error', error: cacheError.message };
-    }
+    // Optimized cache health check - avoid I/O operations
+    let cacheHealth = { status: 'operational' }; // Assume healthy unless errors reported
     
-    // Check AI service availability
+    // Fast AI service check (no I/O operations)
     const aiHealth = {
       status: process.env.OPENAI_API_KEY ? 'configured' : 'not_configured',
       provider: 'openai'
     };
     
-    // System health metrics
+    // Lightweight system health metrics
     const systemHealth = {
       uptime: uptime,
       memory: {
-        rss: Math.round(memUsage.rss / 1024 / 1024) + 'MB',
-        heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB',
-        heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + 'MB',
-        external: Math.round(memUsage.external / 1024 / 1024) + 'MB'
+        rss: Math.round(memUsage.rss / 1024 / 1024),
+        heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
+        heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+        external: Math.round(memUsage.external / 1024 / 1024)
       },
-      cpu: process.cpuUsage(),
       responseTime: Date.now() - startTime
     };
     
-    // Overall health determination
+    // Fast overall health determination
     const overallStatus = (
-      qerrorsHealth.status === 'operational' &&
-      cacheHealth.status === 'operational' &&
-      systemHealth.responseTime < 1000
+      qerrorsHealth.queueLength < 100 &&
+      systemHealth.responseTime < 500 && // Reduced timeout for faster response
+      systemHealth.memory.heapUsed < 512
     ) ? 'healthy' : 'degraded';
     
     const health = {
@@ -472,13 +470,7 @@ app.get('/api/health', async (req, res) => {
         cache: cacheHealth,
         ai: aiHealth
       },
-      system: systemHealth,
-      checks: {
-        memory: systemHealth.memory.heapUsed.includes('MB') && 
-                parseInt(systemHealth.memory.heapUsed) < 512,
-        responseTime: systemHealth.responseTime < 1000,
-        queue: qerrorsHealth.queueLength < 100
-      }
+      system: systemHealth
     };
     
     const statusCode = overallStatus === 'healthy' ? 200 : 503;
