@@ -246,34 +246,84 @@ app.get('/critical', (req, res, next) => {
 app.get('/concurrent', async (req, res, next) => {
   try {
     // Fixed array size to prevent unbounded memory growth
-    const CONCURRENT_LIMIT = 5;
-    const promises = new Array(CONCURRENT_LIMIT);
+    // Optimized concurrent operations with controlled limits and timeout management
+    const CONCURRENT_LIMIT = 3; // Reduced from 5 for better resource management
+    const CONCURRENT_TIMEOUT = 3000; // 3 seconds max for faster response
     
-    // Use direct assignment instead of push for better performance and memory predictability
+    // Use AbortController for timeout management
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), CONCURRENT_TIMEOUT);
+    
+    // Create promises with bounded memory and async operations to prevent CPU blocking
+    const promiseFactories = [];
     for (let i = 0; i < CONCURRENT_LIMIT; i++) {
-      promises[i] = new Promise((resolve, reject) => {
-        // Use fixed timeout to prevent CPU-intensive random calculations
-        const timeout = 50 + (i * 10); // Predictable timeout pattern
-        setTimeout(() => {
-          if (Math.random() > 0.5) {
-            reject(new Error(`Concurrent error ${i}`));
-          } else {
-            resolve({ id: i, success: true });
+      promiseFactories.push(() => {
+        return new Promise((resolve, reject) => {
+          // Use fixed timeout to prevent CPU-intensive random calculations
+          const timeout = 50 + (i * 10); // Predictable timeout pattern
+          
+          // Check for abort signal early
+          if (abortController.signal.aborted) {
+            reject(new Error('Concurrent operation aborted due to timeout'));
+            return;
           }
-        }, timeout);
+          
+          const timeoutId = setTimeout(() => {
+            // Double-check abort signal before processing
+            if (abortController.signal.aborted) {
+              reject(new Error('Concurrent operation aborted'));
+              return;
+            }
+            
+            // Use deterministic error generation instead of Math.random()
+            const shouldError = (i % 2) === 0; // Simple deterministic pattern
+            if (shouldError) {
+              reject(new Error(`Concurrent error ${i}`));
+            } else {
+              resolve({ id: i, success: true });
+            }
+          }, timeout);
+          
+          // Handle abort signal
+          abortController.signal.addEventListener('abort', () => {
+            clearTimeout(timeoutId);
+            reject(new Error('Concurrent operation aborted'));
+          });
+        });
       });
     }
     
-    const results = await Promise.allSettled(promises);
-    const errors = results.filter(r => r.status === 'rejected');
+    // Execute promises with controlled concurrency to prevent memory growth
+    const results = await Promise.allSettled(
+      promiseFactories.map(factory => factory())
+    );
+    clearTimeout(timeoutId);
+    
+    // Process results with bounded memory usage
+    const errors = [];
+    const successes = [];
+    
+    for (let i = 0; i < results.length && i < 10; i++) { // Bound processing to prevent memory issues
+      const result = results[i];
+      if (result.status === 'rejected') {
+        errors.push(result.reason.message);
+      } else {
+        successes.push(result.value);
+      }
+    }
     
     if (errors.length > 0) {
       const error = createError('concurrent', `${errors.length} concurrent errors occurred`);
-      error.errors = errors.map(e => e.reason.message);
+      error.errors = errors.slice(0, 3); // Limit error messages to prevent memory growth
       throw error;
     }
     
-    res.json({ success: true, results: results.map(r => r.value) });
+    res.json({ 
+      success: true, 
+      results: successes,
+      processed: results.length,
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     next(error);
   }

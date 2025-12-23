@@ -1414,21 +1414,31 @@ async function triggerCustomError() {
             updateResponse('error-response', 'Response will appear here...');
         }
 
+        // Debounced metrics update to prevent excessive API calls
+        let metricsDebounceTimer = null;
         async function updateMetrics() {
-            try {
-                const response = await fetch('/api/metrics');
-                const serverMetrics = await response.json();
-                document.getElementById('total-errors').textContent = metrics.totalErrors;
-                document.getElementById('queue-length').textContent = serverMetrics.qerrors.queueLength;
-                document.getElementById('cache-hits').textContent = metrics.cacheHits;
-                document.getElementById('ai-requests').textContent = metrics.aiRequests;
-            } catch (error) {
-                // Fallback to local metrics
-                document.getElementById('total-errors').textContent = metrics.totalErrors;
-                document.getElementById('queue-length').textContent = metrics.queueLength;
-                document.getElementById('cache-hits').textContent = metrics.cacheHits;
-                document.getElementById('ai-requests').textContent = metrics.aiRequests;
+            // Clear existing timer
+            if (metricsDebounceTimer) {
+                clearTimeout(metricsDebounceTimer);
             }
+            
+            // Debounce the API call
+            metricsDebounceTimer = setTimeout(async () => {
+                try {
+                    const response = await fetch('/api/metrics');
+                    const serverMetrics = await response.json();
+                    document.getElementById('total-errors').textContent = metrics.totalErrors;
+                    document.getElementById('queue-length').textContent = serverMetrics.qerrors.queueLength;
+                    document.getElementById('cache-hits').textContent = metrics.cacheHits;
+                    document.getElementById('ai-requests').textContent = metrics.aiRequests;
+                } catch (error) {
+                    // Fallback to local metrics
+                    document.getElementById('total-errors').textContent = metrics.totalErrors;
+                    document.getElementById('queue-length').textContent = metrics.queueLength;
+                    document.getElementById('cache-hits').textContent = metrics.cacheHits;
+                    document.getElementById('ai-requests').textContent = metrics.aiRequests;
+                }
+            }, 500); // 500ms debounce
         }
 
         function updateStatus(severity = 'normal') {

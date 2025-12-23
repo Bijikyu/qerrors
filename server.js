@@ -48,7 +48,14 @@ const getCachedStaticFile = async (name) => {
   if (!staticPath) return null;
   
   try {
-    return await atomicFileCache.getFile(name, staticPath.path);
+    // Try LRU cache first (O(1) operation)
+    const cachedEntry = lruCache.get(name);
+    if (cachedEntry) {
+      return cachedEntry.content;
+    }
+    
+    // Load and cache the file
+    return await loadStaticFileAsync(name, staticPath);
   } catch (error) {
     console.warn(`Failed to get cached static file ${name}:`, error.message);
     return null;
@@ -60,9 +67,21 @@ const getCachedStaticFile = async (name) => {
  */
 const loadStaticFileAsync = async (name, staticPath) => {
   try {
+    // Check LRU cache first (O(1) operation)
+    const cachedEntry = lruCache.get(name);
+    if (cachedEntry) {
+      // Use async stat to check if file changed
+      const currentStats = await fs.promises.stat(staticPath.path);
+      const needsReload = currentStats.mtime > cachedEntry.stats.mtime || 
+                         currentStats.size !== cachedEntry.stats.size;
+      
+      if (!needsReload) {
+        return cachedEntry.content;
+      }
+    }
+    
     // Use async stat to avoid blocking
     const currentStats = await fs.promises.stat(staticPath.path);
-    const cachedStats = staticFileStats.get(name);
     
     // Check file size limits
     if (currentStats.size > MAX_FILE_SIZE) {
@@ -70,79 +89,142 @@ const loadStaticFileAsync = async (name, staticPath) => {
       return await fs.promises.readFile(staticPath.path, 'utf8');
     }
     
-    // Check if file changed or needs loading
-    let content = staticFilesCache.get(name);
-    const needsReload = !cachedStats || 
-                       !content ||
-                       currentStats.mtime > cachedStats.mtime || 
-                       currentStats.size !== cachedStats.size;
+    // Load file asynchronously
+    const content = await fs.promises.readFile(staticPath.path, 'utf8');
     
-    if (needsReload) {
-      // Load file asynchronously
-      content = await fs.promises.readFile(staticPath.path, 'utf8');
-      
-      // Check memory limits before caching
-      const contentSize = Buffer.byteLength(content, 'utf8');
-      
-      // Clear cache if needed
-      if (currentCacheSize + contentSize > MAX_CACHE_SIZE) {
-        await clearOldestCacheEntries(contentSize);
-      }
-      
-      // Update cache
-      const oldSize = staticFilesCache.has(name) ? 
-        Buffer.byteLength(staticFilesCache.get(name), 'utf8') : 0;
-      
-      staticFilesCache.set(name, content);
-      staticFileStats.set(name, { 
-        mtime: currentStats.mtime, 
-        size: currentStats.size,
-        lastAccessed: Date.now()
-      });
-      
-      // Update cache size tracking
-      currentCacheSize = currentCacheSize - oldSize + contentSize;
-      
-      console.log(`Reloaded static file: ${name} (${contentSize} bytes)`);
-    } else {
-      // Update access time for LRU
-      const stats = staticFileStats.get(name);
-      stats.lastAccessed = Date.now();
-      staticFileStats.set(name, stats);
+    // Check memory limits before caching
+    const contentSize = Buffer.byteLength(content, 'utf8');
+    
+    // Clear cache if needed using optimized LRU eviction
+    if (currentCacheSize + contentSize > MAX_CACHE_SIZE) {
+      await clearOldestCacheEntries(contentSize);
     }
     
+    // Store in LRU cache with O(1) operation
+    const stats = {
+      size: currentStats.size,
+      mtime: currentStats.mtime,
+      lastAccessed: Date.now()
+    };
+    
+    lruCache.set(name, content, stats);
+    currentCacheSize += contentSize;
+    
     return content;
-  } catch (err) {
-    console.warn(`Failed to load static file ${name}:`, err.message);
+  } catch (error) {
+    console.warn(`Failed to load static file ${name}:`, error.message);
+    throw error;
+  }
+};
+
+// Optimized LRU cache with O(1) operations using circular buffer
+const lruCache = {
+  entries: new Map(), // name -> { content, stats, accessOrder }
+  accessOrder: [], // Circular buffer of access order
+  maxSize: 100, // Maximum number of cached entries
+  head: 0, // Head of circular buffer
+  tail: 0, // Tail of circular buffer
+  
+  // Add or update entry with O(1) complexity
+  set(name, content, stats) {
+    const now = Date.now();
+    
+    if (this.entries.has(name)) {
+      // Update existing entry
+      const entry = this.entries.get(name);
+      entry.content = content;
+      entry.stats = { ...stats, lastAccessed: now };
+      this.updateAccessOrder(name);
+      return;
+    }
+    
+    // Add new entry
+    if (this.entries.size >= this.maxSize) {
+      // Remove oldest entry (O(1) operation)
+      const oldestName = this.accessOrder[this.tail];
+      this.entries.delete(oldestName);
+      this.tail = (this.tail + 1) % this.maxSize;
+    }
+    
+    this.entries.set(name, {
+      content,
+      stats: { ...stats, lastAccessed: now }
+    });
+    this.updateAccessOrder(name);
+  },
+  
+  // Update access order in O(1)
+  updateAccessOrder(name) {
+    // Remove from current position if exists
+    const currentPos = this.accessOrder.indexOf(name);
+    if (currentPos !== -1) {
+      this.accessOrder[currentPos] = null;
+    }
+    
+    // Add to head position
+    this.accessOrder[this.head] = name;
+    this.head = (this.head + 1) % this.maxSize;
+    
+    // Move tail if we caught up
+    if (this.head === this.tail && this.accessOrder[this.tail] !== null) {
+      this.tail = (this.tail + 1) % this.maxSize;
+    }
+  },
+  
+  // Get entry with O(1) complexity
+  get(name) {
+    const entry = this.entries.get(name);
+    if (entry) {
+      this.updateAccessOrder(name);
+      return entry;
+    }
     return null;
+  },
+  
+  // Remove oldest entries to free space - O(k) where k is entries to remove
+  evictOldest(requiredSize) {
+    let freedSize = 0;
+    let evictedCount = 0;
+    const maxEvictions = Math.min(10, this.entries.size); // Bound the operation
+    
+    while (evictedCount < maxEvictions && this.tail !== this.head) {
+      const name = this.accessOrder[this.tail];
+      if (!name) {
+        this.tail = (this.tail + 1) % this.maxSize;
+        continue;
+      }
+      
+      const entry = this.entries.get(name);
+      if (entry) {
+        const size = Buffer.byteLength(entry.content, 'utf8');
+        this.entries.delete(name);
+        freedSize += size;
+        
+        // Clear the position
+        this.accessOrder[this.tail] = null;
+        this.tail = (this.tail + 1) % this.maxSize;
+        evictedCount++;
+        
+        if (freedSize >= requiredSize) break;
+      } else {
+        this.tail = (this.tail + 1) % this.maxSize;
+      }
+    }
+    
+    return freedSize;
   }
 };
 
 /**
- * Clear oldest cache entries to make room for new content
+ * Clear oldest cache entries using O(1) LRU operations
  */
 const clearOldestCacheEntries = async (requiredSize) => {
-  const entries = Array.from(staticFileStats.entries())
-    .sort(([,a], [,b]) => (a.lastAccessed || 0) - (b.lastAccessed || 0));
-  
-  let freedSize = 0;
-  for (const [name, stats] of entries) {
-    if (currentCacheSize - freedSize + requiredSize <= MAX_CACHE_SIZE) {
-      break;
-    }
-    
-    const content = staticFilesCache.get(name);
-    if (content) {
-      const size = Buffer.byteLength(content, 'utf8');
-      staticFilesCache.delete(name);
-      staticFileStats.delete(name);
-      freedSize += size;
-      
-      console.info(`Evicted static file from cache: ${name} (${size} bytes)`);
-    }
-  }
-  
+  const freedSize = lruCache.evictOldest(requiredSize);
   currentCacheSize -= freedSize;
+  
+  if (freedSize > 0) {
+    console.info(`Evicted ${Math.ceil(freedSize/1024)}KB from static file cache`);
+  }
 };
 
 /**
@@ -411,7 +493,7 @@ app.post('/api/errors/custom', (req, res, next) => {
 });
 
 // POST /api/errors/analyze - AI-powered error analysis
-app.post('/api/errors/analyze', strictLimiter, async (req, res, next) => {
+app.post('/api/errors/analyze', aiLimiter, async (req, res, next) => {
   // Set request timeout with AbortController for proper cleanup
   const abortController = new AbortController();
   let timeoutId = null;

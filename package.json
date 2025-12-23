@@ -45,6 +45,7 @@
     "langchain": "^0.3.30",
     "lodash": "^4.17.21",
     "lru-cache": "^10.0.0",
+    "node-cache": "^5.1.2",
     "node-cron": "^4.2.1",
     "opossum": "^9.0.0",
     "p-limit": "^7.2.0",
