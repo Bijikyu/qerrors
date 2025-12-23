@@ -26,42 +26,32 @@ const fs = require('fs');           // File system for pre-loading static conten
 const qerrorsModule = require('./index.js');
 const qerrors = qerrorsModule.qerrors;  // Extract main qerrors function
 
-// Enhanced async static file cache with memory management
-const staticFilesCache = new Map();
-const staticFileStats = new Map();
-const staticFilePromises = new Map(); // Track ongoing async loads
+// Static file paths configuration
 const staticPaths = [
   { path: './demo.html', name: 'demo' },
   { path: './demo-functional.html', name: 'demo-functional' },
   { path: './index.html', name: 'index' }
 ];
 
-// Memory-aware cache size limits
-const MAX_CACHE_SIZE = 50 * 1024 * 1024; // 50MB total cache
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB per file
-let currentCacheSize = 0;
+// Initialize atomic static file cache for thread-safe operations
+const atomicFileCache = getAtomicFileCache({
+  maxCacheSize: 50 * 1024 * 1024, // 50MB total cache
+  maxFileSize: 5 * 1024 * 1024, // 5MB per file
+  maxEntries: 1000
+});
 
 /**
- * Async static file loading with cache invalidation and memory management
+ * Async static file loading with atomic cache operations
  */
 const getCachedStaticFile = async (name) => {
   const staticPath = staticPaths.find(p => p.name === name);
   if (!staticPath) return null;
   
-  // Check if there's an ongoing load for this file
-  if (staticFilePromises.has(name)) {
-    return await staticFilePromises.get(name);
-  }
-  
-  // Create load promise
-  const loadPromise = loadStaticFileAsync(name, staticPath);
-  staticFilePromises.set(name, loadPromise);
-  
   try {
-    const result = await loadPromise;
-    return result;
-  } finally {
-    staticFilePromises.delete(name);
+    return await atomicFileCache.getFile(name, staticPath.path);
+  } catch (error) {
+    console.warn(`Failed to get cached static file ${name}:`, error.message);
+    return null;
   }
 };
 
@@ -204,18 +194,50 @@ const dataRetentionService = require('./lib/dataRetentionService');
 // Enhanced rate limiting for API endpoints with per-endpoint limits
 const { getEnhancedRateLimiter, dynamicRateLimiter, createRateLimitMiddleware } = require('./lib/enhancedRateLimiter');
 
-// Initialize enhanced rate limiter with system-aware configuration
-const rateLimiter = getEnhancedRateLimiter({
-  enableBurstCapacity: true,
-  enableDistributedLimits: false // Set to true if using Redis
+// Distributed rate limiting with Redis backend for scalability
+const { getDistributedRateLimiter, createDistributedRateLimitMiddleware } = require('./lib/distributedRateLimiter');
+
+// Atomic static file cache for thread-safe file operations
+const { getAtomicFileCache } = require('./lib/atomicStaticFileCache');
+
+// Initialize distributed rate limiter for production scalability
+const distributedRateLimiter = getDistributedRateLimiter({
+  redisHost: process.env.REDIS_HOST,
+  redisPort: process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT) : undefined,
+  redisPassword: process.env.REDIS_PASSWORD,
+  circuitBreakerThreshold: 5,
+  circuitBreakerResetTimeout: 60000
 });
 
+// Fallback to enhanced rate limiter if Redis is not available
+const useDistributedLimiter = process.env.ENABLE_DISTRIBUTED_RATE_LIMITING === 'true';
+
 // Create specific limiters for different endpoint categories
-const healthLimiter = createRateLimitMiddleware('/health');
-const metricsLimiter = createRateLimitMiddleware('/metrics');
-const apiLimiter = createRateLimitMiddleware('/api');
-const aiLimiter = createRateLimitMiddleware('/api/analyze');
-const adminLimiter = createRateLimitMiddleware('/api/admin');
+const healthLimiter = useDistributedLimiter 
+  ? createDistributedRateLimitMiddleware('/health', { max: 10000, windowMs: 60000 })
+  : createRateLimitMiddleware('/health');
+
+const metricsLimiter = useDistributedLimiter
+  ? createDistributedRateLimitMiddleware('/metrics', { max: 5000, windowMs: 60000 })
+  : createRateLimitMiddleware('/metrics');
+
+const apiLimiter = useDistributedLimiter
+  ? createDistributedRateLimitMiddleware('/api', { max: 1000, windowMs: 60000 })
+  : createRateLimitMiddleware('/api');
+
+const aiLimiter = useDistributedLimiter
+  ? createDistributedRateLimitMiddleware('/api/analyze', { max: 100, windowMs: 60000 })
+  : createRateLimitMiddleware('/api/analyze');
+
+const adminLimiter = useDistributedLimiter
+  ? createDistributedRateLimitMiddleware('/api/admin', { max: 50, windowMs: 300000 })
+  : createRateLimitMiddleware('/api/admin');
+
+// Keep enhanced rate limiter as fallback
+const rateLimiter = getEnhancedRateLimiter({
+  enableBurstCapacity: true,
+  enableDistributedLimits: false
+});
 
 // Server configuration
 const app = express();
@@ -223,7 +245,13 @@ const PORT = process.env.PORT || 3001;  // Configurable port with default
 
 // Security middleware
 app.use(securityHeaders);               // Apply security headers
-app.use(rateLimiters.general);          // Apply general rate limiting
+
+// Apply general rate limiting based on configuration
+if (useDistributedLimiter) {
+  app.use(createDistributedRateLimitMiddleware('global', { max: 5000, windowMs: 60000 }));
+} else {
+  app.use(dynamicRateLimiter);           // Use enhanced rate limiter as fallback
+}
 
 // Performance middleware
 app.use(compression());                 // Enable response compression
@@ -979,11 +1007,22 @@ const gracefulShutdown = async (signal) => {
     
     // Cleanup qerrors resources
     const { stopQueueMetrics, stopAdviceCleanup } = require('./lib/qerrorsCache');
-    const { stopQueueMetrics: stopQMetrics } = require('./lib/qerrorsQueue');
+    const { stopQueueMetrics: stopQMetrics, cleanupTimers } = require('./lib/qerrorsQueue');
     
     stopQueueMetrics && stopQueueMetrics();
     stopAdviceCleanup && stopAdviceCleanup();
     stopQMetrics && stopQMetrics();
+    cleanupTimers && cleanupTimers();
+    
+    // Shutdown distributed rate limiter if enabled
+    if (useDistributedLimiter && distributedRateLimiter) {
+      await distributedRateLimiter.shutdown();
+    }
+    
+    // Shutdown enhanced rate limiter
+    if (rateLimiter) {
+      rateLimiter.shutdown();
+    }
     
     // Force exit after timeout
     setTimeout(() => {
