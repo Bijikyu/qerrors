@@ -90,23 +90,34 @@ const server = http.createServer((req, res) => {
       filePath = path.join(requestedPath, 'demo.html');
     }
 
-    // Attempt to read and serve the file
-    fs.readFile(filePath, (err2, data) => {
-      if (err2) {
-        // File not found or unreadable - return 404
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        res.end('Not Found');
-        return;
-      }
-      
-      // Determine MIME type from file extension
-      const ext = path.extname(filePath).toLowerCase();
-      const mime = mimeTypes[ext] || 'application/octet-stream';  // Default to binary
-      
-      // Serve the file with proper content type
-      res.writeHead(200, { 'Content-Type': mime });
-      res.end(data);
+    // Use streaming for better performance and memory efficiency
+    const readStream = fs.createReadStream(filePath);
+    
+    // Proper cleanup on client disconnect
+    const cleanup = () => {
+      readStream.destroy();
+    };
+    
+    res.on('close', cleanup);
+    req.on('close', cleanup);
+    
+    readStream.on('error', (err2) => {
+      cleanup(); // Clean up stream on error
+      // File not found or unreadable - return 404
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not Found');
     });
+    
+    // Determine MIME type from file extension
+    const ext = path.extname(filePath).toLowerCase();
+    const mime = mimeTypes[ext] || 'application/octet-stream';  // Default to binary
+    
+    // Set headers and pipe stream to response
+    res.writeHead(200, { 'Content-Type': mime });
+    readStream.pipe(res);
+    
+    // Clean up when piping completes
+    readStream.on('end', cleanup);
   });
 });
 

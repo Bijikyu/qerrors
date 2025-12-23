@@ -20,10 +20,61 @@ const express = require('express');  // Web framework
 const cors = require('cors');        // Cross-origin resource sharing
 const path = require('path');        // Path utilities
 const compression = require('compression'); // Response compression
+const fs = require('fs');           // File system for pre-loading static content
 
 // Import qerrors for intelligent error handling
 const qerrorsModule = require('./index.js');
 const qerrors = qerrorsModule.qerrors;  // Extract main qerrors function
+
+// Pre-load static files for better performance with cache invalidation
+const staticFilesCache = new Map();
+const staticFileStats = new Map();
+const staticPaths = [
+  { path: './demo.html', name: 'demo' },
+  { path: './demo-functional.html', name: 'demo-functional' },
+  { path: './index.html', name: 'index' }
+];
+
+const getCachedStaticFile = (name) => {
+  const staticPath = staticPaths.find(p => p.name === name);
+  if (!staticPath) return null;
+  
+  try {
+    const currentStats = fs.statSync(staticPath.path);
+    const cachedStats = staticFileStats.get(name);
+    
+    // Check if file changed
+    if (!cachedStats || currentStats.mtime > cachedStats.mtime || currentStats.size !== cachedStats.size) {
+      // Reload file
+      const content = fs.readFileSync(staticPath.path, 'utf8');
+      staticFilesCache.set(name, content);
+      staticFileStats.set(name, { mtime: currentStats.mtime, size: currentStats.size });
+      console.log(`Reloaded static file: ${name}`);
+    }
+    
+    return staticFilesCache.get(name);
+  } catch (err) {
+    console.warn(`Failed to load static file ${name}:`, err.message);
+    return null;
+  }
+};
+
+const preloadStaticFiles = () => {
+  staticPaths.forEach(({ path: filePath, name }) => {
+    try {
+      const stats = fs.statSync(filePath);
+      const content = fs.readFileSync(filePath, 'utf8');
+      staticFilesCache.set(name, content);
+      staticFileStats.set(name, { mtime: stats.mtime, size: stats.size });
+      console.log(`Preloaded static file: ${name}`);
+    } catch (err) {
+      console.warn(`Failed to preload static file ${name}:`, err.message);
+    }
+  });
+};
+
+// Pre-load static files at startup
+preloadStaticFiles();
 
 // Security imports
 const auth = require('./lib/auth');
@@ -221,16 +272,36 @@ app.post('/api/errors/custom', (req, res, next) => {
 
 // POST /api/errors/analyze - AI-powered error analysis
 app.post('/api/errors/analyze', strictLimiter, async (req, res, next) => {
-  // Set request timeout for AI analysis (30 seconds)
-  req.setTimeout(30000, () => {
+  // Set request timeout with AbortController for proper cleanup
+  const abortController = new AbortController();
+  let timeoutId = null;
+  let cleanedUp = false;
+
+  const cleanup = () => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+    abortController.abort();
+  };
+
+  timeoutId = setTimeout(() => {
     if (!res.headersSent) {
+      cleanup();
       res.status(408).json({
         success: false,
         error: 'Request timeout - AI analysis took too long',
         timestamp: new Date().toISOString()
-});
+      });
     }
-  });
+  }, 30000);
+
+  // Single cleanup registration to prevent memory leaks
+  res.once('finish', cleanup);
+  req.once('close', cleanup);
 
   try {
     const { error: errorData, context } = req.body;
@@ -483,19 +554,62 @@ app.get('/concurrent', async (req, res, next) => {
 
 // Metrics and Management Endpoints
 
-// GET /api/metrics - System metrics
+// GET /api/metrics - System metrics with pagination and field selection
 app.get('/api/metrics', (req, res) => {
   try {
-    const metrics = {
+    const { 
+      page = 1, 
+      limit = 50, 
+      fields = 'uptime,memory,timestamp,qerrors' 
+    } = req.query;
+    
+    const fullMetrics = {
       uptime: process.uptime(),
       memory: process.memoryUsage(),
       timestamp: new Date().toISOString(),
       qerrors: {
         queueLength: qerrors.getQueueLength ? qerrors.getQueueLength() : 0,
         rejectCount: qerrors.getQueueRejectCount ? qerrors.getQueueRejectCount() : 0
-      }
+      },
+      cpu: process.cpuUsage(),
+      pid: process.pid,
+      version: process.version,
+      platform: process.platform
     };
-    res.json(metrics);
+    
+    // Field selection
+    const requestedFields = fields.split(',');
+    const filteredMetrics = {};
+    requestedFields.forEach(field => {
+      if (field.includes('.')) {
+        // Handle nested fields like 'qerrors.queueLength'
+        const [parent, child] = field.split('.');
+        if (fullMetrics[parent] && fullMetrics[parent][child] !== undefined) {
+          if (!filteredMetrics[parent]) filteredMetrics[parent] = {};
+          filteredMetrics[parent][child] = fullMetrics[parent][child];
+        }
+      } else if (fullMetrics[field] !== undefined) {
+        filteredMetrics[field] = fullMetrics[field];
+      }
+    });
+    
+    // Pagination (for future expansion when metrics become arrays)
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const startIndex = (pageNum - 1) * limitNum;
+    
+    const response = {
+      data: filteredMetrics,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        startIndex,
+        totalItems: 1 // Single metrics object
+      },
+      timestamp: new Date().toISOString()
+    };
+    
+    res.json(response);
   } catch (error) {
     res.status(500).json({ error: 'Failed to get metrics' });
   }
