@@ -26,51 +26,170 @@ const fs = require('fs');           // File system for pre-loading static conten
 const qerrorsModule = require('./index.js');
 const qerrors = qerrorsModule.qerrors;  // Extract main qerrors function
 
-// Pre-load static files for better performance with cache invalidation
+// Enhanced async static file cache with memory management
 const staticFilesCache = new Map();
 const staticFileStats = new Map();
+const staticFilePromises = new Map(); // Track ongoing async loads
 const staticPaths = [
   { path: './demo.html', name: 'demo' },
   { path: './demo-functional.html', name: 'demo-functional' },
   { path: './index.html', name: 'index' }
 ];
 
-const getCachedStaticFile = (name) => {
+// Memory-aware cache size limits
+const MAX_CACHE_SIZE = 50 * 1024 * 1024; // 50MB total cache
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB per file
+let currentCacheSize = 0;
+
+/**
+ * Async static file loading with cache invalidation and memory management
+ */
+const getCachedStaticFile = async (name) => {
   const staticPath = staticPaths.find(p => p.name === name);
   if (!staticPath) return null;
   
+  // Check if there's an ongoing load for this file
+  if (staticFilePromises.has(name)) {
+    return await staticFilePromises.get(name);
+  }
+  
+  // Create load promise
+  const loadPromise = loadStaticFileAsync(name, staticPath);
+  staticFilePromises.set(name, loadPromise);
+  
   try {
-    const currentStats = fs.statSync(staticPath.path);
+    const result = await loadPromise;
+    return result;
+  } finally {
+    staticFilePromises.delete(name);
+  }
+};
+
+/**
+ * Async file loading with proper error handling and memory management
+ */
+const loadStaticFileAsync = async (name, staticPath) => {
+  try {
+    // Use async stat to avoid blocking
+    const currentStats = await fs.promises.stat(staticPath.path);
     const cachedStats = staticFileStats.get(name);
     
-    // Check if file changed
-    if (!cachedStats || currentStats.mtime > cachedStats.mtime || currentStats.size !== cachedStats.size) {
-      // Reload file
-      const content = fs.readFileSync(staticPath.path, 'utf8');
-      staticFilesCache.set(name, content);
-      staticFileStats.set(name, { mtime: currentStats.mtime, size: currentStats.size });
-      console.log(`Reloaded static file: ${name}`);
+    // Check file size limits
+    if (currentStats.size > MAX_FILE_SIZE) {
+      console.warn(`Static file ${name} too large (${currentStats.size} bytes), skipping cache`);
+      return await fs.promises.readFile(staticPath.path, 'utf8');
     }
     
-    return staticFilesCache.get(name);
+    // Check if file changed or needs loading
+    let content = staticFilesCache.get(name);
+    const needsReload = !cachedStats || 
+                       !content ||
+                       currentStats.mtime > cachedStats.mtime || 
+                       currentStats.size !== cachedStats.size;
+    
+    if (needsReload) {
+      // Load file asynchronously
+      content = await fs.promises.readFile(staticPath.path, 'utf8');
+      
+      // Check memory limits before caching
+      const contentSize = Buffer.byteLength(content, 'utf8');
+      
+      // Clear cache if needed
+      if (currentCacheSize + contentSize > MAX_CACHE_SIZE) {
+        await clearOldestCacheEntries(contentSize);
+      }
+      
+      // Update cache
+      const oldSize = staticFilesCache.has(name) ? 
+        Buffer.byteLength(staticFilesCache.get(name), 'utf8') : 0;
+      
+      staticFilesCache.set(name, content);
+      staticFileStats.set(name, { 
+        mtime: currentStats.mtime, 
+        size: currentStats.size,
+        lastAccessed: Date.now()
+      });
+      
+      // Update cache size tracking
+      currentCacheSize = currentCacheSize - oldSize + contentSize;
+      
+      console.log(`Reloaded static file: ${name} (${contentSize} bytes)`);
+    } else {
+      // Update access time for LRU
+      const stats = staticFileStats.get(name);
+      stats.lastAccessed = Date.now();
+      staticFileStats.set(name, stats);
+    }
+    
+    return content;
   } catch (err) {
     console.warn(`Failed to load static file ${name}:`, err.message);
     return null;
   }
 };
 
-const preloadStaticFiles = () => {
-  staticPaths.forEach(({ path: filePath, name }) => {
+/**
+ * Clear oldest cache entries to make room for new content
+ */
+const clearOldestCacheEntries = async (requiredSize) => {
+  const entries = Array.from(staticFileStats.entries())
+    .sort(([,a], [,b]) => (a.lastAccessed || 0) - (b.lastAccessed || 0));
+  
+  let freedSize = 0;
+  for (const [name, stats] of entries) {
+    if (currentCacheSize - freedSize + requiredSize <= MAX_CACHE_SIZE) {
+      break;
+    }
+    
+    const content = staticFilesCache.get(name);
+    if (content) {
+      const size = Buffer.byteLength(content, 'utf8');
+      staticFilesCache.delete(name);
+      staticFileStats.delete(name);
+      freedSize += size;
+      
+      console.info(`Evicted static file from cache: ${name} (${size} bytes)`);
+    }
+  }
+  
+  currentCacheSize -= freedSize;
+};
+
+/**
+ * Async preload of static files with memory management
+ */
+const preloadStaticFiles = async () => {
+  const preloadPromises = staticPaths.map(async ({ path: filePath, name }) => {
     try {
-      const stats = fs.statSync(filePath);
-      const content = fs.readFileSync(filePath, 'utf8');
-      staticFilesCache.set(name, content);
-      staticFileStats.set(name, { mtime: stats.mtime, size: stats.size });
-      console.log(`Preloaded static file: ${name}`);
+      const content = await getCachedStaticFile(name);
+      if (content) {
+        console.log(`Preloaded static file: ${name}`);
+      }
     } catch (err) {
       console.warn(`Failed to preload static file ${name}:`, err.message);
     }
   });
+  
+  await Promise.allSettled(preloadPromises);
+  console.log(`Static file preload complete. Cache size: ${currentCacheSize} bytes`);
+};
+
+/**
+ * Get cache statistics for monitoring
+ */
+const getStaticFileCacheStats = () => {
+  return {
+    files: staticFilesCache.size,
+    totalSize: currentCacheSize,
+    maxSize: MAX_CACHE_SIZE,
+    utilization: (currentCacheSize / MAX_CACHE_SIZE * 100).toFixed(2) + '%',
+    files: Array.from(staticFileStats.entries()).map(([name, stats]) => ({
+      name,
+      size: stats.size,
+      lastAccessed: stats.lastAccessed,
+      mtime: stats.mtime
+    }))
+  };
 };
 
 // Pre-load static files at startup
@@ -82,32 +201,21 @@ const { rateLimiters, securityHeaders, cookieOptions } = require('./lib/security
 const privacyManager = require('./lib/privacyManager');
 const dataRetentionService = require('./lib/dataRetentionService');
 
-// Rate limiting for API endpoints
-const rateLimit = require('express-rate-limit');
+// Enhanced rate limiting for API endpoints with per-endpoint limits
+const { getEnhancedRateLimiter, dynamicRateLimiter, createRateLimitMiddleware } = require('./lib/enhancedRateLimiter');
 
-// General API rate limiting - optimized for scalability
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5000, // Increased limit for better scalability
-  message: { error: 'Too many requests from this IP, please try again later' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  // Add memory-efficient options
-  keyGenerator: (req) => req.ip, // Simple IP-based key generation
-  skip: (req) => req.url.startsWith('/health') || req.url.startsWith('/metrics'), // Skip health checks
+// Initialize enhanced rate limiter with system-aware configuration
+const rateLimiter = getEnhancedRateLimiter({
+  enableBurstCapacity: true,
+  enableDistributedLimits: false // Set to true if using Redis
 });
 
-// Strict rate limiting for expensive operations - optimized for AI analysis
-const strictLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // Increased limit but still controlled for expensive operations
-  message: { error: 'Rate limit exceeded for this endpoint' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  // Add memory-efficient options
-  keyGenerator: (req) => req.ip, // Simple IP-based key generation
-  requestWasSuccessful: (req, res) => res.statusCode < 400, // Only count successful requests
-});
+// Create specific limiters for different endpoint categories
+const healthLimiter = createRateLimitMiddleware('/health');
+const metricsLimiter = createRateLimitMiddleware('/metrics');
+const apiLimiter = createRateLimitMiddleware('/api');
+const aiLimiter = createRateLimitMiddleware('/api/analyze');
+const adminLimiter = createRateLimitMiddleware('/api/admin');
 
 // Server configuration
 const app = express();
@@ -120,8 +228,12 @@ app.use(rateLimiters.general);          // Apply general rate limiting
 // Performance middleware
 app.use(compression());                 // Enable response compression
 
-// Rate limiting middleware
-app.use('/api/', apiLimiter);           // Apply rate limiting to all API routes
+// Enhanced rate limiting middleware with per-endpoint limits
+app.use('/health', healthLimiter);       // High-frequency health checks
+app.use('/metrics', metricsLimiter);     // Metrics endpoint
+app.use('/api/admin', adminLimiter);     // Admin endpoints - very restrictive
+app.use('/api/analyze', aiLimiter);      // AI analysis endpoints
+app.use('/api/', dynamicRateLimiter);    // Dynamic rate limiting for all other API routes
 
 // Express middleware configuration
 app.use(cors());                        // Enable CORS for all routes
