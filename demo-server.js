@@ -81,12 +81,12 @@ const server = http.createServer((req, res) => {
    * handling for directory requests and proper MIME type detection.
    * It uses asynchronous file operations to avoid blocking the event loop.
    */
-  fs.stat(requestedPath, (err, stats) => {
+  fs.promises.stat(requestedPath).then((stats) => {
     let filePath = requestedPath;
     
     // If directory is requested, try to serve demo.html within it
     // This provides a best-effort approach for directory requests
-    if (!err && stats.isDirectory()) {
+    if (stats.isDirectory()) {
       filePath = path.join(requestedPath, 'demo.html');
     }
 
@@ -118,6 +118,10 @@ const server = http.createServer((req, res) => {
     
     // Clean up when piping completes
     readStream.on('end', cleanup);
+  }).catch((err) => {
+    // File not found or unreadable - return 404
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
   });
 });
 
