@@ -89,7 +89,7 @@
     "loqatevars": "^1.0.6",
     "madge": "^8.0.0",
     "npmcontext": "^1.0.4",
-    "opencode-ai": "1.0.191",
+    "opencode-ai": "1.0.193",
     "quantumagent": "^1.0.5",
     "ts-node": "^10.9.0",
     "typescript": "^5.9.2",

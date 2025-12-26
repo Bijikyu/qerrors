@@ -40,6 +40,13 @@ const atomicFileCache = getAtomicFileCache({
   maxEntries: 1000
 });
 
+// Configurable timeout settings for AI analysis
+const AI_ANALYSIS_TIMEOUTS = {
+  REQUEST_TIMEOUT: parseInt(process.env.AI_REQUEST_TIMEOUT) || 30000, // 30 seconds default
+  PROCESSING_TIMEOUT: parseInt(process.env.AI_PROCESSING_TIMEOUT) || 25000, // 25 seconds default
+  CLEANUP_DELAY: 5000 // 5 seconds delay before cleanup
+};
+
 /**
  * Async static file loading with atomic cache operations
  */
@@ -515,11 +522,12 @@ app.post('/api/errors/analyze', aiLimiter, async (req, res, next) => {
       cleanup();
       res.status(408).json({
         success: false,
-        error: 'Request timeout - AI analysis took too long',
-        timestamp: new Date().toISOString()
+        error: `Request timeout - AI analysis took longer than ${AI_ANALYSIS_TIMEOUTS.REQUEST_TIMEOUT}ms`,
+        timestamp: new Date().toISOString(),
+        timeout: AI_ANALYSIS_TIMEOUTS.REQUEST_TIMEOUT
       });
     }
-  }, 30000);
+  }, AI_ANALYSIS_TIMEOUTS.REQUEST_TIMEOUT);
 
   // Single cleanup registration to prevent memory leaks
   res.once('finish', cleanup);
@@ -545,24 +553,34 @@ app.post('/api/errors/analyze', aiLimiter, async (req, res, next) => {
       // Create a timeout promise
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => {
-          reject(new Error('AI analysis timeout'));
-        }, 25000); // 25 second timeout for AI processing
+          reject(new Error(`AI analysis timeout after ${AI_ANALYSIS_TIMEOUTS.PROCESSING_TIMEOUT}ms`));
+        }, AI_ANALYSIS_TIMEOUTS.PROCESSING_TIMEOUT);
       });
 
-      // Race between qerrors analysis and timeout
+      // Race between qerrors analysis and timeout with enhanced error handling
       await Promise.race([
-        new Promise((resolve) => {
-          qerrors(error, 'AI Analysis Request', req, res, () => {
-            if (!res.headersSent) {
-              res.json({
-                success: true,
-                analysis: 'Error analysis triggered via qerrors AI system',
-                errorId: error.uniqueErrorName,
-                timestamp: new Date().toISOString()
-              });
-            }
-            resolve();
-          });
+        new Promise((resolve, reject) => {
+          try {
+            qerrors(error, 'AI Analysis Request', req, res, (analysisError) => {
+              if (analysisError) {
+                reject(analysisError);
+                return;
+              }
+              
+              if (!res.headersSent) {
+                res.json({
+                  success: true,
+                  analysis: 'Error analysis triggered via qerrors AI system',
+                  errorId: error.uniqueErrorName,
+                  timestamp: new Date().toISOString(),
+                  processingTime: AI_ANALYSIS_TIMEOUTS.PROCESSING_TIMEOUT
+                });
+              }
+              resolve();
+            });
+          } catch (err) {
+            reject(err);
+          }
         }),
         timeoutPromise
       ]);
@@ -1081,40 +1099,104 @@ app.get('/', (req, res) => {
 const gracefulShutdown = async (signal) => {
   console.log(`\n🛑 Received ${signal}, starting graceful shutdown...`);
   
+  // Track shutdown state and in-flight operations
+  const shutdownState = {
+    serverClosed: false,
+    resourcesCleaned: false,
+    forceExit: false,
+    startTime: Date.now(),
+    shutdownTimeout: 10000 // 10 seconds total shutdown timeout
+  };
+  
   try {
-    // Stop accepting new requests
-    server.close(() => {
-      console.log('✅ HTTP server closed');
+    // Stop accepting new requests immediately
+    server.close((err) => {
+      if (err) {
+        console.error('❌ Error closing server:', err);
+      } else {
+        console.log('✅ HTTP server closed - no longer accepting new requests');
+        shutdownState.serverClosed = true;
+      }
     });
     
-    // Cleanup qerrors resources
-    const { stopQueueMetrics, stopAdviceCleanup } = require('./lib/qerrorsCache');
-    const { stopQueueMetrics: stopQMetrics, cleanupTimers } = require('./lib/qerrorsQueue');
+    // Enhanced resource cleanup with coordination and timeout
+    const cleanupResources = async () => {
+      const cleanupPromises = [];
+      
+      // Cleanup qerrors resources with timeout
+      const { stopQueueMetrics, stopAdviceCleanup } = require('./lib/qerrorsCache');
+      const { stopQueueMetrics: stopQMetrics, cleanupTimers } = require('./lib/qerrorsQueue');
+      
+      cleanupPromises.push(
+        Promise.race([
+          new Promise(resolve => {
+            stopQueueMetrics && stopQueueMetrics();
+            stopAdviceCleanup && stopAdviceCleanup();
+            stopQMetrics && stopQMetrics();
+            cleanupTimers && cleanupTimers();
+            resolve();
+          }),
+          new Promise(resolve => setTimeout(resolve, 2000)) // 2 second timeout
+        ])
+      );
+      
+      // Shutdown distributed rate limiter with timeout
+      if (useDistributedLimiter && distributedRateLimiter) {
+        cleanupPromises.push(
+          Promise.race([
+            distributedRateLimiter.shutdown(),
+            new Promise(resolve => setTimeout(resolve, 3000)) // 3 second timeout
+          ])
+        );
+      }
+      
+      // Shutdown enhanced rate limiter with timeout
+      if (rateLimiter) {
+        cleanupPromises.push(
+          Promise.race([
+            new Promise(resolve => {
+              rateLimiter.shutdown();
+              resolve();
+            }),
+            new Promise(resolve => setTimeout(resolve, 1000)) // 1 second timeout
+          ])
+        );
+      }
+      
+      // Wait for all cleanup with timeout
+      await Promise.race([
+        Promise.allSettled(cleanupPromises),
+        new Promise(resolve => setTimeout(resolve, 5000)) // 5 second total timeout
+      ]);
+      
+      shutdownState.resourcesCleaned = true;
+      console.log('✅ Resource cleanup completed');
+    };
     
-    stopQueueMetrics && stopQueueMetrics();
-    stopAdviceCleanup && stopAdviceCleanup();
-    stopQMetrics && stopQMetrics();
-    cleanupTimers && cleanupTimers();
+    // Execute resource cleanup
+    await cleanupResources();
     
-    // Shutdown distributed rate limiter if enabled
-    if (useDistributedLimiter && distributedRateLimiter) {
-      await distributedRateLimiter.shutdown();
-    }
+    // Calculate remaining time for force exit
+    const elapsed = Date.now() - shutdownState.startTime;
+    const remainingTime = Math.max(0, shutdownState.shutdownTimeout - elapsed);
     
-    // Shutdown enhanced rate limiter
-    if (rateLimiter) {
-      rateLimiter.shutdown();
-    }
-    
-    // Force exit after timeout
+    // Force exit after remaining timeout
     setTimeout(() => {
-      console.log('⏰ Shutdown timeout, forcing exit');
-      process.exit(1);
-    }, 5000);
+      if (!shutdownState.forceExit) {
+        shutdownState.forceExit = true;
+        console.log(`⏰ Shutdown timeout after ${elapsed}ms, forcing exit`);
+        process.exit(1);
+      }
+    }, remainingTime);
     
   } catch (error) {
     console.error('❌ Error during shutdown:', error);
-    process.exit(1);
+    
+    // Force exit on error during shutdown
+    setTimeout(() => {
+      console.log('⏰ Forced exit due to shutdown error');
+      process.exit(1);
+    }, 2000);
   }
 };
 
@@ -1123,20 +1205,43 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 /**
- * Server startup and module export
+ * Async server startup with proper initialization
  * 
- * The server starts on the configured port and provides comprehensive
- * console output with URLs for all available demo interfaces and API
- * endpoints. The app is also exported for testing purposes and potential
- * module usage in other applications.
+ * Initializes all async configuration before starting the server.
+ * This ensures environment variables are loaded asynchronously
+ * without blocking the main thread during module loading.
  */
-const server = app.listen(PORT, () => {
-  console.log(`🚀 QErrors API Server running on http://localhost:${PORT}`);
-  console.log(`📊 Demo UI: http://localhost:${PORT}/demo.html`);
-  console.log(`🔧 Functional Demo: http://localhost:${PORT}/demo-functional.html`);
-  console.log(`📡 API Endpoints available at http://localhost:${PORT}/api/`);
-  console.log(`🛡️ Graceful shutdown enabled`);
+const startServer = async () => {
+  try {
+    // Initialize async configuration (dotenv loading, etc.)
+    const { initializeAsync } = require('./lib/asyncInit');
+    await initializeAsync();
+    
+    // Start the server after async initialization is complete
+    const server = app.listen(PORT, () => {
+      console.log(`🚀 QErrors API Server running on http://localhost:${PORT}`);
+      console.log(`📊 Demo UI: http://localhost:${PORT}/demo.html`);
+      console.log(`🔧 Functional Demo: http://localhost:${PORT}/demo-functional.html`);
+      console.log(`📡 API Endpoints available at http://localhost:${PORT}/api/`);
+      console.log(`🛡️ Graceful shutdown enabled`);
+    });
+    
+    return server;
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+// Start the server asynchronously
+let server; // Will be set when server starts
+startServer().then(s => {
+  server = s;
+}).catch(error => {
+  console.error('❌ Failed to start server:', error);
+  process.exit(1);
 });
 
-// Export the Express app and server for testing and module usage
-module.exports = { app, server };
+// Export the Express app for testing and module usage
+// Server will be available once startup completes
+module.exports = { app, startServer };
