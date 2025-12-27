@@ -51,20 +51,33 @@ const AI_ANALYSIS_TIMEOUTS = {
  * Async static file loading with atomic cache operations
  */
 const getCachedStaticFile = async (name) => {
-  const staticPath = staticPaths.find(p => p.name === name);
-  if (!staticPath) return null;
-  
   try {
-    // Try LRU cache first (O(1) operation)
-    const cachedEntry = lruCache.get(name);
-    if (cachedEntry) {
-      return cachedEntry.content;
-    }
+    const staticPath = staticPaths.find(p => p.name === name);
+    if (!staticPath) return null;
     
-    // Load and cache the file
-    return await loadStaticFileAsync(name, staticPath);
+    try {
+      // Try LRU cache first (O(1) operation)
+      const cachedEntry = lruCache.get(name);
+      if (cachedEntry) {
+        return cachedEntry.content;
+      }
+      
+      // Load and cache file
+      return await loadStaticFileAsync(name, staticPath);
+    } catch (fileError) {
+      qerrors(fileError, 'server.getCachedStaticFile.file', {
+        operation: 'static_file_cache_retrieval',
+        fileName: name,
+        hasStaticPath: !!staticPath
+      });
+      console.warn(`Failed to get cached static file ${name}:`, fileError.message);
+      return null;
+    }
   } catch (error) {
-    console.warn(`Failed to get cached static file ${name}:`, error.message);
+    qerrors(error, 'server.getCachedStaticFile', {
+      operation: 'static_file_lookup',
+      fileName: name
+    });
     return null;
   }
 };
@@ -77,48 +90,98 @@ const loadStaticFileAsync = async (name, staticPath) => {
     // Check LRU cache first (O(1) operation)
     const cachedEntry = lruCache.get(name);
     if (cachedEntry) {
-      // Use async stat to check if file changed
-      const currentStats = await fs.promises.stat(staticPath.path);
-      const needsReload = currentStats.mtime > cachedEntry.stats.mtime || 
-                         currentStats.size !== cachedEntry.stats.size;
-      
-      if (!needsReload) {
-        return cachedEntry.content;
+      try {
+        // Use async stat to check if file changed
+        const currentStats = await fs.promises.stat(staticPath.path);
+        const needsReload = currentStats.mtime > cachedEntry.stats.mtime || 
+                           currentStats.size !== cachedEntry.stats.size;
+        
+        if (!needsReload) {
+          return cachedEntry.content;
+        }
+      } catch (statError) {
+        qerrors(statError, 'server.loadStaticFileAsync.stat', {
+          operation: 'file_stat_check',
+          fileName: name,
+          filePath: staticPath.path
+        });
+        // Continue with file reload if stat fails
       }
     }
     
-    // Use async stat to avoid blocking
-    const currentStats = await fs.promises.stat(staticPath.path);
-    
-    // Check file size limits
-    if (currentStats.size > MAX_FILE_SIZE) {
-      console.warn(`Static file ${name} too large (${currentStats.size} bytes), skipping cache`);
-      return await fs.promises.readFile(staticPath.path, 'utf8');
+    try {
+      // Use async stat to avoid blocking
+      const currentStats = await fs.promises.stat(staticPath.path);
+      
+      // Check file size limits
+      if (currentStats.size > MAX_FILE_SIZE) {
+        qerrors(null, 'server.loadStaticFileAsync.fileTooLarge', {
+          operation: 'file_size_check',
+          fileName: name,
+          fileSize: currentStats.size,
+          maxSize: MAX_FILE_SIZE
+        });
+        console.warn(`Static file ${name} too large (${currentStats.size} bytes), skipping cache`);
+        return await fs.promises.readFile(staticPath.path, 'utf8');
+      }
+      
+      try {
+        // Load file asynchronously
+        const content = await fs.promises.readFile(staticPath.path, 'utf8');
+        
+        try {
+          // Check memory limits before caching
+          const contentSize = Buffer.byteLength(content, 'utf8');
+          
+          // Clear cache if needed using optimized LRU eviction
+          if (currentCacheSize + contentSize > MAX_CACHE_SIZE) {
+            await clearOldestCacheEntries(contentSize);
+          }
+          
+          // Store in LRU cache with O(1) operation
+          const stats = {
+            size: currentStats.size,
+            mtime: currentStats.mtime,
+            lastAccessed: Date.now()
+          };
+          
+          lruCache.set(name, content, stats);
+          currentCacheSize += contentSize;
+          
+          return content;
+        } catch (cacheError) {
+          qerrors(cacheError, 'server.loadStaticFileAsync.cache', {
+            operation: 'file_cache_storage',
+            fileName: name,
+            contentSize: contentSize,
+            currentCacheSize
+          });
+          // Return content even if caching fails
+          return content;
+        }
+      } catch (readError) {
+        qerrors(readError, 'server.loadStaticFileAsync.read', {
+          operation: 'file_read',
+          fileName: name,
+          filePath: staticPath.path,
+          fileSize: currentStats.size
+        });
+        throw readError;
+      }
+    } catch (statError) {
+      qerrors(statError, 'server.loadStaticFileAsync.initialStat', {
+        operation: 'initial_file_stat',
+        fileName: name,
+        filePath: staticPath.path
+      });
+      throw statError;
     }
-    
-    // Load file asynchronously
-    const content = await fs.promises.readFile(staticPath.path, 'utf8');
-    
-    // Check memory limits before caching
-    const contentSize = Buffer.byteLength(content, 'utf8');
-    
-    // Clear cache if needed using optimized LRU eviction
-    if (currentCacheSize + contentSize > MAX_CACHE_SIZE) {
-      await clearOldestCacheEntries(contentSize);
-    }
-    
-    // Store in LRU cache with O(1) operation
-    const stats = {
-      size: currentStats.size,
-      mtime: currentStats.mtime,
-      lastAccessed: Date.now()
-    };
-    
-    lruCache.set(name, content, stats);
-    currentCacheSize += contentSize;
-    
-    return content;
   } catch (error) {
+    qerrors(error, 'server.loadStaticFileAsync', {
+      operation: 'static_file_loading',
+      fileName: name,
+      hasStaticPath: !!staticPath
+    });
     console.warn(`Failed to load static file ${name}:`, error.message);
     throw error;
   }
@@ -361,6 +424,10 @@ app.use(express.static('.'));           // Serve static files from current direc
 try {
   auth.validateEnvironment();
 } catch (error) {
+  qerrors(error, 'server.startup.environmentValidation', {
+    operation: 'environment_validation',
+    phase: 'startup'
+  });
   console.error('SECURITY ERROR:', error.message);
   console.error('Please set proper environment variables before starting the server.');
   process.exit(1);
@@ -501,109 +568,151 @@ app.post('/api/errors/custom', (req, res, next) => {
 
 // POST /api/errors/analyze - AI-powered error analysis
 app.post('/api/errors/analyze', aiLimiter, async (req, res, next) => {
-  // Set request timeout with AbortController for proper cleanup
-  const abortController = new AbortController();
-  let timeoutId = null;
-  let cleanedUp = false;
-
-  const cleanup = () => {
-    if (cleanedUp) return;
-    cleanedUp = true;
-    
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      timeoutId = null;
-    }
-    abortController.abort();
-  };
-
-  timeoutId = setTimeout(() => {
-    if (!res.headersSent) {
-      cleanup();
-      res.status(408).json({
-        success: false,
-        error: `Request timeout - AI analysis took longer than ${AI_ANALYSIS_TIMEOUTS.REQUEST_TIMEOUT}ms`,
-        timestamp: new Date().toISOString(),
-        timeout: AI_ANALYSIS_TIMEOUTS.REQUEST_TIMEOUT
-      });
-    }
-  }, AI_ANALYSIS_TIMEOUTS.REQUEST_TIMEOUT);
-
-  // Single cleanup registration to prevent memory leaks
-  res.once('finish', cleanup);
-  req.once('close', cleanup);
-
   try {
-    const { error: errorData, context } = req.body;
-    
-    if (!errorData) {
-      const error = createError('validation', 'Error data is required for analysis');
-      error.statusCode = 400;
-      throw error;
-    }
-    
-    // Create a proper error object from the data
-    const error = new Error(errorData.message || 'Sample error for analysis');
-    error.name = errorData.name || 'Error';
-    error.stack = errorData.stack || new Error().stack;
-    error.context = context || {};
-    
-    // Trigger qerrors analysis with timeout protection
-    if (qerrors) {
-      // Create a timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error(`AI analysis timeout after ${AI_ANALYSIS_TIMEOUTS.PROCESSING_TIMEOUT}ms`));
-        }, AI_ANALYSIS_TIMEOUTS.PROCESSING_TIMEOUT);
-      });
+    // Set request timeout with AbortController for proper cleanup
+    const abortController = new AbortController();
+    let timeoutId = null;
+    let cleanedUp = false;
 
-      // Race between qerrors analysis and timeout with enhanced error handling
-      await Promise.race([
-        new Promise((resolve, reject) => {
-          try {
-            qerrors(error, 'AI Analysis Request', req, res, (analysisError) => {
-              if (analysisError) {
-                reject(analysisError);
-                return;
-              }
-              
-              if (!res.headersSent) {
-                res.json({
-                  success: true,
-                  analysis: 'Error analysis triggered via qerrors AI system',
-                  errorId: error.uniqueErrorName,
-                  timestamp: new Date().toISOString(),
-                  processingTime: AI_ANALYSIS_TIMEOUTS.PROCESSING_TIMEOUT
-                });
-              }
-              resolve();
-            });
-          } catch (err) {
-            reject(err);
-          }
-        }),
-        timeoutPromise
-      ]);
-    } else {
-      // Fallback if qerrors not available
-      res.json({
-        success: false,
-        error: 'qerrors not available for analysis',
-        timestamp: new Date().toISOString()
-      });
-    }
-  } catch (error) {
-    if (error.message === 'AI analysis timeout') {
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      abortController.abort();
+    };
+
+    timeoutId = setTimeout(() => {
       if (!res.headersSent) {
+        cleanup();
         res.status(408).json({
           success: false,
-          error: 'AI analysis timeout - please try again',
-          timestamp: new Date().toISOString()
+          error: `Request timeout - AI analysis took longer than ${AI_ANALYSIS_TIMEOUTS.REQUEST_TIMEOUT}ms`,
+          timestamp: new Date().toISOString(),
+          timeout: AI_ANALYSIS_TIMEOUTS.REQUEST_TIMEOUT
         });
       }
-    } else {
-      next(error);
+    }, AI_ANALYSIS_TIMEOUTS.REQUEST_TIMEOUT);
+
+    // Single cleanup registration to prevent memory leaks
+    res.once('finish', cleanup);
+    req.once('close', cleanup);
+
+    try {
+      const { error: errorData, context } = req.body;
+      
+      if (!errorData) {
+        const error = createError('validation', 'Error data is required for analysis');
+        error.statusCode = 400;
+        qerrors(error, 'server.aiAnalysis.validation', {
+          operation: 'ai_analysis_request_validation',
+          hasRequestBody: !!req.body
+        });
+        throw error;
+      }
+      
+      // Create a proper error object from the data
+      const error = new Error(errorData.message || 'Sample error for analysis');
+      error.name = errorData.name || 'Error';
+      error.stack = errorData.stack || new Error().stack;
+      error.context = context || {};
+      
+      try {
+        // Trigger qerrors analysis with timeout protection
+        if (qerrors) {
+          // Create a timeout promise
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+              const timeoutError = new Error(`AI analysis timeout after ${AI_ANALYSIS_TIMEOUTS.PROCESSING_TIMEOUT}ms`);
+              qerrors(timeoutError, 'server.aiAnalysis.timeout', {
+                operation: 'ai_analysis_processing_timeout',
+                timeoutDuration: AI_ANALYSIS_TIMEOUTS.PROCESSING_TIMEOUT
+              });
+              reject(timeoutError);
+            }, AI_ANALYSIS_TIMEOUTS.PROCESSING_TIMEOUT);
+          });
+
+          // Race between qerrors analysis and timeout with enhanced error handling
+          await Promise.race([
+            new Promise((resolve, reject) => {
+              try {
+                qerrors(error, 'AI Analysis Request', req, res, (analysisError) => {
+                  if (analysisError) {
+                    qerrors(analysisError, 'server.aiAnalysis.qerrors', {
+                      operation: 'ai_analysis_qerrors_callback',
+                      hasErrorData: !!errorData,
+                      hasContext: !!context
+                    });
+                    reject(analysisError);
+                    return;
+                  }
+                  
+                  if (!res.headersSent) {
+                    res.json({
+                      success: true,
+                      analysis: 'Error analysis triggered via qerrors AI system',
+                      errorId: error.uniqueErrorName,
+                      timestamp: new Date().toISOString(),
+                      processingTime: AI_ANALYSIS_TIMEOUTS.PROCESSING_TIMEOUT
+                    });
+                  }
+                  resolve();
+                });
+              } catch (err) {
+                qerrors(err, 'server.aiAnalysis.qerrorsCall', {
+                  operation: 'ai_analysis_qerrors_invocation',
+                  errorMessage: error.message
+                });
+                reject(err);
+              }
+            }),
+            timeoutPromise
+          ]);
+        } else {
+          // Fallback if qerrors not available
+          const error = new Error('qerrors not available for analysis');
+          qerrors(error, 'server.aiAnalysis.unavailable', {
+            operation: 'ai_analysis_fallback',
+            qerrorsAvailable: false
+          });
+          res.json({
+            success: false,
+            error: 'qerrors not available for analysis',
+            timestamp: new Date().toISOString()
+          });
+        }
+      } catch (processingError) {
+        qerrors(processingError, 'server.aiAnalysis.processing', {
+          operation: 'ai_analysis_processing',
+          errorMessage: error.message
+        });
+        throw processingError;
+      }
+    } catch (requestError) {
+      if (requestError.message === 'AI analysis timeout') {
+        if (!res.headersSent) {
+          res.status(408).json({
+            success: false,
+            error: 'AI analysis timeout - please try again',
+            timestamp: new Date().toISOString()
+          });
+        }
+      } else {
+        qerrors(requestError, 'server.aiAnalysis.request', {
+          operation: 'ai_analysis_request',
+          hasRequestBody: !!req.body
+        });
+        next(requestError);
+      }
     }
+  } catch (error) {
+    qerrors(error, 'server.aiAnalysis', {
+      operation: 'ai_analysis_endpoint'
+    });
+    next(error);
   }
 });
 
@@ -642,41 +751,103 @@ app.post('/auth/login', rateLimiters.auth, async (req, res, next) => {
     const { username, password } = req.body;
     
     if (!username || !password) {
-      const error = qerrors.createTypedError('Missing credentials', qerrors.ErrorTypes.AUTHENTICATION, 'AUTH_ERROR');
+      const error = qerrors.createTypedError('Missing credentials', qerrors.errorTypes.AUTHENTICATION, 'AUTH_ERROR');
       error.statusCode = 401;
+      qerrors(error, 'server.authLogin.missingCredentials', {
+        operation: 'authentication_missing_credentials',
+        hasUsername: !!username,
+        hasPassword: !!password
+      });
       throw error;
     }
     
-    const validUsername = process.env.ADMIN_USERNAME;
-    
-    // Validate credentials securely
-    if (username !== validUsername) {
-      const error = qerrors.createTypedError('Invalid credentials', qerrors.ErrorTypes.AUTHENTICATION, 'AUTH_ERROR');
-      error.statusCode = 401;
-      throw error;
+    try {
+      const validUsername = process.env.ADMIN_USERNAME;
+      
+      // Validate credentials securely
+      if (username !== validUsername) {
+        const error = qerrors.createTypedError('Invalid credentials', qerrors.errorTypes.AUTHENTICATION, 'AUTH_ERROR');
+        error.statusCode = 401;
+        qerrors(error, 'server.authLogin.invalidUsername', {
+          operation: 'authentication_username_validation',
+          providedUsernameLength: username?.length || 0
+        });
+        throw error;
+      }
+      
+      try {
+        // In a real application, you would retrieve the hashed password from a database
+        // For this demo, we'll hash the environment password on startup
+        const storedPasswordHash = await auth.hashPassword(process.env.ADMIN_PASSWORD);
+        
+        try {
+          const isValidPassword = await auth.verifyPassword(password, storedPasswordHash);
+          
+          if (!isValidPassword) {
+            const error = qerrors.createTypedError('Invalid credentials', qerrors.errorTypes.AUTHENTICATION, 'AUTH_ERROR');
+            error.statusCode = 401;
+            qerrors(error, 'server.authLogin.invalidPassword', {
+              operation: 'authentication_password_validation',
+              passwordLength: password?.length || 0
+            });
+            throw error;
+          }
+          
+          try {
+            const token = auth.generateToken({ username, id: 1 });
+            
+            try {
+              // Set secure HTTP-only cookie
+              res.cookie('authToken', token, cookieOptions);
+              
+              res.json({ 
+                success: true, 
+                user: { username, id: 1 }
+              });
+            } catch (cookieError) {
+              qerrors(cookieError, 'server.authLogin.cookie', {
+                operation: 'authentication_cookie_setting',
+                hasToken: !!token
+              });
+              throw cookieError;
+            }
+          } catch (tokenError) {
+            qerrors(tokenError, 'server.authLogin.tokenGeneration', {
+              operation: 'authentication_token_generation',
+              username: username
+            });
+            throw tokenError;
+          }
+        } catch (verifyError) {
+          qerrors(verifyError, 'server.authLogin.passwordVerification', {
+            operation: 'authentication_password_verification',
+            hasStoredHash: !!storedPasswordHash
+          });
+          throw verifyError;
+        }
+      } catch (hashError) {
+        qerrors(hashError, 'server.authLogin.passwordHashing', {
+          operation: 'authentication_password_hashing',
+          hasEnvironmentPassword: !!process.env.ADMIN_PASSWORD
+        });
+        throw hashError;
+      }
+    } catch (validationError) {
+      qerrors(validationError, 'server.authLogin.validation', {
+        operation: 'authentication_validation',
+        hasEnvironmentUsername: !!process.env.ADMIN_USERNAME
+      });
+      throw validationError;
     }
-    
-    // In a real application, you would retrieve the hashed password from a database
-    // For this demo, we'll hash the environment password on startup
-    const storedPasswordHash = await auth.hashPassword(process.env.ADMIN_PASSWORD);
-    const isValidPassword = await auth.verifyPassword(password, storedPasswordHash);
-    
-    if (!isValidPassword) {
-      const error = qerrors.createTypedError('Invalid credentials', qerrors.ErrorTypes.AUTHENTICATION, 'AUTH_ERROR');
-      error.statusCode = 401;
-      throw error;
-    }
-    
-    const token = auth.generateToken({ username, id: 1 });
-    
-    // Set secure HTTP-only cookie
-    res.cookie('authToken', token, cookieOptions);
-    
-    res.json({ 
-      success: true, 
-      user: { username, id: 1 }
-    });
   } catch (error) {
+    // Only log if it's not one of our already-logged auth errors
+    if (!error.message.includes('Invalid credentials') && 
+        !error.message.includes('Missing credentials')) {
+      qerrors(error, 'server.authLogin', {
+        operation: 'authentication_login',
+        hasRequestBody: !!req.body
+      });
+    }
     next(error);
   }
 });
@@ -1090,23 +1261,170 @@ app.get('/', (req, res) => {
 });
 
 /**
- * Graceful shutdown handler
+ * Graceful shutdown handler with enhanced resource cleanup
  * 
  * Ensures all resources are properly cleaned up before process exit.
  * This includes stopping background timers, closing database connections,
  * and allowing in-flight requests to complete.
  */
 const gracefulShutdown = async (signal) => {
-  console.log(`\n🛑 Received ${signal}, starting graceful shutdown...`);
-  
-  // Track shutdown state and in-flight operations
-  const shutdownState = {
-    serverClosed: false,
-    resourcesCleaned: false,
-    forceExit: false,
-    startTime: Date.now(),
-    shutdownTimeout: 10000 // 10 seconds total shutdown timeout
-  };
+  try {
+    console.log(`\n🛑 Received ${signal}, starting graceful shutdown...`);
+    
+    // Track shutdown state and in-flight operations
+    const shutdownState = {
+      serverClosed: false,
+      resourcesCleaned: false,
+      forceExit: false,
+      startTime: Date.now(),
+      shutdownTimeout: 10000 // 10 seconds total shutdown timeout
+    };
+    
+    try {
+      // Stop accepting new requests immediately
+      server.close((err) => {
+        if (err) {
+          qerrors(err, 'server.gracefulShutdown.serverClose', {
+            operation: 'server_shutdown_close',
+            signal: signal
+          });
+          console.error('❌ Error closing server:', err);
+        } else {
+          console.log('✅ HTTP server closed - no longer accepting new requests');
+          shutdownState.serverClosed = true;
+        }
+      });
+      
+      // Enhanced resource cleanup with coordination and timeout
+      const cleanupResources = async () => {
+        try {
+          const cleanupPromises = [];
+          
+          try {
+            // Cleanup qerrors resources with timeout
+            const { stopQueueMetrics, stopAdviceCleanup } = require('./lib/qerrorsCache');
+            const { stopQueueMetrics: stopQMetrics, cleanupTimers } = require('./lib/qerrorsQueue');
+            
+            cleanupPromises.push(
+              Promise.race([
+                new Promise(resolve => {
+                  try {
+                    stopQueueMetrics && stopQueueMetrics();
+                    stopAdviceCleanup && stopAdviceCleanup();
+                    stopQMetrics && stopQMetrics();
+                    cleanupTimers && cleanupTimers();
+                    resolve();
+                  } catch (cleanupError) {
+                    qerrors(cleanupError, 'server.gracefulShutdown.qerrorsCleanup', {
+                      operation: 'qerrors_resource_cleanup'
+                    });
+                    resolve();
+                  }
+                }),
+                new Promise(resolve => setTimeout(resolve, 2000)) // 2 second timeout
+              ])
+            );
+          } catch (moduleError) {
+            qerrors(moduleError, 'server.gracefulShutdown.moduleLoad', {
+              operation: 'cleanup_module_loading',
+              signal: signal
+            });
+          }
+          
+          try {
+            // Shutdown distributed rate limiter with timeout
+            if (useDistributedLimiter && distributedRateLimiter) {
+              cleanupPromises.push(
+                Promise.race([
+                  distributedRateLimiter.shutdown(),
+                  new Promise(resolve => setTimeout(resolve, 3000)) //3 second timeout
+                ])
+              );
+            }
+            
+            // Shutdown enhanced rate limiter with timeout
+            if (rateLimiter) {
+              cleanupPromises.push(
+                Promise.race([
+                  new Promise(resolve => {
+                    try {
+                      rateLimiter.shutdown();
+                      resolve();
+                    } catch (rateLimitError) {
+                      qerrors(rateLimitError, 'server.gracefulShutdown.rateLimitShutdown', {
+                        operation: 'rate_limiter_shutdown'
+                      });
+                      resolve();
+                    }
+                  }),
+                  new Promise(resolve => setTimeout(resolve, 1000)) // 1 second timeout
+                ])
+              );
+            }
+          } catch (limiterError) {
+            qerrors(limiterError, 'server.gracefulShutdown.limiter', {
+              operation: 'limiter_shutdown',
+              hasDistributedLimiter: !!useDistributedLimiter,
+              hasRateLimiter: !!rateLimiter
+            });
+          }
+          
+          // Wait for all cleanup with timeout
+          await Promise.race([
+            Promise.allSettled(cleanupPromises),
+            new Promise(resolve => setTimeout(resolve, 5000)) // 5 second total timeout
+          ]);
+          
+          shutdownState.resourcesCleaned = true;
+          console.log('✅ Resource cleanup completed');
+        } catch (cleanupError) {
+          qerrors(cleanupError, 'server.gracefulShutdown.cleanup', {
+            operation: 'resource_cleanup',
+            signal: signal,
+            elapsed: Date.now() - shutdownState.startTime
+          });
+          throw cleanupError;
+        }
+      };
+      
+      // Execute resource cleanup
+      await cleanupResources();
+      
+      // Calculate remaining time for force exit
+      const elapsed = Date.now() - shutdownState.startTime;
+      const remainingTime = Math.max(0, shutdownState.shutdownTimeout - elapsed);
+      
+      // Force exit after remaining timeout
+      setTimeout(() => {
+        if (!shutdownState.forceExit) {
+          shutdownState.forceExit = true;
+          console.log(`⏰ Shutdown timeout after ${elapsed}ms, forcing exit`);
+          process.exit(1);
+        }
+      }, remainingTime);
+      
+    } catch (shutdownError) {
+      qerrors(shutdownError, 'server.gracefulShutdown.processing', {
+        operation: 'graceful_shutdown_processing',
+        signal: signal,
+        elapsed: Date.now() - shutdownState.startTime
+      });
+      throw shutdownError;
+    }
+  } catch (error) {
+    qerrors(error, 'server.gracefulShutdown', {
+      operation: 'graceful_shutdown',
+      signal: signal
+    });
+    console.error('❌ Error during shutdown:', error);
+    
+    // Force exit on error during shutdown
+    setTimeout(() => {
+      console.log('⏰ Forced exit due to shutdown error');
+      process.exit(1);
+    }, 2000);
+  }
+};
   
   try {
     // Stop accepting new requests immediately
@@ -1213,21 +1531,41 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
  */
 const startServer = async () => {
   try {
-    // Initialize async configuration (dotenv loading, etc.)
-    const { initializeAsync } = require('./lib/asyncInit');
-    await initializeAsync();
+    try {
+      // Initialize async configuration (dotenv loading, etc.)
+      const { initializeAsync } = require('./lib/asyncInit');
+      await initializeAsync();
+    } catch (initError) {
+      qerrors(initError, 'server.startServer.asyncInit', {
+        operation: 'server_async_initialization',
+        port: PORT
+      });
+      throw initError;
+    }
     
-    // Start the server after async initialization is complete
-    const server = app.listen(PORT, () => {
-      console.log(`🚀 QErrors API Server running on http://localhost:${PORT}`);
-      console.log(`📊 Demo UI: http://localhost:${PORT}/demo.html`);
-      console.log(`🔧 Functional Demo: http://localhost:${PORT}/demo-functional.html`);
-      console.log(`📡 API Endpoints available at http://localhost:${PORT}/api/`);
-      console.log(`🛡️ Graceful shutdown enabled`);
-    });
-    
-    return server;
+    try {
+      // Start the server after async initialization is complete
+      const server = app.listen(PORT, () => {
+        console.log(`🚀 QErrors API Server running on http://localhost:${PORT}`);
+        console.log(`📊 Demo UI: http://localhost:${PORT}/demo.html`);
+        console.log(`🔧 Functional Demo: http://localhost:${PORT}/demo-functional.html`);
+        console.log(`📡 API Endpoints available at http://localhost:${PORT}/api/`);
+        console.log(`🛡️ Graceful shutdown enabled`);
+      });
+      
+      return server;
+    } catch (listenError) {
+      qerrors(listenError, 'server.startServer.listen', {
+        operation: 'server_listen',
+        port: PORT
+      });
+      throw listenError;
+    }
   } catch (error) {
+    qerrors(error, 'server.startServer', {
+      operation: 'server_startup',
+      port: PORT
+    });
     console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
