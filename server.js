@@ -301,19 +301,32 @@ const clearOldestCacheEntries = async (requiredSize) => {
  * Async preload of static files with memory management
  */
 const preloadStaticFiles = async () => {
-  const preloadPromises = staticPaths.map(async ({ path: filePath, name }) => {
-    try {
-      const content = await getCachedStaticFile(name);
-      if (content) {
-        console.log(`Preloaded static file: ${name}`);
+  try {
+    const preloadPromises = staticPaths.map(async ({ path: filePath, name }) => {
+      try {
+        const content = await getCachedStaticFile(name);
+        if (content) {
+          console.log(`Preloaded static file: ${name}`);
+        }
+      } catch (err) {
+        qerrors(err, 'server.preloadStaticFiles.file', {
+          operation: 'static_file_preload',
+          fileName: name,
+          filePath: filePath
+        });
+        console.warn(`Failed to preload static file ${name}:`, err.message);
       }
-    } catch (err) {
-      console.warn(`Failed to preload static file ${name}:`, err.message);
-    }
-  });
-  
-  await Promise.allSettled(preloadPromises);
-  console.log(`Static file preload complete. Cache size: ${currentCacheSize} bytes`);
+    });
+    
+    await Promise.allSettled(preloadPromises);
+    console.log(`Static file preload complete. Cache size: ${currentCacheSize} bytes`);
+  } catch (error) {
+    qerrors(error, 'server.preloadStaticFiles', {
+      operation: 'static_files_preload',
+      filesCount: staticPaths.length
+    });
+    console.warn('Failed to preload static files:', error.message);
+  }
 };
 
 /**
