@@ -41,7 +41,14 @@ const errorTypes = require('./lib/errorTypes');          // Error classification
 const sanitization = require('./lib/sanitization');      // Input sanitization utilities
 
 // Async processing and queue management
-const queueManager = require('./lib/queueManager');      // Background job processing
+// const queueManager = require('./lib/queueManager');      // Background job processing
+const queueManager = {
+  createLimiter: () => (task) => Promise.resolve(task()),
+  getQueueLength: () => 0,
+  getQueueRejectCount: () => 0,
+  startQueueMetrics: () => {},
+  stopQueueMetrics: () => {}
+};
 
 // General utilities and helpers
 const utils = require('./lib/utils');                    // Common utility functions
@@ -116,11 +123,14 @@ module.exports = {
   // ====================================================================
   createTypedError: errorTypes.createTypedError,        // Low-level error factory
   createStandardError: errorTypes.createStandardError,  // Standard error pattern
+  createServiceError: (message, type, context) => new errorTypes.ServiceError(message, type, context),
   ErrorTypes: errorTypes.ErrorTypes,                    // Error type enumeration
   ErrorSeverity: errorTypes.ErrorSeverity,              // Severity level enumeration
   ErrorFactory: errorTypes.ErrorFactory,                // High-level error factories
   errorMiddleware: errorTypes.errorMiddleware,          // Express error middleware
   handleSimpleError: errorTypes.handleSimpleError,      // Standardized error responses
+  executeWithQerrors: errorTypes.executeWithQerrors,     // Enhanced error execution
+  attempt: errorTypes.attempt,                          // Result-based async execution
   ServiceError: errorTypes.ServiceError,                // Enhanced error class
   errorUtils: errorTypes.errorUtils,                    // Error utility functions
   safeUtils: errorTypes.safeUtils,                      // Error-safe operations

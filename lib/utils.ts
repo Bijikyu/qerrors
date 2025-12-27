@@ -29,6 +29,7 @@ import {
   executeWithQerrors,
   formatErrorMessage
 } from './shared/executionCore.js';
+import qerrors from '../lib/qerrors.js';
 
 /**
  * Legacy logging functions - deprecated but maintained for backward compatibility
@@ -51,7 +52,21 @@ import {
  * @param metadata - Additional metadata object for error details
  */
 const logError = async (error: unknown, context?: string, metadata?: Record<string, unknown>) => {
-  console.error('Error:', error, context, metadata);
+  try {
+    console.error('Error:', error, context, metadata);
+    
+    // Use qerrors for sophisticated error reporting
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    await qerrors(errorObj, 'utils.logError', {
+      context,
+      metadata,
+      timestamp: new Date().toISOString()
+    });
+  } catch (qerror) {
+    // Fallback logging if qerrors fails
+    console.error('qerrors logging failed in logError', qerror);
+    console.error('Original error:', error, context, metadata);
+  }
 };
 
 /**
@@ -64,7 +79,23 @@ const logError = async (error: unknown, context?: string, metadata?: Record<stri
  * @param metadata - Additional metadata object for message details
  */
 const logInfo = async (message: string, metadata?: Record<string, unknown>) => {
-  console.info('Info:', message, metadata);
+  try {
+    console.info('Info:', message, metadata);
+  } catch (error) {
+    // Use qerrors for sophisticated error reporting
+    try {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      await qerrors(errorObj, 'utils.logInfo', {
+        message,
+        metadata,
+        timestamp: new Date().toISOString()
+      });
+    } catch (qerror) {
+      // Fallback logging if qerrors fails
+      console.error('qerrors logging failed in logInfo', qerror);
+      console.error('Original error:', error);
+    }
+  }
 };
 
 /**
@@ -77,7 +108,23 @@ const logInfo = async (message: string, metadata?: Record<string, unknown>) => {
  * @param metadata - Additional metadata object for warning details
  */
 const logWarn = async (message: string, metadata?: Record<string, unknown>) => {
-  console.warn('Warning:', message, metadata);
+  try {
+    console.warn('Warning:', message, metadata);
+  } catch (error) {
+    // Use qerrors for sophisticated error reporting
+    try {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      await qerrors(errorObj, 'utils.logWarn', {
+        message,
+        metadata,
+        timestamp: new Date().toISOString()
+      });
+    } catch (qerror) {
+      // Fallback logging if qerrors fails
+      console.error('qerrors logging failed in logWarn', qerror);
+      console.error('Original error:', error);
+    }
+  }
 };
 
 /**

@@ -2,6 +2,8 @@
  * Error types module - placeholder implementation
  */
 
+import qerrors from '../lib/qerrors.js';
+
 export const ErrorTypes = {
   VALIDATION: 'validation',
   AUTHENTICATION: 'authentication',
@@ -84,6 +86,17 @@ export const safeUtils = {
       const result = await operation();
       return { success: true, data: result };
     } catch (error) {
+      // Use qerrors for sophisticated error reporting
+      try {
+        const errorObj = error instanceof Error ? error : new Error(String(error));
+        await qerrors(errorObj, 'errorTypes.safeUtils.execute', {
+          operation: 'safe_execution',
+          timestamp: new Date().toISOString()
+        });
+      } catch (qerror) {
+        console.error('qerrors logging failed in safeUtils execute', qerror);
+      }
+      
       return { success: false, error };
     }
   },
@@ -115,6 +128,17 @@ export const attempt = async <T>(fn: () => T | Promise<T>) => {
     const value = await fn();
     return { ok: true, value };
   } catch (error) {
+    // Use qerrors for sophisticated error reporting
+    try {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      await qerrors(errorObj, 'errorTypes.attempt', {
+        operation: 'attempt_execution',
+        timestamp: new Date().toISOString()
+      });
+    } catch (qerror) {
+      console.error('qerrors logging failed in attempt', qerror);
+    }
+    
     return { ok: false, error };
   }
 };
@@ -129,6 +153,20 @@ export const executeWithQerrors = async <T>(options: {
     return await options.operation();
   } catch (error) {
     console.error(options.failureMessage, error);
+    
+    // Use qerrors for sophisticated error reporting
+    try {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      await qerrors(errorObj, `errorTypes.executeWithQerrors.${options.opName}`, {
+        operation: options.opName,
+        context: options.context,
+        failureMessage: options.failureMessage,
+        timestamp: new Date().toISOString()
+      });
+    } catch (qerror) {
+      console.error('qerrors logging failed in executeWithQerrors', qerror);
+    }
+    
     throw error;
   }
 };
