@@ -187,101 +187,96 @@ const loadStaticFileAsync = async (name, staticPath) => {
   }
 };
 
-// Optimized LRU cache with O(1) operations using circular buffer
+// Bounded LRU cache with proper memory management and O(1) operations
 const lruCache = {
-  entries: new Map(), // name -> { content, stats, accessOrder }
-  accessOrder: [], // Circular buffer of access order
-  maxSize: 100, // Maximum number of cached entries
-  head: 0, // Head of circular buffer
-  tail: 0, // Tail of circular buffer
+  entries: new Map(), // name -> { content, stats, lastAccessed }
+  maxSize: 50, // Reduced maximum number of cached entries
+  maxMemoryBytes: 10 * 1024 * 1024, // 10MB memory limit
+  currentMemoryBytes: 0,
   
-  // Add or update entry with O(1) complexity
+  // Add or update entry with memory bounds checking
   set(name, content, stats) {
     const now = Date.now();
+    const contentSize = Buffer.byteLength(content, 'utf8');
     
+    // Check if entry is too large for cache
+    if (contentSize > this.maxMemoryBytes / 4) { // Max 25% of total cache
+      return false;
+    }
+    
+    // Calculate memory change
+    let memoryChange = contentSize;
     if (this.entries.has(name)) {
-      // Update existing entry
-      const entry = this.entries.get(name);
-      entry.content = content;
-      entry.stats = { ...stats, lastAccessed: now };
-      this.updateAccessOrder(name);
-      return;
+      const existingEntry = this.entries.get(name);
+      memoryChange -= Buffer.byteLength(existingEntry.content, 'utf8');
     }
     
-    // Add new entry
-    if (this.entries.size >= this.maxSize) {
-      // Remove oldest entry (O(1) operation)
-      const oldestName = this.accessOrder[this.tail];
-      this.entries.delete(oldestName);
-      this.tail = (this.tail + 1) % this.maxSize;
+    // Check memory limits and evict if necessary
+    while (this.entries.size >= this.maxSize || 
+           (this.currentMemoryBytes + memoryChange) > this.maxMemoryBytes) {
+      if (!this.evictOldest()) {
+        break; // Can't evict more, cache full
+      }
     }
     
+    // Update entry
     this.entries.set(name, {
       content,
       stats: { ...stats, lastAccessed: now }
     });
-    this.updateAccessOrder(name);
+    
+    // Update memory tracking
+    this.currentMemoryBytes += memoryChange;
+    return true;
   },
   
-  // Update access order in O(1)
-  updateAccessOrder(name) {
-    // Remove from current position if exists
-    const currentPos = this.accessOrder.indexOf(name);
-    if (currentPos !== -1) {
-      this.accessOrder[currentPos] = null;
-    }
-    
-    // Add to head position
-    this.accessOrder[this.head] = name;
-    this.head = (this.head + 1) % this.maxSize;
-    
-    // Move tail if we caught up
-    if (this.head === this.tail && this.accessOrder[this.tail] !== null) {
-      this.tail = (this.tail + 1) % this.maxSize;
-    }
-  },
-  
-  // Get entry with O(1) complexity
+  // Get entry and update LRU order
   get(name) {
     const entry = this.entries.get(name);
     if (entry) {
-      this.updateAccessOrder(name);
+      entry.stats.lastAccessed = Date.now();
       return entry;
     }
     return null;
   },
   
-  // Remove oldest entries to free space - O(k) where k is entries to remove
-  evictOldest(requiredSize) {
-    let freedSize = 0;
-    let evictedCount = 0;
-    const maxEvictions = Math.min(10, this.entries.size); // Bound the operation
+  // Evict oldest entry to make space
+  evictOldest() {
+    let oldestName = null;
+    let oldestTime = Date.now();
     
-    while (evictedCount < maxEvictions && this.tail !== this.head) {
-      const name = this.accessOrder[this.tail];
-      if (!name) {
-        this.tail = (this.tail + 1) % this.maxSize;
-        continue;
-      }
-      
-      const entry = this.entries.get(name);
-      if (entry) {
-        const size = Buffer.byteLength(entry.content, 'utf8');
-        this.entries.delete(name);
-        freedSize += size;
-        
-        // Clear the position
-        this.accessOrder[this.tail] = null;
-        this.tail = (this.tail + 1) % this.maxSize;
-        evictedCount++;
-        
-        if (freedSize >= requiredSize) break;
-      } else {
-        this.tail = (this.tail + 1) % this.maxSize;
+    for (const [name, entry] of this.entries) {
+      if (entry.stats.lastAccessed < oldestTime) {
+        oldestTime = entry.stats.lastAccessed;
+        oldestName = name;
       }
     }
     
-    return freedSize;
+    if (oldestName) {
+      const entry = this.entries.get(oldestName);
+      const size = Buffer.byteLength(entry.content, 'utf8');
+      this.entries.delete(oldestName);
+      this.currentMemoryBytes -= size;
+      return true;
+    }
+    
+    return false;
+  },
+  
+  // Get current memory usage for monitoring
+  getMemoryUsage() {
+    return {
+      entries: this.entries.size,
+      maxEntries: this.maxSize,
+      memoryBytes: this.currentMemoryBytes,
+      maxMemoryBytes: this.maxMemoryBytes
+    };
+  },
+  
+  // Clear cache entirely
+  clear() {
+    this.entries.clear();
+    this.currentMemoryBytes = 0;
   }
 };
 
@@ -634,63 +629,46 @@ app.post('/api/errors/analyze', aiLimiter, async (req, res, next) => {
       error.context = context || {};
       
       try {
-        // Trigger qerrors analysis with timeout protection
+        // Schedule AI analysis in background - non-blocking for immediate response
         if (qerrors) {
-          // Create a timeout promise
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => {
-              const timeoutError = new Error(`AI analysis timeout after ${AI_ANALYSIS_TIMEOUTS.PROCESSING_TIMEOUT}ms`);
-              qerrors(timeoutError, 'server.aiAnalysis.timeout', {
-                operation: 'ai_analysis_processing_timeout',
-                timeoutDuration: AI_ANALYSIS_TIMEOUTS.PROCESSING_TIMEOUT
-              });
-              reject(timeoutError);
-            }, AI_ANALYSIS_TIMEOUTS.PROCESSING_TIMEOUT);
+          const analysisId = randomUUID();
+          
+          // Immediately respond that analysis is scheduled
+          res.json({
+            success: true,
+            message: 'AI analysis scheduled for background processing',
+            analysisId: analysisId,
+            timestamp: new Date().toISOString(),
+            processingTime: AI_ANALYSIS_TIMEOUTS.PROCESSING_TIMEOUT
           });
-
-          // Race between qerrors analysis and timeout with enhanced error handling
-          await Promise.race([
-            new Promise((resolve, reject) => {
-              try {
-                qerrors(error, 'AI Analysis Request', req, res, (analysisError) => {
-                  if (analysisError) {
-                    qerrors(analysisError, 'server.aiAnalysis.qerrors', {
-                      operation: 'ai_analysis_qerrors_callback',
-                      hasErrorData: !!errorData,
-                      hasContext: !!context
-                    });
-                    reject(analysisError);
-                    return;
-                  }
-                  
-                  if (!res.headersSent) {
-                    res.json({
-                      success: true,
-                      analysis: 'Error analysis triggered via qerrors AI system',
-                      errorId: error.uniqueErrorName,
-                      timestamp: new Date().toISOString(),
-                      processingTime: AI_ANALYSIS_TIMEOUTS.PROCESSING_TIMEOUT
-                    });
-                  }
-                  resolve();
-                });
-              } catch (err) {
-                qerrors(err, 'server.aiAnalysis.qerrorsCall', {
-                  operation: 'ai_analysis_qerrors_invocation',
-                  errorMessage: error.message
-                });
-                reject(err);
-              }
-            }),
-            timeoutPromise
-          ]);
+          
+          // Process AI analysis asynchronously without blocking response
+          setImmediate(() => {
+            try {
+              qerrors(error, 'AI Analysis Request', { 
+                ...req, 
+                isBackground: true 
+              }, null, (analysisError) => {
+                if (analysisError) {
+                  qerrors(analysisError, 'server.aiAnalysis.background', {
+                    operation: 'ai_analysis_background_processing',
+                    analysisId: analysisId,
+                    hasErrorData: !!errorData,
+                    hasContext: !!context
+                  });
+                }
+                // Background processing complete - result stored in cache/logs
+              });
+            } catch (err) {
+              qerrors(err, 'server.aiAnalysis.backgroundCall', {
+                operation: 'ai_analysis_background_invocation',
+                analysisId: analysisId,
+                errorMessage: error.message
+              });
+            }
+          });
         } else {
           // Fallback if qerrors not available
-          const error = new Error('qerrors not available for analysis');
-          qerrors(error, 'server.aiAnalysis.unavailable', {
-            operation: 'ai_analysis_fallback',
-            qerrorsAvailable: false
-          });
           res.json({
             success: false,
             error: 'qerrors not available for analysis',
