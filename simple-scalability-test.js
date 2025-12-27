@@ -4,8 +4,10 @@
 /**
  * Simple Scalability Fixes Verification
  * 
- * This test verifies the critical scalability fixes without complex dependencies
+ * This test verifies critical scalability fixes without complex dependencies
  */
+
+const qerrors = require('./lib/qerrors');
 
 console.log('🚀 Testing Scalability Fixes Implementation');
 console.log('==========================================');
@@ -28,6 +30,14 @@ try {
   
   pool.close();
 } catch (error) {
+  // Log connection pool test error with qerrors
+  setImmediate(() => {
+    qerrors(error, 'simple-scalability-test.connectionPool', {
+      operation: 'connection_pool_test_error'
+    }).catch(qerror => {
+      console.error('qerrors logging failed in simple-scalability-test connectionPool', qerror);
+    });
+  });
   console.log(`❌ Connection Pool test failed: ${error.message}`);
 }
 
@@ -55,6 +65,14 @@ try {
     console.log('❌ HTTP Client: axiosInstance missing');
   }
 } catch (error) {
+  // Log HTTP client test error with qerrors
+  setImmediate(() => {
+    qerrors(error, 'simple-scalability-test.httpClient', {
+      operation: 'http_client_test_error'
+    }).catch(qerror => {
+      console.error('qerrors logging failed in simple-scalability-test httpClient', qerror);
+    });
+  });
   console.log(`❌ HTTP Client test failed: ${error.message}`);
 }
 
@@ -79,6 +97,14 @@ try {
   const metrics = queueManager.getQueueMetrics();
   console.log(`✅ Queue Manager: metrics available (rejects: ${metrics.rejectCount})`);
 } catch (error) {
+  // Log queue manager test error with qerrors
+  setImmediate(() => {
+    qerrors(error, 'simple-scalability-test.queueManager', {
+      operation: 'queue_manager_test_error'
+    }).catch(qerror => {
+      console.error('qerrors logging failed in simple-scalability-test queueManager', qerror);
+    });
+  });
   console.log(`❌ Queue Manager test failed: ${error.message}`);
 }
 
@@ -108,6 +134,14 @@ try {
   
   console.log(`✅ Circuit Breaker: creation successful (state: ${breaker.getState()})`);
 } catch (error) {
+  // Log circuit breaker test error with qerrors
+  setImmediate(() => {
+    qerrors(error, 'simple-scalability-test.circuitBreaker', {
+      operation: 'circuit_breaker_test_error'
+    }).catch(qerror => {
+      console.error('qerrors logging failed in simple-scalability-test circuitBreaker', qerror);
+    });
+  });
   console.log(`❌ Circuit Breaker test failed: ${error.message}`);
 }
 
@@ -145,6 +179,14 @@ try {
     console.log('⚠️  Memory Management: Higher than expected memory usage');
   }
 } catch (error) {
+  // Log memory management test error with qerrors
+  setImmediate(() => {
+    qerrors(error, 'simple-scalability-test.memoryManagement', {
+      operation: 'memory_management_test_error'
+    }).catch(qerror => {
+      console.error('qerrors logging failed in simple-scalability-test memoryManagement', qerror);
+    });
+  });
   console.log(`❌ Memory Management test failed: ${error.message}`);
 }
 

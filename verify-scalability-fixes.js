@@ -8,6 +8,7 @@
 
 const fs = require('fs').promises;
 const path = require('path');
+const qerrors = require('./lib/qerrors');
 
 // Helper function to check if file contains specific function
 async function checkFileForFunction(filePath, functionName) {
@@ -15,21 +16,32 @@ async function checkFileForFunction(filePath, functionName) {
     const content = await fs.readFile(filePath, 'utf8');
     return content.includes(functionName);
   } catch (error) {
+    // Log file check error with qerrors
+    setImmediate(() => {
+      qerrors(error, 'verify-scalability-fixes.checkFileForFunction', {
+        filePath,
+        functionName,
+        operation: 'file_function_check'
+      }).catch(qerror => {
+        console.error('qerrors logging failed in verify-scalability-fixes', qerror);
+      });
+    });
     return false;
   }
 }
 
 async function main() {
-  console.log('🚀 Testing Scalability Fixes Implementation');
-  console.log('==========================================');
+  try {
+    console.log('🚀 Testing Scalability Fixes Implementation');
+    console.log('==========================================');
 
-  // Test 1: Connection Pool Module
-  const connectionPoolPath = './lib/connectionPool.js';
-  if (await checkFileForFunction(connectionPoolPath, 'executeParallelQueries')) {
-    console.log('✅ Connection Pool: executeParallelQueries function exists');
-  } else {
-    console.log('❌ Connection Pool: executeParallelQueries function missing');
-  }
+    // Test 1: Connection Pool Module
+    const connectionPoolPath = './lib/connectionPool.js';
+    if (await checkFileForFunction(connectionPoolPath, 'executeParallelQueries')) {
+      console.log('✅ Connection Pool: executeParallelQueries function exists');
+    } else {
+      console.log('❌ Connection Pool: executeParallelQueries function missing');
+    }
 
   if (await checkFileForFunction(connectionPoolPath, 'createConcurrencyLimiter')) {
     console.log('✅ Connection Pool: createConcurrencyLimiter function exists');
@@ -175,6 +187,29 @@ async function main() {
   console.log('- I/O operations moved out of request paths');
   console.log('- Memory management and cleanup improvements');
   console.log('- Circuit breaker enhancements with better metrics');
+  } catch (error) {
+    // Log main function error with qerrors
+    setImmediate(() => {
+      qerrors(error, 'verify-scalability-fixes.main', {
+        operation: 'scalability_verification_main'
+      }).catch(qerror => {
+        console.error('qerrors logging failed in verify-scalability-fixes main', qerror);
+      });
+    });
+    console.error('Error during scalability verification:', error);
+    process.exit(1);
+  }
 }
 
-main().catch(console.error);
+main().catch(error => {
+  // Log unhandled promise rejection with qerrors
+  setImmediate(() => {
+    qerrors(error, 'verify-scalability-fixes.unhandled', {
+      operation: 'scalability_verification_unhandled_error'
+    }).catch(qerror => {
+      console.error('qerrors logging failed in verify-scalability-fixes unhandled', qerror);
+    });
+  });
+  console.error('Unhandled error in scalability verification:', error);
+  process.exit(1);
+});

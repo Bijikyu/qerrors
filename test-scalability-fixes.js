@@ -21,6 +21,7 @@ const qerrorsHttpClient = require('./lib/qerrorsHttpClient');
 const queueManager = require('./lib/queueManager');
 const logger = require('./lib/logger');
 const circuitBreaker = require('./lib/circuitBreaker');
+const qerrors = require('./lib/qerrors');
 
 /**
  * Test runner with timing and results tracking
@@ -53,6 +54,18 @@ class ScalabilityTestRunner {
     } catch (error) {
       const endTime = performance.now();
       const duration = endTime - startTime;
+      
+      // Log test failure with qerrors
+      setImmediate(() => {
+        qerrors(error, 'test-scalability-fixes.runTest', {
+          testName,
+          duration,
+          status: 'FAIL',
+          operation: 'scalability_test_failure'
+        }).catch(qerror => {
+          console.error('qerrors logging failed in test-scalability-fixes runTest', qerror);
+        });
+      });
       
       this.results.push({
         name: testName,
