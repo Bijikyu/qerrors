@@ -62,12 +62,12 @@ function configureExpressMiddleware(app) {
   // Express middleware configuration with enhanced security and limits
   app.use(cors());                        
   app.use(express.json({ 
-    limit: '10mb', // Increased limit for larger error payloads
+    limit: '1mb', // Reduced limit for security and performance
     strict: false, // Allow JSON with some flexibility
     type: 'application/json'
   })); 
   app.use(express.urlencoded({ 
-    limit: '10mb',
+    limit: '1mb',
     extended: true,
     parameterLimit: 1000
   }));

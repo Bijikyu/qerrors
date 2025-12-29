@@ -20,6 +20,9 @@ const { createStaticFileMiddleware } = require('./lib/scalableStaticFileServer')
 const qerrorsModule = require('./index.js');
 const qerrors = qerrorsModule.qerrors;
 
+// Import performance monitoring
+const { getPerformanceMonitor, monitorOperation } = require('./lib/performanceMonitor');
+
 // Initialize scalable static file server
 const staticFileMiddleware = createStaticFileMiddleware();
 
@@ -89,10 +92,10 @@ app.use(cors({
 }));
 
 // Parse JSON with size limits
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '1mb' }));
 
 // Parse URL-encoded bodies
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Apply scalable static file serving for demo files
 app.use('/demo.html', healthLimiter, staticFileMiddleware);
@@ -140,6 +143,11 @@ app.get('/metrics', metricsLimiter, (req, res) => {
       rateLimiter: rateLimiter.getStats(),
       staticFiles: require('./lib/scalableStaticFileServer').getStaticFileServer().getStats()
     };
+    
+    // Add performance metrics
+    const performanceMonitor = getPerformanceMonitor();
+    const performanceMetrics = performanceMonitor.getSummary();
+    metrics.performance = performanceMetrics;
     
     res.json(metrics);
   } catch (error) {
@@ -398,6 +406,22 @@ const startServer = async () => {
     const { initializeAsync } = require('./lib/asyncInit');
     await initializeAsync();
     
+    // Initialize performance monitoring
+    const performanceMonitor = getPerformanceMonitor({
+      blockingThreshold: 20,
+      memoryGrowthThreshold: 50,
+      monitoringInterval: 30000
+    });
+    
+    // Setup alert handling
+    performanceMonitor.on('alert', (alert) => {
+      qerrors(new Error(`Performance Alert: ${alert.type}`), 'server.performance', {
+        alertType: alert.type,
+        alertData: alert.data,
+        timestamp: alert.timestamp
+      });
+    });
+    
     // Start server
     const server = app.listen(PORT, HOST, () => {
       console.log(`🚀 QErrors API Server running on http://${HOST}:${PORT}`);
@@ -406,7 +430,11 @@ const startServer = async () => {
       console.log(`📡 API Endpoints available at http://${HOST}:${PORT}/api/`);
       console.log(`🛡️ Graceful shutdown enabled`);
       console.log(`⚡ Scalability optimizations enabled`);
+      console.log(`📈 Performance monitoring enabled`);
     });
+    
+    // Start monitoring after server is ready
+    performanceMonitor.start();
     
     return server;
     

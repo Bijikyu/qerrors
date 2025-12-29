@@ -8,7 +8,7 @@
  */
 
 const { performance } = require('perf_hooks');
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
 
 class ProductionMonitor {
@@ -369,7 +369,7 @@ class ProductionMonitor {
   /**
    * Save metrics to file for historical analysis
    */
-  saveMetrics() {
+  async saveMetrics() {
     try {
       const reportPath = path.join(process.cwd(), 'performance-report.json');
       const reportData = {
@@ -387,7 +387,7 @@ class ProductionMonitor {
         }
       };
       
-      fs.writeFileSync(reportPath, JSON.stringify(reportData, null, 2));
+      await fs.writeFile(reportPath, JSON.stringify(reportData, null, 2));
       console.log(`   📁 Report saved to: ${reportPath}`);
     } catch (error) {
       console.error('   ❌ Failed to save report:', error.message);
