@@ -57,9 +57,9 @@ export { responseHelpers };
 export { circuitBreaker };
 
 // Export specific functions and constants for convenience
-export const logErrorWithSeverity = qerrors.logErrorWithSeverity;
-export const handleControllerError = qerrors.handleControllerError;
-export const withErrorHandling = qerrors.withErrorHandling;
+export const logErrorWithSeverity = (qerrors as any).logErrorWithSeverity || null;
+export const handleControllerError = (qerrors as any).handleControllerError || null;
+export const withErrorHandling = (qerrors as any).withErrorHandling || null;
 export const createTypedError = errorTypes.createTypedError;
 export const createStandardError = errorTypes.createStandardError;
 export const ErrorTypes = errorTypes.ErrorTypes;
