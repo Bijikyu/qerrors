@@ -51,6 +51,7 @@
     "p-limit": "^7.2.0",
     "qerrors": "^1.2.7",
     "qgenutils": "^1.0.3",
+    "quick-lru": "^7.3.0",
     "winston": "^3.13.0",
     "winston-daily-rotate-file": "^5.0.0"
   },
@@ -89,7 +90,7 @@
     "loqatevars": "^1.0.6",
     "madge": "^8.0.0",
     "npmcontext": "^1.0.4",
-    "opencode-ai": "1.0.217",
+    "opencode-ai": "1.0.223",
     "quantumagent": "^1.0.5",
     "ts-node": "^10.9.0",
     "typescript": "^5.9.2",
