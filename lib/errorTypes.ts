@@ -1,7 +1,3 @@
-/**
- * Error types module - placeholder implementation
- */
-
 import qerrors from '../lib/qerrors.js';
 
 export const ErrorTypes = {
@@ -25,8 +21,7 @@ export const ErrorSeverity = {
 
 export const createTypedError = (message: string, type: string, code: string) => {
   const error = new Error(message) as any;
-  error.type = type;
-  error.code = code;
+  error.type = type, error.code = code;
   return error;
 };
 
@@ -86,7 +81,6 @@ export const safeUtils = {
       const result = await operation();
       return { success: true, data: result };
     } catch (error) {
-      // Use qerrors for sophisticated error reporting
       try {
         const errorObj = error instanceof Error ? error : new Error(String(error));
         await qerrors(errorObj, 'errorTypes.safeUtils.execute', {
@@ -128,7 +122,6 @@ export const attempt = async <T>(fn: () => T | Promise<T>) => {
     const value = await fn();
     return { ok: true, value };
   } catch (error) {
-    // Use qerrors for sophisticated error reporting
     try {
       const errorObj = error instanceof Error ? error : new Error(String(error));
       await qerrors(errorObj, 'errorTypes.attempt', {
@@ -154,7 +147,6 @@ export const executeWithQerrors = async <T>(options: {
   } catch (error) {
     console.error(options.failureMessage, error);
     
-    // Use qerrors for sophisticated error reporting
     try {
       const errorObj = error instanceof Error ? error : new Error(String(error));
       await qerrors(errorObj, `errorTypes.executeWithQerrors.${options.opName}`, {

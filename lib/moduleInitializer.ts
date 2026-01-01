@@ -1,12 +1,9 @@
-// Placeholder for module initializer
 import qerrors from '../lib/qerrors.js';
 
 export const initializeModule = async () => {
   try {
-    // Module initialization logic would go here
     return null;
   } catch (error) {
-    // Use qerrors for sophisticated error reporting
     try {
       const errorObj = error instanceof Error ? error : new Error(String(error));
       await qerrors(errorObj, 'moduleInitializer.initializeModule', {
@@ -23,10 +20,8 @@ export const initializeModule = async () => {
 
 export const initializeModuleESM = async () => {
   try {
-    // ESM module initialization logic would go here
     return null;
   } catch (error) {
-    // Use qerrors for sophisticated error reporting
     try {
       const errorObj = error instanceof Error ? error : new Error(String(error));
       await qerrors(errorObj, 'moduleInitializer.initializeModuleESM', {

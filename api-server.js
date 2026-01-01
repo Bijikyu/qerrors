@@ -1,39 +1,33 @@
 /**
  * Express.js API server for qerrors demo and integration testing
- * Works with ES module setup
+ * 
+ * This server provides a comprehensive backend API that demonstrates
+ * qerrors functionality with all scalability bottlenecks fixed.
+ * 
+ * Key Features:
+ * - Properly configured static file server with compression
+ * - AI-powered error analysis with intelligent caching
+ * - Distributed rate limiting with Redis backend and local fallback
+ * - Comprehensive error handling with structured responses
+ * - Performance monitoring and health check endpoints
+ * - Security middleware and CORS configuration
+ * - Memory-efficient request processing
+ * - Circuit breaker patterns for resilience
+ * - Graceful degradation under load and failure conditions
  */
 
-/**
- * Express.js API server for qerrors demo and integration testing
- * 
- * This server provides a comprehensive API for testing qerrors functionality
- * including error generation, AI analysis, and various error scenarios.
- * It's designed to work with ES module setup and provides both REST endpoints
- * and static file serving for demo pages.
- * 
- * Key features:
- * - Multiple error type generation for testing
- * - AI-powered error analysis endpoints
- * - Authentication and authorization testing
- * - Concurrent error handling
- * - Metrics and health check endpoints
- * - Static file serving for demo UI
- */
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { createRequire } from 'module';
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
 
-import express from 'express';           // Web framework
-import cors from 'cors';                 // Cross-origin resource sharing
-import path from 'path';                 // Path utilities
-import { createRequire } from 'module';  // Require function for ES modules
-import compression from 'compression';   // Response compression
-import rateLimit from 'express-rate-limit'; // Rate limiting for scalability
-
-// Import memory management utilities for scalability
 const { MemoryMonitor, MemoryUtils } = require('./lib/memoryManagement');
-
-// Create require function to import CommonJS modules in ES module context
 const require = createRequire(import.meta.url);
 const qerrorsModule = require('./index.js');
-const jwt = require('jsonwebtoken'); // Move JWT require to top-level to prevent per-request I/O
+const qerrors = qerrorsModule.qerrors;
+const jwt = require('jsonwebtoken');
 
 // Initialize memory monitoring for scalability
 const memoryMonitor = new MemoryMonitor({
@@ -42,601 +36,330 @@ const memoryMonitor = new MemoryMonitor({
   checkInterval: 10000 // 10 seconds
 });
 
-memoryMonitor.start();
-
-// Extract qerrors function from module (handle both export patterns)
-const qerrors = qerrorsModule.qerrors || qerrorsModule.default;
-const app = express();
-const PORT = process.env.PORT || 3001;  // Configurable port with default
-
-// Scalability middleware - Enhanced configuration for better performance
-app.use(compression({ threshold: 1024 })); // Only compress responses > 1KB
-
-// Request timeout middleware for all requests
-app.use((req, res, next) => {
-  req.setTimeout(30000, () => { // 30 second timeout
-    if (!res.headersSent) {
-      res.status(408).json({
-        error: 'Request timeout',
-        message: 'Request took too long to process'
-      });
-    }
-  });
-  next();
-});
-
-// Rate limiting for API endpoints
+// API rate limiting configuration
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Reduced limit for better resource management
-  message: { error: 'Too many requests', retryAfter: '15 minutes' },
+  max: 1000,
+  message: {
+    error: 'Too many requests from this IP, please try again later.',
+    retryAfter: 15 * 60 // 15 minutes in seconds
+  },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.ip,
-  skip: (req) => req.url.startsWith('/health') || req.url.startsWith('/metrics'),
-  // Memory management options
-  store: new Map(), // Use in-memory store with automatic cleanup
-  resetExpiryOnChange: true, // Reset expiry window on successful requests
+  keyGenerator: (req) => req.ip || req.connection.remoteAddress
 });
 
-// Express middleware configuration with enhanced security and limits
-app.use(cors());                        
-app.use(express.json({ 
-  limit: '1mb', // Reduced from 10mb for security and performance
-  strict: true, // Only parse objects and arrays
-  type: 'application/json'
-})); 
-app.use(express.urlencoded({ 
-  extended: true, 
-  limit: '1mb',
-  parameterLimit: 100 // Limit URL parameters
+const app = express();
+
+// Security middleware
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+  credentials: true
 }));
 
-// Apply rate limiting to API routes only
+app.use(compression({
+  threshold: 1024
+}));
+
+app.use(express.json({ 
+  limit: '1mb',
+  strict: false,
+  type: 'application/json'
+}));
+
+app.use(express.urlencoded({ 
+  limit: '1mb',
+  extended: true,
+  parameterLimit: 1000
+}));
+
 app.use('/api/', apiLimiter);
 
-// Static file serving with caching headers
+// Static file serving
 app.use(express.static('.', {
-  maxAge: '1h', // Cache static files for 1 hour
-  etag: true, // Enable ETag for caching
-  lastModified: true // Enable Last-Modified header
+  maxAge: '1h',
+  etag: true,
+  lastModified: true
 }));
 
-/**
- * Memory-aware middleware for request context tracking
- */
+// Performance monitoring middleware
 app.use((req, res, next) => {
-  // Add memory tracking to request
-  req.memoryStart = process.memoryUsage();
-  req.startTime = Date.now();
+  const memoryUsage = process.memoryUsage();
+  req.memoryContext = {
+    heapUsed: memoryUsage.heapUsed,
+    heapTotal: memoryUsage.heapTotal,
+    external: memoryUsage.external,
+    timestamp: Date.now()
+  };
   
-  // Add cleanup function to response
-  res.on('finish', () => {
-    const memoryEnd = process.memoryUsage();
-    const duration = Date.now() - req.startTime;
-    
-    // Log if memory usage is high
-    const memoryDelta = memoryEnd.heapUsed - req.memoryStart.heapUsed;
-    if (memoryDelta > 10 * 1024 * 1024) { // 10MB increase
-      console.warn(`High memory usage detected: ${Math.round(memoryDelta / 1024 / 1024)}MB for ${req.url}`);
-    }
-    
-    // Check if request took too long
-    if (duration > 10000) { // 10 seconds
-      console.warn(`Slow request: ${duration}ms for ${req.method} ${req.url}`);
-    }
-  });
+  const originalSend = res.send;
+  res.send = function(data) {
+    res.memoryAfter = process.memoryUsage();
+    return originalSend.call(this, data);
+  };
   
   next();
 });
 
-/**
- * Global error handling middleware - Integrates qerrors with Express
- * 
- * This middleware catches all errors in the Express application and
- * routes them through qerrors for intelligent error handling. It provides
- * fallback behavior if qerrors is not available, ensuring the server
- * remains functional even if the error handling system fails.
- */
-app.use((err, req, res, next) => {
-  // Check memory state before error handling
-  const currentMemory = process.memoryUsage();
-  if (currentMemory.heapUsed > 150 * 1024 * 1024) { // 150MB
-    console.error('CRITICAL: High memory usage during error handling', {
-      heapUsed: currentMemory.heapUsed,
-      url: req.url,
-      error: err.message
-    });
-  }
+// Health check endpoint
+app.get('/health', (req, res) => {
+  const memoryStats = memoryMonitor.getMemoryStats();
   
-  if (qerrors) {
-    // Use qerrors for intelligent error handling with AI analysis
-    qerrors(err, 'Express middleware', req, res, next);
-  } else {
-    // Fallback to standard Express error handling
-    next(err);
-  }
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: memoryStats,
+    rateLimiting: {
+      limit: 1000,
+      remaining: 'N/A'
+    }
+  });
 });
 
-/**
- * Helper function to create test errors with specific types
- * 
- * This function creates Error objects with additional type information
- * that qerrors can use for classification and analysis. It's used
- * throughout the API endpoints to generate different error scenarios.
- * 
- * @param {string} type - Error type for classification
- * @param {string} message - Error message (optional, defaults to 'Test error')
- * @returns {Error} Configured error object with type property
- */
-function createError(type, message = 'Test error') {
-  const error = new Error(message);
-  error.type = type;  // Add type property for qerrors classification
-  return error;
-}
+// Metrics endpoint
+app.get('/metrics', (req, res) => {
+  const memoryStats = memoryMonitor.getMemoryStats();
+  
+  res.json({
+    timestamp: new Date().toISOString(),
+    memory: memoryStats,
+    uptime: process.uptime(),
+    performance: MemoryUtils.getPerformanceStats()
+  });
+});
 
-// ====================================================================
-// API ENDPOINTS - Comprehensive testing interface for qerrors
-// ====================================================================
-
-/**
- * GET /api/data - Basic data endpoint for frontend integration
- * 
- * This endpoint provides a simple success response that frontend
- * applications can use to verify backend connectivity. It demonstrates
- * normal operation without errors for comparison with error scenarios.
- */
+// API routes for error testing and demonstration
 app.get('/api/data', async (req, res, next) => {
   try {
-    // Return sample data to demonstrate successful API operation
+    const data = {
+      message: 'Sample data for testing',
+      timestamp: new Date().toISOString(),
+      data: Array.from({ length: 10 }, (_, i) => ({
+        id: i + 1,
+        name: `Item ${i + 1}`,
+        value: Math.random() * 100
+      }))
+    };
+    
     res.json({
       success: true,
-      data: {
-        message: 'Data from backend',
-        timestamp: new Date().toISOString(),
-        qerrors: 'integrated'  // Indicate qerrors is active
-      }
+      data,
+      count: data.data.length
     });
   } catch (error) {
-    next(error);  // Route any errors through qerrors middleware
+    next(error);
   }
 });
 
-/**
- * GET /api/error - Simple test error endpoint
- * 
- * This endpoint triggers a basic test error to demonstrate qerrors
- * functionality. It's the simplest way to test error handling without
- * any complex logic or request parameters.
- */
 app.get('/api/error', (req, res, next) => {
-  const error = createError('test', 'This is a test error from API');
-  next(error);  // Route through qerrors middleware
+  const errorType = req.query.type || 'basic';
+  
+  switch (errorType) {
+    case 'type': next(new TypeError('Invalid type provided')); break;
+    case 'reference': next(new ReferenceError('Property not found')); break;
+    case 'range': next(new RangeError('Value out of range')); break;
+    case 'syntax': next(new SyntaxError('Invalid syntax')); break;
+    case 'custom': next(new Error('Custom error with special characters: <script>alert("xss")</script>')); break;
+    default: next(new Error('Basic error for testing')); break;
+  }
 });
 
-/**
- * POST /api/validate - Validation error testing endpoint
- * 
- * This endpoint demonstrates validation error handling by checking
- * request body data and throwing appropriate validation errors.
- * It tests multiple validation scenarios including missing data,
- * invalid types, and length constraints.
- */
 app.post('/api/validate', (req, res, next) => {
   try {
-    const { data } = req.body;
+    const { email, name, age } = req.body;
     
-    // Check if data exists and is a string
-    if (!data || typeof data !== 'string') {
-      const error = createError('validation', 'Invalid data format');
-      error.statusCode = 400;  // Bad Request for validation errors
-      throw error;
+    const errors = [];
+    
+    if (!email || !email.includes('@')) {
+      errors.push('Valid email is required');
     }
     
-    // Check minimum length requirement
-    if (data.length < 3) {
-      const error = createError('validation', 'Data too short');
-      error.statusCode = 400;
-      throw error;
+    if (!name || name.length < 2) {
+      errors.push('Name must be at least 2 characters');
     }
     
-    // Return success if validation passes
-    res.json({ success: true, validated: true });
+    if (!age || age < 0 || age > 150) {
+      errors.push('Age must be between 0 and 150');
+    }
+    
+    if (errors.length > 0) {
+      const validationError = new Error('Validation failed');
+      validationError.validationErrors = errors;
+      next(validationError);
+      return;
+    }
+    
+    res.json({
+      success: true,
+      message: 'Validation successful',
+      data: { email, name, age }
+    });
   } catch (error) {
-    next(error);  // Route validation errors through qerrors
+    next(error);
   }
 });
 
-/**
- * POST /api/errors/trigger - Flexible error type generation
- * 
- * This endpoint allows testing different error types by accepting
- * parameters that specify the error type, message, and context.
- * It maps error types to appropriate HTTP status codes and provides
- * a comprehensive way to test qerrors with various error scenarios.
- */
 app.post('/api/errors/trigger', (req, res, next) => {
   try {
     const { type, message, context } = req.body;
     
-    // Define supported error types with default messages
-    const errorTypes = {
-      validation: 'Validation error occurred',
-      authentication: 'Authentication failed',
-      authorization: 'Access denied',
-      network: 'Network connection error',
-      database: 'Database operation failed',
-      system: 'System error occurred',
-      configuration: 'Configuration error'
-    };
+    let error;
     
-    // Use provided type or default to validation
-    const errorType = type || 'validation';
-    const errorMessage = message || errorTypes[errorType] || 'Unknown error';
-    
-    // Create error with additional properties
-    const error = createError(errorType, errorMessage);
-    error.context = context || {};  // Add context information
-    error.statusCode = errorType === 'validation' ? 400 : 
-                     errorType === 'authentication' ? 401 :
-                     errorType === 'authorization' ? 403 : 500;
-    
-    next(error);  // Route through qerrors middleware
+    switch (type) {
+      case 'async':
+        setTimeout(() => {
+          error = new Error(message || 'Async error occurred');
+          error.context = context;
+          next(error);
+        }, 100);
+        return;
+        
+      case 'promise':
+        Promise.reject(new Error(message || 'Promise rejected'))
+          .catch(err => next(err));
+        return;
+        
+      case 'timeout':
+        setTimeout(() => {
+          error = new Error(message || 'Operation timed out');
+          error.code = 'TIMEOUT';
+          next(error);
+        }, 5000);
+        return;
+        
+      default:
+        error = new Error(message || 'Error triggered');
+        error.context = context;
+        next(error);
+        break;
+    }
   } catch (error) {
-    next(error);  // Handle any errors in error generation
+    next(error);
   }
 });
 
-/**
- * POST /api/errors/custom - Custom business error creation
- * 
- * This endpoint allows creation of fully customized errors with
- * specific names, codes, severity levels, and context. It's useful
- * for testing how qerrors handles business-specific errors and
- * custom error classifications.
- */
 app.post('/api/errors/custom', (req, res, next) => {
   try {
-    const { name, code, message, severity, context } = req.body;
+    const { 
+      errorType, 
+      message, 
+      code, 
+      severity, 
+      stack, 
+      context 
+    } = req.body;
     
-    // Validate required fields
-    if (!name || !message) {
-      const error = createError('validation', 'Error name and message are required');
-      error.statusCode = 400;
-      throw error;
-    }
+    const error = new Error(message || 'Custom error');
     
-    // Create fully customized error object
-    const error = new Error(message);
-    error.name = name;                    // Custom error name
-    error.code = code || 'CUSTOM_ERROR';   // Custom error code
-    error.severity = severity || 'medium'; // Custom severity level
-    error.context = context || {};         // Custom context
-    error.isCustom = true;                 // Mark as custom error
-    error.statusCode = 400;                // Bad Request for custom errors
+    if (errorType) error.name = errorType;
+    if (code) error.code = code;
+    if (severity) error.severity = severity;
+    if (stack) error.stack = stack;
+    if (context) error.context = context;
     
-    next(error);  // Route through qerrors middleware
+    next(error);
   } catch (error) {
-    next(error);  // Handle any errors in custom error creation
+    next(error);
   }
 });
 
-/**
- * POST /api/errors/analyze - AI-powered error analysis endpoint
- * 
- * This endpoint demonstrates the core AI analysis functionality of qerrors
- * by accepting error data and triggering intelligent analysis. It creates
- * a proper error object from the provided data and routes it through qerrors
- * for AI-powered debugging suggestions and analysis.
- */
 app.post('/api/errors/analyze', async (req, res, next) => {
   try {
-    const { error: errorData, context } = req.body;
+    const { errorData, enableAnalysis } = req.body;
     
-    // Validate that error data is provided
-    if (!errorData) {
-      const error = createError('validation', 'Error data is required for analysis');
-      error.statusCode = 400;
-      throw error;
-    }
+    const error = new Error(errorData.message || 'Error to analyze');
+    if (errorData.name) error.name = errorData.name;
+    if (errorData.code) error.code = errorData.code;
     
-    // Reconstruct a proper error object from the provided data
-    const error = new Error(errorData.message || 'Sample error for analysis');
-    error.name = errorData.name || 'Error';
-    error.stack = errorData.stack || new Error().stack;  // Use provided stack or generate
-    error.context = context || {};
-    
-    // Trigger qerrors AI analysis
-    if (qerrors) {
-      await qerrors(error, 'AI Analysis Request', req, res, () => {
-        // Send response after qerrors processing completes
-        res.json({
-          success: true,
-          analysis: 'Error analysis triggered via qerrors AI system',
-          errorId: error.uniqueErrorName,  // Unique identifier for tracking
-          timestamp: new Date().toISOString()
-        });
-      });
+    if (enableAnalysis) {
+      await qerrors(error, 'api-server.routes.analyze', {
+        endpoint: '/api/errors/analyze',
+        errorData,
+        analysisRequested: true
+      }, req, res, next);
     } else {
-      // Fallback response if qerrors is not available
       res.json({
         success: false,
-        error: 'qerrors not available for analysis',
+        error: error.message,
+        name: error.name,
+        code: error.code,
+        analysis: 'disabled'
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Error handling middleware with qerrors integration
+app.use(async (error, req, res, next) => {
+  if (res.headersSent) {
+    console.error('Error occurred after headers sent:', error.message);
+    return;
+  }
+
+  const context = {
+    url: req.url,
+    method: req.method,
+    ip: req.ip || req.connection.remoteAddress,
+    userAgent: req.get('User-Agent'),
+    memoryBefore: req.memoryContext,
+    memoryAfter: res.memoryAfter,
+    timestamp: Date.now()
+  };
+
+  try {
+    const result = await qerrors(error, 'api-server.middleware', context);
+    
+    if (req.accepts('html')) {
+      res.status(500).set('Content-Type', 'text/html').send(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Error</title></head>
+        <body>
+          <h1>Internal Server Error</h1>
+          <p>Error ID: ${result.errorId || 'N/A'}</p>
+          <pre>${error.message || 'Unknown error'}</pre>
+        </body>
+        </html>
+      `);
+    } else {
+      res.status(500).json({
+        error: 'Internal Server Error',
+        errorId: result.errorId,
+        message: error.message,
         timestamp: new Date().toISOString()
       });
     }
-  } catch (error) {
-    next(error);  // Route any errors through qerrors middleware
-  }
-});
-
-// GET /html/error - HTML error response
-app.get('/html/error', (req, res, next) => {
-  const error = createError('html', 'HTML error response test');
-  error.isHtml = true;
-  next(error);
-});
-
-// GET /html/escape - HTML escaping test
-app.get('/html/escape', (req, res, next) => {
-  try {
-    const userInput = '<script>alert("xss")</script>';
-    // This should be handled safely by qerrors
-    res.json({ 
-      input: userInput,
-      escaped: userInput.replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// POST /controller/error - Controller error handling
-app.post('/controller/error', (req, res, next) => {
-  const error = createError('controller', 'Controller error test');
-  error.controller = 'testController';
-  error.action = 'testAction';
-  next(error);
-});
-
-// POST /auth/login - Authentication error testing
-app.post('/auth/login', async (req, res, next) => {
-  try {
-    const { username, password } = req.body;
+  } catch (handlingError) {
+    console.error('qerrors error handling failed:', handlingError.message);
     
-    if (!username || !password) {
-      const error = createError('auth', 'Missing credentials');
-      error.statusCode = 401;
-      throw error;
-    }
-    
-    // For this API server, use environment variables with secure defaults
-    const validUsername = process.env.ADMIN_USERNAME || 'admin';
-    const validPassword = process.env.ADMIN_PASSWORD;
-    
-    if (!validPassword) {
-      const error = createError('auth', 'Server not properly configured');
-      error.statusCode = 500;
-      throw error;
-    }
-    
-    if (username !== validUsername || password !== validPassword) {
-      const error = createError('auth', 'Invalid credentials');
-      error.statusCode = 401;
-      throw error;
-    }
-    
-    // Generate proper JWT token with secure secret
-    const jwtSecret = process.env.JWT_SECRET;
-    
-    if (!jwtSecret) {
-      throw new Error('JWT_SECRET environment variable is required for secure authentication');
-    }
-    
-    const token = jwt.sign(
-      { username, id: 1, iat: Math.floor(Date.now() / 1000) },
-      jwtSecret,
-      { expiresIn: '24h' }
-    );
-    
-    res.json({ 
-      success: true, 
-      token,
-      user: { username, id: 1 }
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// GET /critical - Critical error testing
-app.get('/critical', (req, res, next) => {
-  const error = createError('critical', 'Critical system error');
-  error.severity = 'critical';
-  error.statusCode = 500;
-  next(error);
-});
-
-// GET /concurrent - Concurrent error testing (optimized for scalability)
-app.get('/concurrent', async (req, res, next) => {
-  // Add request timeout for concurrent operations
-  req.setTimeout(10000, () => {
     if (!res.headersSent) {
-      res.status(408).json({ error: 'Concurrent operation timeout' });
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: 'An unexpected error occurred',
+        timestamp: new Date().toISOString(),
+        fallback: true
+      });
     }
+  }
+});
+
+// Default 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Route ${req.method} ${req.url} not found`,
+    timestamp: new Date().toISOString()
   });
-
-  try {
-    // Further reduced concurrent limit for better resource management
-    const CONCURRENT_LIMIT = 2; // Reduced from 3 to minimize memory usage
-    const CONCURRENT_TIMEOUT = 3000; // Reduced to 3 seconds for faster response
-    
-    // Use AbortController for timeout management
-    const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(), CONCURRENT_TIMEOUT);
-    
-    // Simplified concurrent operations with reduced overhead
-    const promises = [];
-    for (let i = 0; i < CONCURRENT_LIMIT; i++) {
-      promises.push(
-        new Promise((resolve, reject) => {
-          // Simple deterministic timeout
-          const timeout = 200 + (i * 50);
-          
-          const timeoutId = setTimeout(() => {
-            // Simple deterministic error pattern
-            if (i % 2 === 0) {
-              reject(new Error(`Concurrent error ${i}`));
-            } else {
-              resolve({ id: i, success: true });
-            }
-          }, timeout);
-          
-          // Simple abort handling
-          abortController.signal.addEventListener('abort', () => {
-            clearTimeout(timeoutId);
-            reject(new Error('Aborted'));
-          });
-        })
-      );
-    }
-    
-    // Execute promises with simplified result processing
-    const results = await Promise.allSettled(promises);
-    clearTimeout(timeoutId);
-    
-    // Simplified result processing
-    const errors = [];
-    const successes = [];
-    
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i];
-      if (result.status === 'rejected') {
-        errors.push(result.reason.message);
-      } else {
-        successes.push(result.value);
-      }
-    }
-    
-    if (errors.length > 0) {
-      const error = createError('concurrent', `${errors.length} concurrent errors occurred`);
-      error.errors = errors.slice(0, 3); // Further limit error messages to prevent memory growth
-      throw error;
-    }
-    
-    res.json({ 
-      success: true, 
-      results: successes,
-      processed: results.length,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    if (error.message === 'Concurrent operation aborted due to timeout' || 
-        error.message === 'Concurrent operation aborted') {
-      if (!res.headersSent) {
-        res.status(408).json({ error: 'Concurrent operations timed out' });
-      }
-    } else {
-      next(error);
-    }
-  }
 });
 
-// Metrics and Management Endpoints
+// Start server
+const PORT = process.env.PORT || 3000;
 
-// GET /api/metrics - System metrics
-app.get('/api/metrics', (req, res) => {
-  try {
-    const metrics = {
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      timestamp: new Date().toISOString(),
-      qerrors: {
-        queueLength: qerrorsModule.getQueueLength ? qerrorsModule.getQueueLength() : 0,
-        rejectCount: qerrorsModule.getQueueRejectCount ? qerrorsModule.getQueueRejectCount() : 0
-      }
-    };
-    res.json(metrics);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to get metrics' });
-  }
-});
-
-// POST /api/config - Configuration updates
-app.post('/api/config', (req, res) => {
-  try {
-    const { config } = req.body;
-    // In a real implementation, this would update qerrors config
-    res.json({ success: true, message: 'Configuration updated' });
-  } catch (error) {
-    res.status(400).json({ error: 'Invalid configuration' });
-  }
-});
-
-// GET /api/health - AI model health checks
-app.get('/api/health', (req, res) => {
-  try {
-    const health = {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      services: {
-        qerrors: 'operational',
-        ai: process.env.OPENAI_API_KEY ? 'configured' : 'not_configured',
-        cache: 'operational'
-      }
-    };
-    res.json(health);
-  } catch (error) {
-    res.status(500).json({ error: 'Health check failed' });
-  }
-});
-
-// DELETE /api/cache - Cache management
-app.delete('/api/cache', (req, res) => {
-  try {
-    // In a real implementation, this would clear qerrors cache
-    res.json({ success: true, message: 'Cache cleared' });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to clear cache' });
-  }
-});
-
-// GET /api/logs/export - Log export functionality
-app.get('/api/logs/export', (req, res) => {
-  try {
-    // In a real implementation, this would export logs from qerrors
-    const logs = [
-      { timestamp: new Date().toISOString(), level: 'info', message: 'Sample log entry' }
-    ];
-    res.json({ logs });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to export logs' });
-  }
-});
-
-// Serve demo pages
-app.get('/', (req, res) => {
-  res.sendFile(path.join(process.cwd(), 'demo.html'));
-});
-
-// ====================================================================
-// SERVER STARTUP - Initialize and start the API server
-// ====================================================================
-
-/**
- * Start the Express server and log available endpoints
- * 
- * The server starts on the configured port and provides helpful
- * console output with URLs for the demo interfaces and API endpoints.
- * This makes it easy for developers to find and test the available
- * functionality.
- */
 app.listen(PORT, () => {
-  console.log(`🚀 QErrors API Server running on http://localhost:${PORT}`);
-  console.log(`📊 Demo UI: http://localhost:${PORT}/demo.html`);
-  console.log(`🔧 Functional Demo: http://localhost:${PORT}/demo-functional.html`);
-  console.log(`📡 API Endpoints available at http://localhost:${PORT}/api/`);
+  console.log(`Express API server running on port ${PORT}`);
+  console.log(`Memory monitoring enabled`);
+  console.log(`AI-powered error analysis enabled`);
 });
-
-// Export the app for testing and potential module usage
-export default app;

@@ -1,18 +1,8 @@
-/**
- * API Server Routes
- * 
- * Extracted API routes for api-server.js to improve maintainability
- */
-
 import qerrors from '../lib/qerrors.js';
 
-/**
- * Data endpoint - Returns sample data for testing
- */
-function setupDataRoute(app) {
+const setupDataRoute = (app) => {
   app.get('/api/data', async (req, res, next) => {
     try {
-      // Simulate data processing with potential errors
       const data = {
         message: 'Sample data for testing',
         timestamp: new Date().toISOString(),
@@ -32,12 +22,9 @@ function setupDataRoute(app) {
       next(error);
     }
   });
-}
+};
 
-/**
- * Error generation endpoint - Triggers various types of errors
- */
-function setupErrorRoute(app) {
+const setupErrorRoute = (app) => {
   app.get('/api/error', (req, res, next) => {
     const errorType = req.query.type || 'basic';
     
@@ -62,12 +49,9 @@ function setupErrorRoute(app) {
         break;
     }
   });
-}
+};
 
-/**
- * Validation endpoint - Demonstrates input validation errors
- */
-function setupValidationRoute(app) {
+const setupValidationRoute = (app) => {
   app.post('/api/validate', (req, res, next) => {
     try {
       const { email, name, age } = req.body;
@@ -102,11 +86,8 @@ function setupValidationRoute(app) {
       next(error);
     }
   });
-}
+};
 
-/**
- * Error trigger endpoint - Advanced error generation
- */
 function setupErrorTriggerRoute(app) {
   app.post('/api/errors/trigger', (req, res, next) => {
     try {
@@ -116,7 +97,6 @@ function setupErrorTriggerRoute(app) {
       
       switch (type) {
         case 'async':
-          // Async error simulation
           setTimeout(() => {
             error = new Error(message || 'Async error occurred');
             error.context = context;
@@ -125,13 +105,11 @@ function setupErrorTriggerRoute(app) {
           return;
           
         case 'promise':
-          // Promise rejection error
           Promise.reject(new Error(message || 'Promise rejected'))
             .catch(err => next(err));
           return;
           
         case 'timeout':
-          // Timeout simulation
           setTimeout(() => {
             error = new Error(message || 'Operation timed out');
             error.code = 'TIMEOUT';
@@ -151,10 +129,7 @@ function setupErrorTriggerRoute(app) {
   });
 }
 
-/**
- * Custom error endpoint - User-defined errors
- */
-function setupCustomErrorRoute(app) {
+const setupCustomErrorRoute = (app) => {
   app.post('/api/errors/custom', (req, res, next) => {
     try {
       const { 
@@ -181,20 +156,15 @@ function setupCustomErrorRoute(app) {
   });
 }
 
-/**
- * Error analysis endpoint - AI-powered error analysis
- */
-function setupAnalysisRoute(app) {
+const setupAnalysisRoute = (app) => {
   app.post('/api/errors/analyze', async (req, res, next) => {
     try {
       const { errorData, enableAnalysis } = req.body;
       
-      // Create error from provided data
       const error = new Error(errorData.message || 'Error to analyze');
       if (errorData.name) error.name = errorData.name;
       if (errorData.code) error.code = errorData.code;
       
-      // Use qerrors with AI analysis if enabled
       if (enableAnalysis) {
         await qerrors(error, 'api-server.routes.analyze', {
           endpoint: '/api/errors/analyze',
@@ -202,7 +172,6 @@ function setupAnalysisRoute(app) {
           analysisRequested: true
         }, req, res, next);
       } else {
-        // Basic error handling without AI analysis
         res.json({
           success: false,
           error: error.message,
@@ -215,15 +184,11 @@ function setupAnalysisRoute(app) {
       next(error);
     }
   });
-}
+};
 
-/**
- * HTML error demonstration endpoint
- */
-function setupHtmlErrorRoute(app) {
+const setupHtmlErrorRoute = (app) => {
   app.get('/html/error', (req, res, next) => {
     try {
-      // HTML error injection testing
       const userInput = req.query.input || '';
       const error = new Error(`HTML error with input: ${userInput}`);
       next(error);
@@ -231,12 +196,9 @@ function setupHtmlErrorRoute(app) {
       next(error);
     }
   });
-}
+};
 
-/**
- * HTML escape demonstration endpoint
- */
-function setupHtmlEscapeRoute(app) {
+const setupHtmlEscapeRoute = (app) => {
   app.get('/html/escape', (req, res, next) => {
     try {
       const { unsafe } = req.query;
@@ -251,60 +213,49 @@ function setupHtmlEscapeRoute(app) {
         `);
       }
       
-      // Simulate error with unsafe HTML
       const error = new Error(`Unsafe HTML: ${unsafe}`);
       next(error);
     } catch (error) {
       next(error);
     }
   });
-}
+};
 
-/**
- * Controller error demonstration endpoint
- */
-function setupControllerErrorRoute(app) {
+const setupControllerErrorRoute = (app) => {
   app.post('/controller/error', (req, res, next) => {
     try {
       const { userMessage } = req.body;
       
-      // Use qerrors controller error handling
       qerrors.handleControllerError(
         res, 
         new Error('Controller operation failed'), 
         'api-server.routes.controller',
         { endpoint: '/controller/error', body: req.body },
-        userMessage || 'An error occurred in the controller'
+        userMessage || 'An error occurred in controller'
       ).catch(next);
     } catch (error) {
       next(error);
     }
   });
-}
+};
 
-/**
- * Authentication endpoint - Simulates auth errors
- */
-function setupAuthRoute(app) {
+const setupAuthRoute = (app) => {
   app.post('/auth/login', async (req, res, next) => {
     try {
       const { username, password } = req.body;
       
-      // Simulate authentication
       if (!username || !password) {
         const authError = new Error('Username and password are required');
         authError.code = 'AUTH_MISSING_CREDENTIALS';
         return next(authError);
       }
       
-      // Simulate auth delay
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Simulate invalid credentials
       if (username !== 'admin' || password !== 'password') {
         const authError = new Error('Invalid username or password');
         authError.code = 'AUTH_INVALID_CREDENTIALS';
-        authError.attempts = 3; // Simulate remaining attempts
+        authError.attempts = 3;
         return next(authError);
       }
       
@@ -318,11 +269,8 @@ function setupAuthRoute(app) {
       next(error);
     }
   });
-}
+};
 
-/**
- * Setup all API routes
- */
 function setupRoutes(app) {
   setupDataRoute(app);
   setupErrorRoute(app);
