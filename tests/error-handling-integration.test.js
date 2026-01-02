@@ -13,29 +13,20 @@ describe('Error Handling Integration Tests', () => {
       error.code = 'INTEGRATION_ERROR';
       error.type = qerrors.ErrorTypes.SYSTEM;
       
-      // Mock Express objects
-      const mockReq = {
-        headers: { accept: 'application/json', 'x-request-id': 'test-123' },
-        url: '/test/endpoint',
-        method: 'POST',
-        ip: '127.0.0.1'
-      };
-      
-      const mockRes = {
-        headersSent: false,
-        statusCode: null,
-        responseData: null,
-        status: function(code) {
-          this.statusCode = code;
-          return this;
-        },
-        json: function(data) {
-          this.responseData = data;
-        },
-        send: function(data) {
-          this.responseData = data;
-        }
-      };
+       const mockReq = {
+         headers: { accept: 'application/json', 'x-request-id': 'test-123' },
+         url: '/test/endpoint',
+         method: 'POST',
+         ip: '127.0.0.1'
+       };
+       const mockRes = {
+         headersSent: false,
+         statusCode: null,
+         responseData: null,
+         status: function(code) { this.statusCode = code; return this; },
+         json: function(data) { this.responseData = data; },
+         send: function(data) { this.responseData = data; }
+       };
       
       const mockNext = jest.fn();
       
@@ -54,24 +45,18 @@ describe('Error Handling Integration Tests', () => {
     test('should handle HTML response flow', async () => {
       const error = new Error('HTML integration test');
       
-      const mockReq = {
-        headers: { accept: 'text/html' },
-        url: '/test/html',
-        method: 'GET'
-      };
-      
-      const mockRes = {
-        headersSent: false,
-        statusCode: null,
-        responseData: null,
-        status: function(code) {
-          this.statusCode = code;
-          return this;
-        },
-        send: function(data) {
-          this.responseData = data;
-        }
-      };
+       const mockReq = {
+         headers: { accept: 'text/html' },
+         url: '/test/html',
+         method: 'GET'
+       };
+       const mockRes = {
+         headersSent: false,
+         statusCode: null,
+         responseData: null,
+         status: function(code) { this.statusCode = code; return this; },
+         send: function(data) { this.responseData = data; }
+       };
       
       const mockNext = jest.fn();
       
@@ -135,11 +120,8 @@ describe('Error Handling Integration Tests', () => {
       const timer = qerrors.createTimer();
       timer.start();
       
-      // Simulate some work
-      const start = Date.now();
-      while (Date.now() - start < 10) {
-        // Busy wait for 10ms
-      }
+       const start = Date.now();
+       while (Date.now() - start < 10) {}
       
       const duration = timer.end();
       expect(typeof duration).toBe('number');
@@ -155,18 +137,13 @@ describe('Error Handling Integration Tests', () => {
         headers: { accept: 'text/html' }
       };
       
-      const mockRes = {
-        headersSent: false,
-        statusCode: null,
-        responseData: null,
-        status: function(code) {
-          this.statusCode = code;
-          return this;
-        },
-        send: function(data) {
-          this.responseData = data;
-        }
-      };
+       const mockRes = {
+         headersSent: false,
+         statusCode: null,
+         responseData: null,
+         status: function(code) { this.statusCode = code; return this; },
+         send: function(data) { this.responseData = data; }
+       };
       
       await qerrors(xssError, 'security test', mockReq, mockRes);
       
@@ -218,16 +195,15 @@ describe('Error Handling Integration Tests', () => {
     test('should handle concurrent error processing', async () => {
       const promises = [];
       
-      // Create multiple concurrent error operations
-      for (let i = 0; i < 5; i++) {
-        const promise = qerrors.logErrorWithSeverity(
-          new Error(`Concurrent error ${i}`),
-          'concurrentTest',
-          { index: i },
-          qerrors.ErrorSeverity.MEDIUM
-        );
-        promises.push(promise);
-      }
+       for (let i = 0; i < 5; i++) {
+         const promise = qerrors.logErrorWithSeverity(
+           new Error(`Concurrent error ${i}`),
+           'concurrentTest',
+           { index: i },
+           qerrors.ErrorSeverity.MEDIUM
+         );
+         promises.push(promise);
+       }
       
       // Should complete without throwing
       await Promise.all(promises);

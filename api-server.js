@@ -104,23 +104,18 @@ app.use((req, res, next) => {
 // Health check endpoint
 app.get('/health', (req, res) => {
   const memoryStats = memoryMonitor.getMemoryStats();
-  
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: memoryStats,
-    rateLimiting: {
-      limit: 1000,
-      remaining: 'N/A'
-    }
+    rateLimiting: { limit: 1000, remaining: 'N/A' }
   });
 });
 
 // Metrics endpoint
 app.get('/metrics', (req, res) => {
   const memoryStats = memoryMonitor.getMemoryStats();
-  
   res.json({
     timestamp: new Date().toISOString(),
     memory: memoryStats,
@@ -135,18 +130,9 @@ app.get('/api/data', async (req, res, next) => {
     const data = {
       message: 'Sample data for testing',
       timestamp: new Date().toISOString(),
-      data: Array.from({ length: 10 }, (_, i) => ({
-        id: i + 1,
-        name: `Item ${i + 1}`,
-        value: Math.random() * 100
-      }))
+      data: Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `Item ${i + 1}`, value: Math.random() * 100 }))
     };
-    
-    res.json({
-      success: true,
-      data,
-      count: data.data.length
-    });
+    res.json({ success: true, data, count: data.data.length });
   } catch (error) {
     next(error);
   }
@@ -154,7 +140,6 @@ app.get('/api/data', async (req, res, next) => {
 
 app.get('/api/error', (req, res, next) => {
   const errorType = req.query.type || 'basic';
-  
   switch (errorType) {
     case 'type': next(new TypeError('Invalid type provided')); break;
     case 'reference': next(new ReferenceError('Property not found')); break;
@@ -168,33 +153,17 @@ app.get('/api/error', (req, res, next) => {
 app.post('/api/validate', (req, res, next) => {
   try {
     const { email, name, age } = req.body;
-    
     const errors = [];
-    
-    if (!email || !email.includes('@')) {
-      errors.push('Valid email is required');
-    }
-    
-    if (!name || name.length < 2) {
-      errors.push('Name must be at least 2 characters');
-    }
-    
-    if (!age || age < 0 || age > 150) {
-      errors.push('Age must be between 0 and 150');
-    }
-    
+    (!email || !email.includes('@')) && errors.push('Valid email is required');
+    (!name || name.length < 2) && errors.push('Name must be at least 2 characters');
+    (!age || age < 0 || age > 150) && errors.push('Age must be between 0 and 150');
     if (errors.length > 0) {
       const validationError = new Error('Validation failed');
       validationError.validationErrors = errors;
       next(validationError);
       return;
     }
-    
-    res.json({
-      success: true,
-      message: 'Validation successful',
-      data: { email, name, age }
-    });
+    res.json({ success: true, message: 'Validation successful', data: { email, name, age } });
   } catch (error) {
     next(error);
   }
@@ -203,9 +172,7 @@ app.post('/api/validate', (req, res, next) => {
 app.post('/api/errors/trigger', (req, res, next) => {
   try {
     const { type, message, context } = req.body;
-    
     let error;
-    
     switch (type) {
       case 'async':
         setTimeout(() => {
@@ -214,12 +181,9 @@ app.post('/api/errors/trigger', (req, res, next) => {
           next(error);
         }, 100);
         return;
-        
       case 'promise':
-        Promise.reject(new Error(message || 'Promise rejected'))
-          .catch(err => next(err));
+        Promise.reject(new Error(message || 'Promise rejected')).catch(err => next(err));
         return;
-        
       case 'timeout':
         setTimeout(() => {
           error = new Error(message || 'Operation timed out');
@@ -227,7 +191,6 @@ app.post('/api/errors/trigger', (req, res, next) => {
           next(error);
         }, 5000);
         return;
-        
       default:
         error = new Error(message || 'Error triggered');
         error.context = context;
@@ -241,23 +204,13 @@ app.post('/api/errors/trigger', (req, res, next) => {
 
 app.post('/api/errors/custom', (req, res, next) => {
   try {
-    const { 
-      errorType, 
-      message, 
-      code, 
-      severity, 
-      stack, 
-      context 
-    } = req.body;
-    
+    const { errorType, message, code, severity, stack, context } = req.body;
     const error = new Error(message || 'Custom error');
-    
-    if (errorType) error.name = errorType;
-    if (code) error.code = code;
-    if (severity) error.severity = severity;
-    if (stack) error.stack = stack;
-    if (context) error.context = context;
-    
+    errorType && (error.name = errorType);
+    code && (error.code = code);
+    severity && (error.severity = severity);
+    stack && (error.stack = stack);
+    context && (error.context = context);
     next(error);
   } catch (error) {
     next(error);
@@ -267,10 +220,9 @@ app.post('/api/errors/custom', (req, res, next) => {
 app.post('/api/errors/analyze', async (req, res, next) => {
   try {
     const { errorData, enableAnalysis } = req.body;
-    
     const error = new Error(errorData.message || 'Error to analyze');
-    if (errorData.name) error.name = errorData.name;
-    if (errorData.code) error.code = errorData.code;
+    errorData.name && (error.name = errorData.name);
+    errorData.code && (error.code = errorData.code);
     
     if (enableAnalysis) {
       await qerrors(error, 'api-server.routes.analyze', {

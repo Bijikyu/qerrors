@@ -14,14 +14,12 @@ describe('QErrors Core Functionality', () => {
       method: 'GET',
       ip: '127.0.0.1'
     };
-    
     mockRes = {
       headersSent: false,
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
       send: jest.fn()
     };
-    
     mockNext = jest.fn();
   });
 
@@ -33,7 +31,6 @@ describe('QErrors Core Functionality', () => {
     test('should handle basic error with JSON response', async () => {
       const error = new Error('Test error');
       await qerrors(error, 'test context', mockReq, mockRes, mockNext);
-
       expect(mockRes.status).toHaveBeenCalledWith(500);
       expect(mockRes.json).toHaveBeenCalled();
       expect(mockNext).toHaveBeenCalledWith(error);
@@ -43,7 +40,6 @@ describe('QErrors Core Functionality', () => {
       mockReq.headers.accept = 'text/html';
       const error = new Error('Test error');
       await qerrors(error, 'test context', mockReq, mockRes, mockNext);
-
       expect(mockRes.status).toHaveBeenCalledWith(500);
       expect(mockRes.send).toHaveBeenCalled();
       expect(mockNext).toHaveBeenCalledWith(error);
@@ -53,7 +49,6 @@ describe('QErrors Core Functionality', () => {
       mockReq.headers.accept = 'text/html';
       const error = new Error('<script>alert("xss")</script>');
       await qerrors(error, 'test context', mockReq, mockRes, mockNext);
-
       const callArgs = mockRes.send.mock.calls[0][0];
       expect(callArgs).not.toContain('<script>');
     });
@@ -86,7 +81,6 @@ describe('QErrors Core Functionality', () => {
     test('should handle controller errors with user message', async () => {
       const error = new Error('Controller error');
       await qerrors.handleControllerError(mockRes, error, 'testFunction', {}, 'User friendly message');
-      
       expect(mockRes.status).toHaveBeenCalled();
       expect(mockRes.json).toHaveBeenCalled();
     });
@@ -96,7 +90,6 @@ describe('QErrors Core Functionality', () => {
     test('should wrap async operations safely', async () => {
       const successOperation = jest.fn().mockResolvedValue('success');
       const result = await qerrors.withErrorHandling(successOperation, 'testOperation');
-      
       expect(result).toBe('success');
     });
 
@@ -104,7 +97,6 @@ describe('QErrors Core Functionality', () => {
       const failingOperation = jest.fn().mockRejectedValue(new Error('Operation failed'));
       const fallback = 'fallback value';
       const result = await qerrors.withErrorHandling(failingOperation, 'testOperation', {}, fallback);
-      
       expect(result).toBe(fallback);
     });
   });

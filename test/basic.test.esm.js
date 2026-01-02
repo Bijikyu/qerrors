@@ -8,17 +8,13 @@ console.log('Testing ESM TypeScript build...');
 console.log('✓ Main module loads successfully');
 console.log('✓ Available functions:', Object.keys(qerrors).length);
 
-// Test 2: Core utilities
 try {
   const timer = createTimer();
   console.log('✓ Timer creation works:', typeof timer);
-  
   const sanitized = sanitizeMessage('Password: secret123');
   console.log('✓ Sanitization works:', sanitized.includes('[REDACTED]'));
-  
   const error = new ServiceError('Test error', 'system');
   console.log('✓ Error creation works:', error.name);
-  
 } catch (err) {
   console.error('✗ Core utilities failed:', err.message);
   console.error('Stack:', err.stack);
@@ -34,15 +30,11 @@ try {
   process.exit(1);
 }
 
-// Test 4: Response helpers
 try {
   const mockRes = {
-    status: (code) => ({
-      json: (data) => console.log('✓ Response JSON created')
-    }),
+    status: (code) => ({ json: (data) => console.log('✓ Response JSON created') }),
     headersSent: false
   };
-  
   sendSuccessResponse(mockRes, { test: 'data' });
   console.log('✓ Response helpers work');
 } catch (err) {
