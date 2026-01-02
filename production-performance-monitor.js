@@ -10,6 +10,7 @@
 const { performance } = require('perf_hooks');
 const fs = require('fs').promises;
 const path = require('path');
+const { getCurrentMemoryPressure } = require('./lib/shared/memoryMonitor');
 
 class ProductionMonitor {
   constructor() {
@@ -105,19 +106,19 @@ class ProductionMonitor {
    * Check memory usage
    */
   checkMemoryUsage() {
-    const memUsage = process.memoryUsage();
-    const heapUsedPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
+    const memoryInfo = getCurrentMemoryPressure();
+    const memUsage = memoryInfo.raw;
     
     this.metrics.performance.memoryUsage.push({
       heapUsed: memUsage.heapUsed,
       heapTotal: memUsage.heapTotal,
-      percentage: heapUsedPercent,
+      percentage: memoryInfo.heapUsageRatio * 100,
       external: memUsage.external,
       rss: memUsage.rss,
       timestamp: Date.now()
     });
     
-    return heapUsedPercent;
+    return memoryInfo.heapUsageRatio * 100;
   }
 
   /**

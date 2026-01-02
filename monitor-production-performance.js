@@ -10,6 +10,7 @@
 const { performance } = require('perf_hooks');
 const { EnhancedRateLimiter } = require('./lib/enhancedRateLimiter');
 const qerrors = require('./index');
+const { getCurrentMemoryPressure } = require('./lib/shared/memoryMonitor');
 
 class ProductionPerformanceMonitor {
   constructor() {
@@ -52,8 +53,9 @@ class ProductionPerformanceMonitor {
    * Collect memory usage metrics
    */
   collectMemoryMetrics() {
-    const memUsage = process.memoryUsage();
-    const heapUsedPercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
+    const memoryInfo = getCurrentMemoryPressure();
+    const memUsage = memoryInfo.raw;
+    const heapUsedPercent = memoryInfo.heapUsageRatio * 100;
     
     this.metrics.memoryUsage.push({
       timestamp: Date.now(),
