@@ -27,6 +27,7 @@
   "author": "Q",
   "license": "ISC",
   "dependencies": {
+    "@langchain/core": "^0.3.80",
     "axios": "^1.9.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
@@ -37,7 +38,7 @@
     "express-slow-down": "^3.0.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "langchain": "^0.3.30",
+    "langchain": "^0.3.37",
     "lodash": "^4.17.21",
     "lru-cache": "^10.4.3",
     "node-cache": "^5.1.2",
@@ -83,6 +84,11 @@
   "devDependencies": {
     "@types/lodash": "^4.17.0",
     "@types/node": "^20.0.0",
+    "eslint": "^8.57.1",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-n": "^16.6.2",
+    "eslint-plugin-promise": "^6.6.0",
     "madge": "^8.0.0",
     "ts-node": "^10.9.0",
     "typescript": "^5.9.2"
