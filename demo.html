@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QErrors Module - Functional Demo</title>
+    <title>Error Handling API Demo</title>
     <style>
         * {
             margin: 0;
@@ -1370,19 +1370,9 @@ async function triggerCustomError() {
                 a.download = 'qerrors-demo-logs.json';
                 a.click();
             }
-        }
-            };
-            
-            const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `qerrors-demo-logs-${Date.now()}.json`;
-            a.click();
-            
-            showNotification('Logs exported successfully', 'success');
-        }
-
+            }
+        };
+        
         // Utility functions
         function updateResponse(elementId, content, type = 'info') {
             const responseArea = document.getElementById(elementId);

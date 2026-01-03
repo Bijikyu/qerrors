@@ -16,6 +16,8 @@
 
 // Core dependencies
 import express from 'express';  // Web framework
+import rateLimit from 'express-rate-limit';  // Rate limiting
+import helmet from 'helmet';     // Security headers
 import cors from 'cors';        // Cross-origin resource sharing
 import path from 'path';        // Path utilities
 import { createRequire } from 'module';  // Require function for ES modules
@@ -28,16 +30,81 @@ const jwt = require('jsonwebtoken');
 const app = express();
 const PORT = process.env.PORT || 3001;  // Configurable port with default
 
-// Express middleware configuration
-app.use(cors());                        // Enable CORS for all routes
-app.use(express.json());                // Parse JSON request bodies
-app.use(express.static('.'));           // Serve static files from current directory
+// Security middleware (excluding CSP for API endpoints)
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP to avoid blocking API requests
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+}));
+
+// Express middleware configuration with security measures
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3001', 'http://127.0.0.1:3001'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+}));
+
+// Body parser with size limits for DoS protection
+app.use(express.json({ 
+  limit: '10mb',  // Reasonable limit for JSON payloads
+  strict: true,
+  type: 'application/json'
+}));
+app.use(express.urlencoded({ 
+  extended: true, 
+  limit: '10mb',
+  parameterLimit: 1000
+}));
+
+app.use(express.static('.', {
+  maxAge: '1h',
+  etag: true,
+  lastModified: true
+}));
+
+/**
+ * Input validation middleware for SQL injection prevention
+ */
+function validateInput(req, res, next) {
+  // Check for SQL injection patterns in request body
+  if (req.body) {
+    const sqlPatterns = [
+      /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/i,
+      /(\b(OR|AND)\s+\d+\s*=\s*\d+)/i,
+      /(--|\/\*|\*\/|;|'|")/,
+      /(\b(UNION|JOIN|WHERE)\s+)/i
+    ];
+    
+    const checkValue = (value) => {
+      if (typeof value === 'string') {
+        return sqlPatterns.some(pattern => pattern.test(value));
+      }
+      if (typeof value === 'object' && value !== null) {
+        return Object.values(value).some(v => checkValue(v));
+      }
+      return false;
+    };
+    
+    if (checkValue(req.body)) {
+      const error = new Error('Invalid input detected');
+      error.status = 400;
+      error.type = 'security';
+      return next(error);
+    }
+  }
+  
+  next();
+}
 
 /**
  * Basic error handling middleware with content negotiation
  * 
  * This simplified error handler provides content negotiation to serve
- * either HTML or JSON error responses based on the Accept header.
+ * either HTML or JSON error responses based on Accept header.
  * It includes XSS protection through HTML escaping for security.
  * 
  * Note: This is a simplified version that doesn't include qerrors
@@ -46,8 +113,10 @@ app.use(express.static('.'));           // Serve static files from current direc
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
   
-  // Determine response format based on Accept header
-  const isHtml = req.accepts('html') && !req.accepts('json');
+  // Simple content negotiation - if Accept header contains 'json', return JSON
+  const acceptHeader = req.get('Accept') || '';
+  const isHtml = !acceptHeader.toLowerCase().includes('json');
+  console.error('Content negotiation - Accept:', acceptHeader, 'isHtml:', isHtml);
   
   if (isHtml) {
     /**
@@ -106,7 +175,7 @@ function createError(type, message = 'Test error') {
 // API Endpoints
 
 // GET /api/data - Missing endpoint that frontend expects
-app.get('/api/data', async (req, res, next) => {
+app.get('/api/data', validateInput, async (req, res, next) => {
   try {
     // Simulate some data response
     res.json({
@@ -128,8 +197,15 @@ app.get('/api/error', (req, res, next) => {
   next(error);
 });
 
+// GET /api/error-json - Explicit JSON error endpoint for testing
+app.get('/api/error-json', (req, res, next) => {
+  const error = createError('test', 'This is a JSON test error');
+  error.status = 500;
+  next(error);
+});
+
 // POST /api/validate - Validation error testing
-app.post('/api/validate', (req, res, next) => {
+app.post('/api/validate', validateInput, (req, res, next) => {
   try {
     const { data } = req.body;
     
@@ -177,7 +253,7 @@ app.get('/html/escape', (req, res, next) => {
 });
 
 // POST /controller/error - Controller error handling
-app.post('/controller/error', (req, res, next) => {
+app.post('/controller/error', validateInput, (req, res, next) => {
   const error = createError('controller', 'Controller error test');
   error.controller = 'testController';
   error.action = 'testAction';
@@ -185,13 +261,26 @@ app.post('/controller/error', (req, res, next) => {
 });
 
 // POST /auth/login - Authentication error testing
-app.post('/auth/login', async (req, res, next) => {
+app.post('/auth/login', validateInput, async (req, res, next) => {
   try {
     const { username, password } = req.body;
     
     if (!username || !password) {
       const error = createError('auth', 'Missing credentials');
       error.status = 401;
+      throw error;
+    }
+    
+    // Input validation for SQL injection prevention
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      const error = createError('validation', 'Invalid input type');
+      error.status = 400;
+      throw error;
+    }
+    
+    if (username.length > 50 || password.length > 100) {
+      const error = createError('validation', 'Input too long');
+      error.status = 400;
       throw error;
     }
     

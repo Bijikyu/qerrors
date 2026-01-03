@@ -1,0 +1,40 @@
+{
+  "enabled": true,
+  "healthCheck": {
+    "enabled": true,
+    "interval": 300000,
+    "endpoint": "/health",
+    "timeout": 5000
+  },
+  "metrics": {
+    "enabled": true,
+    "interval": 60000,
+    "endpoint": "/metrics",
+    "collectors": [
+      "errorCount",
+      "responseTime",
+      "memoryUsage",
+      "cpuUsage",
+      "queueLength",
+      "cacheHitRate"
+    ]
+  },
+  "alerts": {
+    "enabled": true,
+    "thresholds": {
+      "errorRate": 0.1,
+      "responseTime": 1000,
+      "memoryUsage": 0.8,
+      "queueLength": 100
+    },
+    "channels": [
+      "log",
+      "webhook"
+    ]
+  },
+  "dashboards": {
+    "enabled": true,
+    "refreshInterval": 30000,
+    "retentionPeriod": 86400000
+  }
+}
