@@ -41,6 +41,7 @@
     "lodash": "^4.17.21",
     "lru-cache": "^10.4.3",
     "node-cache": "^5.1.2",
+    "opencode-ai": "^1.0.223",
     "opossum": "^9.0.0",
     "p-limit": "^7.2.0",
     "quick-lru": "^7.3.0",

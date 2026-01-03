@@ -113,10 +113,10 @@ function validateInput(req, res, next) {
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
   
-  // Simple content negotiation - if Accept header contains 'json', return JSON
-  const acceptHeader = req.get('Accept') || '';
-  const isHtml = !acceptHeader.toLowerCase().includes('json');
-  console.error('Content negotiation - Accept:', acceptHeader, 'isHtml:', isHtml);
+  // Proper content negotiation using Express accepts method
+  const wantsJson = req.accepts('json');
+  const isHtml = !wantsJson;
+  console.error('Content negotiation - Accept:', req.get('Accept'), 'wantsJson:', wantsJson, 'isHtml:', isHtml);
   
   if (isHtml) {
     /**
@@ -258,6 +258,100 @@ app.post('/controller/error', validateInput, (req, res, next) => {
   error.controller = 'testController';
   error.action = 'testAction';
   next(error);
+});
+
+// POST /api/errors/trigger - Trigger specific error types
+app.post('/api/errors/trigger', validateInput, (req, res, next) => {
+  try {
+    const { type, message } = req.body;
+    
+    if (!type) {
+      const error = createError('validation', 'Error type is required');
+      error.status = 400;
+      throw error;
+    }
+    
+    const error = createError(type, message || `Triggered ${type} error`);
+    error.triggered = true;
+    error.timestamp = new Date().toISOString();
+    next(error);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/errors/custom - Create custom errors with context
+app.post('/api/errors/custom', validateInput, (req, res, next) => {
+  try {
+    const { name, message, context, severity } = req.body;
+    
+    if (!name || !message) {
+      const error = createError('validation', 'Error name and message are required');
+      error.status = 400;
+      throw error;
+    }
+    
+    const error = new Error(message);
+    error.name = name;
+    error.type = 'custom';
+    error.context = context || {};
+    error.severity = severity || 'medium';
+    error.custom = true;
+    error.timestamp = new Date().toISOString();
+    
+    next(error);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/errors/analyze - Simulated AI error analysis
+app.post('/api/errors/analyze', validateInput, async (req, res, next) => {
+  try {
+    const { error: errorData, context } = req.body;
+    
+    if (!errorData) {
+      const error = createError('validation', 'Error data is required for analysis');
+      error.status = 400;
+      throw error;
+    }
+    
+    // Simulate AI analysis delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Mock AI analysis response
+    const analysis = {
+      errorId: `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      analysis: {
+        type: errorData.type || 'unknown',
+        severity: errorData.severity || 'medium',
+        probableCause: `Based on the error pattern, this appears to be a ${errorData.type || 'generic'} error.`,
+        suggestions: [
+          'Check the input parameters for validity',
+          'Verify the system state and dependencies',
+          'Review recent changes that might have affected this functionality'
+        ],
+        relatedIssues: [],
+        debugSteps: [
+          '1. Review the error stack trace',
+          '2. Check system logs for additional context',
+          '3. Verify the input data format',
+          '4. Test with different parameters'
+        ]
+      },
+      context: context || {},
+      timestamp: new Date().toISOString(),
+      aiModel: 'mock-analyzer-v1',
+      confidence: 0.85
+    };
+    
+    res.json({
+      success: true,
+      analysis
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // POST /auth/login - Authentication error testing
