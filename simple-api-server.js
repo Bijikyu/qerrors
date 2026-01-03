@@ -26,6 +26,18 @@ import { createRequire } from 'module';  // Require function for ES modules
 const require = createRequire(import.meta.url);
 const jwt = require('jsonwebtoken');
 
+// Import standardized response utilities
+const {
+  ERROR_TYPES,
+  SEVERITY_LEVELS,
+  sendErrorResponse,
+  sendSuccessResponse,
+  createErrorHandler
+} = require('./lib/standardizedResponses');
+
+// Import endpoint validation
+const { validateRequest, getApiDocs, getSystemHealth, endpointRegistry } = require('./lib/endpointValidator');
+
 // Server configuration
 const app = express();
 const PORT = process.env.PORT || 3001;  // Configurable port with default
@@ -60,6 +72,9 @@ app.use(express.urlencoded({
   parameterLimit: 1000
 }));
 
+// Add endpoint validation middleware
+app.use(validateRequest);
+
 app.use(express.static('.', {
   maxAge: '1h',
   etag: true,
@@ -67,7 +82,8 @@ app.use(express.static('.', {
 }));
 
 /**
- * Input validation middleware for SQL injection prevention
+ * Enhanced input validation middleware (legacy - replaced by endpoint validator)
+ * Retained for backward compatibility with existing routes
  */
 function validateInput(req, res, next) {
   // Check for SQL injection patterns in request body
@@ -101,59 +117,16 @@ function validateInput(req, res, next) {
 }
 
 /**
- * Basic error handling middleware with content negotiation
+ * Standardized error handling middleware
  * 
- * This simplified error handler provides content negotiation to serve
- * either HTML or JSON error responses based on Accept header.
- * It includes XSS protection through HTML escaping for security.
- * 
- * Note: This is a simplified version that doesn't include qerrors
- * AI analysis functionality.
+ * Uses the standardized response utility to provide consistent
+ * error handling across all endpoints with proper content negotiation
+ * and security features.
  */
-app.use((err, req, res, next) => {
-  console.error('Error:', err.message);
-  
-  // Proper content negotiation using Express accepts method
-  const wantsJson = req.accepts('json');
-  const isHtml = !wantsJson;
-  console.error('Content negotiation - Accept:', req.get('Accept'), 'wantsJson:', wantsJson, 'isHtml:', isHtml);
-  
-  if (isHtml) {
-    /**
-     * HTML error response with XSS protection
-     * 
-     * The error message is escaped to prevent XSS attacks when displaying
-     * user-provided error content in HTML responses.
-     */
-    const escapedMessage = String(err.message || 'Unknown error')
-      .replace(/&/g, '&amp;')     // Escape ampersands
-      .replace(/</g, '&lt;')      // Escape less-than signs
-      .replace(/>/g, '&gt;')      // Escape greater-than signs
-      .replace(/"/g, '&quot;')    // Escape double quotes
-      .replace(/'/g, '&#39;');     // Escape single quotes
-    
-    // Send HTML error page
-    res.status(err.status || 500).send(`<!DOCTYPE html>
-<html>
-<head><title>Error</title></head>
-<body>
-  <h1>Error</h1>
-  <p>${escapedMessage}</p>
-  <p>Timestamp: ${new Date().toISOString()}</p>
-</body>
-</html>`);
-  } else {
-    // Send JSON error response
-    res.status(err.status || 500).json({
-      error: {
-        message: err.message,                    // Error message
-        type: err.type || 'unknown',            // Error classification
-        timestamp: new Date().toISOString(),     // Error occurrence time
-        uniqueErrorName: err.name || 'Error'     // Error identifier
-      }
-    });
-  }
-});
+app.use(createErrorHandler({
+  includeStack: process.env.NODE_ENV !== 'production',
+  sanitize: true
+}));
 
 /**
  * Helper function to create test errors with type classification
@@ -174,17 +147,18 @@ function createError(type, message = 'Test error') {
 
 // API Endpoints
 
-// GET /api/data - Missing endpoint that frontend expects
+// GET /api/data - Data endpoint with standardized response
 app.get('/api/data', validateInput, async (req, res, next) => {
   try {
-    // Simulate some data response
-    res.json({
-      success: true,
-      data: {
-        message: 'Data from backend',
-        timestamp: new Date().toISOString(),
-        qerrors: 'integrated'
-      }
+    const data = {
+      message: 'Data from backend',
+      timestamp: new Date().toISOString(),
+      qerrors: 'integrated'
+    };
+    
+    sendSuccessResponse(res, data, {
+      message: 'Data retrieved successfully',
+      count: 1
     });
   } catch (error) {
     next(error);
@@ -204,24 +178,28 @@ app.get('/api/error-json', (req, res, next) => {
   next(error);
 });
 
-// POST /api/validate - Validation error testing
+// POST /api/validate - Validation with standardized responses
 app.post('/api/validate', validateInput, (req, res, next) => {
   try {
     const { data } = req.body;
     
     if (!data || typeof data !== 'string') {
-      const error = createError('validation', 'Invalid data format');
+      const error = new Error('Invalid data format - data must be a non-empty string');
+      error.name = 'ValidationError';
       error.status = 400;
       throw error;
     }
     
     if (data.length < 3) {
-      const error = createError('validation', 'Data too short');
+      const error = new Error('Data too short - minimum 3 characters required');
+      error.name = 'ValidationError';
       error.status = 400;
       throw error;
     }
     
-    res.json({ success: true, validated: true });
+    sendSuccessResponse(res, { validated: true, originalData: data }, {
+      message: 'Data validation successful'
+    });
   } catch (error) {
     next(error);
   }
@@ -524,11 +502,20 @@ app.get('/api/metrics', (req, res) => {
       qerrors: {
         queueLength: 0,
         rejectCount: 0
-      }
+      },
+      endpoints: endpointRegistry.getAllEndpoints().map(ep => ({
+        path: ep.path,
+        method: ep.method,
+        callCount: ep.callCount,
+        errors: ep.errors
+      }))
     };
-    res.json(metrics);
+    
+    sendSuccessResponse(res, metrics, {
+      message: 'System metrics retrieved successfully'
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to get metrics' });
+    next(error);
   }
 });
 
@@ -536,37 +523,26 @@ app.get('/api/metrics', (req, res) => {
 app.post('/api/config', (req, res) => {
   try {
     // In a real implementation, this would update qerrors config
-    res.json({ success: true, message: 'Configuration updated' });
+    sendSuccessResponse(res, null, {
+      message: 'Configuration updated successfully'
+    });
   } catch (error) {
-    res.status(400).json({ error: 'Invalid configuration' });
+    next(error);
   }
 });
 
-// GET /api/health - AI model health checks
-app.get('/api/health', (req, res) => {
-  try {
-    const health = {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      services: {
-        qerrors: 'operational',
-        ai: process.env.OPENAI_API_KEY ? 'configured' : 'not_configured',
-        cache: 'operational'
-      }
-    };
-    res.json(health);
-  } catch (error) {
-    res.status(500).json({ error: 'Health check failed' });
-  }
-});
+// GET /api/health - Enhanced health check with endpoint status
+app.get('/api/health', getSystemHealth);
 
 // DELETE /api/cache - Cache management
 app.delete('/api/cache', (req, res) => {
   try {
     // In a real implementation, this would clear qerrors cache
-    res.json({ success: true, message: 'Cache cleared' });
+    sendSuccessResponse(res, null, {
+      message: 'Cache cleared successfully'
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to clear cache' });
+    next(error);
   }
 });
 
@@ -577,11 +553,18 @@ app.get('/api/logs/export', (req, res) => {
     const logs = [
       { timestamp: new Date().toISOString(), level: 'info', message: 'Sample log entry' }
     ];
-    res.json({ logs });
+    
+    sendSuccessResponse(res, { logs }, {
+      message: 'Log export completed successfully',
+      count: logs.length
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to export logs' });
+    next(error);
   }
 });
+
+// GET /api/docs - API documentation endpoint
+app.get('/api/docs', getApiDocs);
 
 // Serve demo pages
 app.get('/', (req, res) => {

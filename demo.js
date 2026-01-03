@@ -29,7 +29,27 @@ async function checkHealth() {
 async function getMetrics() {
     try {
         const response = await fetch('/api/metrics');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
+        
+        // Update metrics display
+        if (data.success && data.data) {
+            // Update local metrics with server data if available
+            if (data.data.qerrors) {
+                metrics.queueLength = data.data.qerrors.queueLength || 0;
+            }
+            
+            if (data.data.endpoints) {
+                // Calculate total errors from endpoint stats
+                const totalEndpointErrors = data.data.endpoints.reduce((sum, ep) => sum + ep.errors, 0);
+                metrics.totalErrors = Math.max(metrics.totalErrors, totalEndpointErrors);
+            }
+        }
+        
         document.getElementById('status-response').textContent = JSON.stringify(data, null, 2);
     } catch (error) {
         document.getElementById('status-response').textContent = 'Error: ' + error.message;
@@ -70,7 +90,23 @@ async function validateInvalidData() {
 
 async function triggerError() {
     try {
-        const response = await fetch('/api/error');
+        const response = await fetch('/api/errors/trigger', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                type: 'basic',
+                message: 'Test error from demo interface',
+                context: {
+                    source: 'demo.js',
+                    timestamp: new Date().toISOString()
+                }
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.text();
         document.getElementById('error-response').textContent = data;
         metrics.totalErrors++;
@@ -81,11 +117,25 @@ async function triggerError() {
 
 async function triggerCustomError() {
     try {
-        const response = await fetch('/controller/error', {
+        const response = await fetch('/api/errors/custom', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ controller: 'test', action: 'demo' })
+            body: JSON.stringify({ 
+                name: 'DemoCustomError',
+                message: 'This is a custom error from the demo interface',
+                context: { 
+                    source: 'demo.js',
+                    timestamp: new Date().toISOString(),
+                    severity: 'medium'
+                },
+                severity: 'medium'
+            })
         });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.text();
         document.getElementById('custom-error-response').textContent = data;
         metrics.totalErrors++;
@@ -96,13 +146,37 @@ async function triggerCustomError() {
 
 async function analyzeError() {
     try {
-        const response = await fetch('/api/config', {
+        const errorData = {
+            message: 'Test error for AI analysis',
+            name: 'TestError',
+            stack: 'Error: Test error for AI analysis\\n    at analyzeError (demo.js:99:15)',
+            type: 'test'
+        };
+        
+        const response = await fetch('/api/errors/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ demo: 'config test' })
+            body: JSON.stringify({ 
+                errorData: errorData,
+                context: { 
+                    endpoint: 'demo.js',
+                    userAgent: navigator.userAgent,
+                    timestamp: new Date().toISOString()
+                }
+            })
         });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
         document.getElementById('analysis-response').textContent = JSON.stringify(data, null, 2);
+        
+        // Update metrics
+        if (data.success) {
+            metrics.aiRequests++;
+        }
     } catch (error) {
         document.getElementById('analysis-response').textContent = 'Error: ' + error.message;
     }
@@ -128,7 +202,39 @@ async function testHtmlEscape() {
     }
 }
 
+// Update metrics display
+function updateMetricsDisplay() {
+    // Update basic demo metrics
+    const totalErrorsEl = document.getElementById('total-errors');
+    const queueLengthEl = document.getElementById('queue-length');
+    const cacheHitsEl = document.getElementById('cache-hits');
+    const aiRequestsEl = document.getElementById('ai-requests');
+    
+    // Also try functional demo metric IDs
+    const mTotalEl = document.getElementById('m-total');
+    const mQueueEl = document.getElementById('m-queue');
+    const mCacheEl = document.getElementById('m-cache');
+    const mAiEl = document.getElementById('m-ai');
+    
+    // Update whichever elements exist
+    if (totalErrorsEl) totalErrorsEl.textContent = metrics.totalErrors;
+    if (queueLengthEl) queueLengthEl.textContent = metrics.queueLength;
+    if (cacheHitsEl) cacheHitsEl.textContent = metrics.cacheHits;
+    if (aiRequestsEl) aiRequestsEl.textContent = metrics.aiRequests;
+    
+    if (mTotalEl) mTotalEl.textContent = metrics.totalErrors;
+    if (mQueueEl) mQueueEl.textContent = metrics.queueLength;
+    if (mCacheEl) mCacheEl.textContent = metrics.cacheHits;
+    if (mAiEl) mAiEl.textContent = metrics.aiRequests;
+}
+
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Error Handling API Demo loaded');
+    
+    // Update metrics display initially
+    updateMetricsDisplay();
+    
+    // Set up periodic metrics update
+    setInterval(updateMetricsDisplay, 5000);
 });
