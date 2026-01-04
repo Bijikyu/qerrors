@@ -1,21 +1,204 @@
-// Performance and Limits
-  QERRORS_CONCURRENCY,       // AI analysis concurrency limit
-  QERRORS_CACHE_LIMIT,       // Advice cache size limit
-  QERRORS_CACHE_TTL,         // Cache time-to-live
-  QERRORS_QUEUE_LIMIT,        // Queue processing limit
-  QERRORS_SAFE_THRESHOLD,     // Safe operation threshold
-  QERRORS_RETRY_ATTEMPTS,    // API retry attempts
-  QERRORS_RETRY_BASE_MS,      // Retry base delay
-  QERRORS_RETRY_MAX_MS,       // Maximum retry delay
-  QERRORS_TIMEOUT,             // Request timeout
-  QERRORS_MAX_SOCKETS: '50',       // Max HTTP sockets
-  QERRORS_MAX_FREE_SOCKETS,   // Max free sockets
-  QERRORS_OPENAI_URL,         // OpenAI API URL
-  QERRORS_METRIC_INTERVAL_MS: '60000',  // Metrics collection interval
+/**
+ * Local Variables Configuration - Centralized constants and environment variables
+ * 
+ * This file serves as the central configuration hub for the qerrors system,
+ * containing all constants, environment variable definitions, default values,
+ * and configuration mappings. It eliminates scattered environment access
+ * throughout the codebase and provides a single source of truth for
+ * configuration management.
+ * 
+ * Design principles:
+ * - Centralize all configuration in one location
+ * - Provide sensible defaults for all settings
+ * - Support environment variable overrides
+ * - Group related configurations together
+ * - Maintain backward compatibility
+ * - Document all configuration options thoroughly
+ */
 
-// Default Values
-  CONFIG_DEFAULTS,           // Configuration defaults
-      'gpt-3.5-turbo': { maxTokens: 4096, temperature: 0.1, topP: 1 }
+// ====================================================================
+// AI MODEL CONFIGURATION - AI provider and model definitions
+// ====================================================================
+
+/**
+ * Supported AI model providers
+ */
+const MODEL_PROVIDERS = {
+  OPENAI: 'openai',  // OpenAI GPT models
+  GOOGLE: 'google'    // Google Gemini models
+};
+
+// ====================================================================
+// CIRCUIT BREAKER CONFIGURATION - Resilience pattern states
+// ====================================================================
+
+/**
+ * Circuit breaker states for fault tolerance
+ */
+const CircuitState = {
+  CLOSED: 'CLOSED',      // Normal operation, calls pass through
+  OPEN: 'OPEN',          // Circuit is open, calls fail fast
+  HALF_OPEN: 'HALF_OPEN'  // Testing state, limited calls allowed
+};
+
+// ====================================================================
+// ERROR CLASSIFICATION - Error types and severity levels
+// ====================================================================
+
+/**
+ * Error type enumeration
+ * 
+ * Defines the categories of errors that can occur in the system.
+ * Each error type maps to appropriate HTTP status codes and
+ * handling strategies.
+ */
+const ErrorTypes = {
+  VALIDATION: 'validation',        // Input validation failures
+  AUTHENTICATION: 'authentication', // Authentication failures
+  AUTHORIZATION: 'authorization',   // Authorization/permission failures
+  NOT_FOUND: 'not_found',          // Resource not found
+  RATE_LIMIT: 'rate_limit',        // Rate limiting exceeded
+  NETWORK: 'network',              // Network service failures
+  DATABASE: 'database',            // Database operation failures
+  SYSTEM: 'system',                // Internal system failures
+  CONFIGURATION: 'configuration'   // Configuration issues
+};
+
+/**
+ * Error severity enumeration
+ * 
+ * Defines the severity levels for error classification.
+ * Severity determines logging levels and operational priority.
+ */
+const ErrorSeverity = {
+  LOW: 'low',        // Low impact, user-facing issues
+  MEDIUM: 'medium',  // Medium impact, operational issues
+  HIGH: 'high',      // High impact, system issues
+  CRITICAL: 'critical' // Critical impact, system-wide issues
+};
+
+// ====================================================================
+// HTTP PROTOCOL - Status codes and default messages
+// ====================================================================
+
+/**
+ * HTTP status code constants
+ * 
+ * Standard HTTP status codes used throughout the application
+ * for consistent response handling.
+ */
+const HTTP_STATUS = {
+  // Success codes
+  OK: 200,
+  CREATED: 201,
+  ACCEPTED: 202,
+  NO_CONTENT: 204,
+  
+  // Redirection codes
+  MOVED_PERMANENTLY: 301,
+  FOUND: 302,
+  NOT_MODIFIED: 304,
+  
+  // Client error codes
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  METHOD_NOT_ALLOWED: 405,
+  CONFLICT: 409,
+  UNPROCESSABLE_ENTITY: 422,
+  TOO_MANY_REQUESTS: 429,
+  
+  // Server error codes
+  INTERNAL_SERVER_ERROR: 500,
+  BAD_GATEWAY: 502,
+  SERVICE_UNAVAILABLE: 503,
+  GATEWAY_TIMEOUT: 504
+};
+
+/**
+ * Default error messages
+ * 
+ * Standardized error messages for common scenarios.
+ * These provide consistent user-facing error messages.
+ */
+const DEFAULT_MESSAGES = {
+  VALIDATION_FAILED: 'Validation failed',
+  UNAUTHORIZED: 'Unauthorized access',
+  FORBIDDEN: 'Access forbidden',
+  NOT_FOUND: 'Resource not found',
+  INTERNAL_ERROR: 'Internal server error',
+  RATE_LIMITED: 'Rate limit exceeded',
+  SERVICE_UNAVAILABLE: 'Service temporarily unavailable'
+};
+
+// ====================================================================
+// LOGGING SYSTEM - Log levels and configuration
+// ====================================================================
+
+/**
+ * Logging level definitions
+ * 
+ * Defines the logging levels with priorities and formatting
+ * for consistent log management throughout the system.
+ */
+const LOG_LEVELS = {
+  DEBUG: { priority: 0, color: 'gray', name: 'DEBUG' },
+  INFO: { priority: 1, color: 'blue', name: 'INFO' },
+  WARN: { priority: 2, color: 'yellow', name: 'WARN' },
+  ERROR: { priority: 3, color: 'red', name: 'ERROR' },
+  FATAL: { priority: 4, color: 'magenta', name: 'FATAL' },
+  AUDIT: { priority: 5, color: 'cyan', name: 'AUDIT' }
+};
+
+// ====================================================================
+// ENVIRONMENT VARIABLES - Runtime configuration from environment
+// ====================================================================
+
+// Environment and Runtime
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const DEFAULT_ERROR_MESSAGE = process.env.QERRORS_DEFAULT_MESSAGE || 'An error occurred';
+
+// AI Model Environment Variables
+const QERRORS_AI_PROVIDER = process.env.QERRORS_AI_PROVIDER || 'openai';
+const QERRORS_AI_MODEL = process.env.QERRORS_AI_MODEL || 'gpt-4o';
+const QERRORS_MAX_TOKENS = process.env.QERRORS_MAX_TOKENS || '4096';
+const QERRORS_VERBOSE = process.env.QERRORS_VERBOSE === 'true';
+
+// Logging Environment Variables
+const QERRORS_LOG_MAXSIZE = process.env.QERRORS_LOG_MAXSIZE || '1048576';
+const QERRORS_LOG_MAXFILES = process.env.QERRORS_LOG_MAXFILES || '5';
+const QERRORS_LOG_MAX_DAYS = process.env.QERRORS_LOG_MAX_DAYS || '30';
+const QERRORS_LOG_DIR = process.env.QERRORS_LOG_DIR || 'logs';
+const QERRORS_DISABLE_FILE_LOGS = process.env.QERRORS_DISABLE_FILE_LOGS === 'true';
+const QERRORS_SERVICE_NAME = process.env.QERRORS_SERVICE_NAME || 'qerrors';
+const QERRORS_LOG_LEVEL = process.env.QERRORS_LOG_LEVEL || 'info';
+
+// Performance and Limits
+const QERRORS_CONCURRENCY = process.env.QERRORS_CONCURRENCY || '3';
+const QERRORS_CACHE_LIMIT = process.env.QERRORS_CACHE_LIMIT || '1000';
+const QERRORS_CACHE_TTL = process.env.QERRORS_CACHE_TTL || '300000';
+const QERRORS_QUEUE_LIMIT = process.env.QERRORS_QUEUE_LIMIT || '100';
+const QERRORS_SAFE_THRESHOLD = process.env.QERRORS_SAFE_THRESHOLD || '80';
+const QERRORS_RETRY_ATTEMPTS = process.env.QERRORS_RETRY_ATTEMPTS || '3';
+const QERRORS_RETRY_BASE_MS = process.env.QERRORS_RETRY_BASE_MS || '1000';
+const QERRORS_RETRY_MAX_MS = process.env.QERRORS_RETRY_MAX_MS || '10000';
+const QERRORS_TIMEOUT = process.env.QERRORS_TIMEOUT || '30000';
+const QERRORS_MAX_SOCKETS = process.env.QERRORS_MAX_SOCKETS || '50';
+const QERRORS_MAX_FREE_SOCKETS = process.env.QERRORS_MAX_FREE_SOCKETS || '10';
+const QERRORS_OPENAI_URL = process.env.QERRORS_OPENAI_URL || 'https://api.openai.com/v1/chat/completions';
+const QERRORS_METRIC_INTERVAL_MS = process.env.QERRORS_METRIC_INTERVAL_MS || '60000';
+
+// ====================================================================
+// CONFIGURATION DEFAULTS - Default values for AI models
+// ====================================================================
+
+const CONFIG_DEFAULTS = {
+  [MODEL_PROVIDERS.OPENAI]: {
+    models: {
+      'gpt-3.5-turbo': { maxTokens: 4096, temperature: 0.1, topP: 1 },
+      'gpt-4o': { maxTokens: 4096, temperature: 0.1, topP: 1 },
+      'gpt-4o-mini': { maxTokens: 4096, temperature: 0.1, topP: 1 }
     },
     defaultModel: 'gpt-4o',
     requiredEnvVars: ['OPENAI_API_KEY']
@@ -39,10 +222,6 @@
 
 /**
  * Map error types to HTTP status codes
- * 
- * This mapping ensures consistent HTTP response codes
- * based on error classification. Each error type
- * maps to the most appropriate HTTP status code.
  */
 const ERROR_STATUS_MAP = {
   [ErrorTypes.VALIDATION]: 400,       // Bad Request for validation failures
@@ -58,10 +237,6 @@ const ERROR_STATUS_MAP = {
 
 /**
  * Map error types to severity levels
- * 
- * This mapping determines operational priority and
- * logging levels based on error type. More severe
- * error types require immediate attention.
  */
 const ERROR_SEVERITY_MAP = {
   [ErrorTypes.VALIDATION]: ErrorSeverity.LOW,         // User input issues
@@ -75,6 +250,10 @@ const ERROR_SEVERITY_MAP = {
   [ErrorTypes.CONFIGURATION]: ErrorSeverity.CRITICAL     // Configuration problems
 };
 
+// ====================================================================
+// LOGGING CONFIGURATION - Log rotation and file management
+// ====================================================================
+
 // Logging Rotation Options
 const ROTATION_OPTS = {
   maxsize: Number(QERRORS_LOG_MAXSIZE) || 1024 * 1024,
@@ -85,6 +264,10 @@ const ROTATION_OPTS = {
 // File Paths and Directories
 const LOG_DIR = QERRORS_LOG_DIR || 'logs';
 const DISABLE_FILE_LOGS = !!QERRORS_DISABLE_FILE_LOGS;
+
+// ====================================================================
+// ERROR RESPONSE STANDARDS - Standardized error response format
+// ====================================================================
 
 // Error Response Constants
 const STANDARD_ERROR_RESPONSE = {
@@ -124,7 +307,10 @@ const ERROR_SEVERITY_MAP_CONTRACTS = {
   'DEPENDENCY_ERROR': LOG_LEVELS.ERROR
 };
 
-// Async Configuration
+// ====================================================================
+// ASYNC CONFIGURATION - Default async operation settings
+// ====================================================================
+
 const DEFAULT_ASYNC_CONFIG = {
   enableTiming: true,
   enableLogging: true,
@@ -143,19 +329,6 @@ const DEFAULT_ASYNC_CONFIG = {
 // RETRY CONFIGURATION PRESETS - Common workload retry strategies
 // ====================================================================
 
-/**
- * Predefined retry configurations for common workload types
- * 
- * These presets provide sensible defaults for different operation types,
- * eliminating the need for developers to manually tune retry parameters.
- * Each preset is optimized for the specific characteristics of its workload:
- * - Network: Higher attempts with longer delays for transient network issues
- * - Database: Moderate attempts with shorter delays for connection issues
- * - ExternalAPI: Higher delays to respect rate limits
- * - Filesystem: Quick retries for temporary file locks
- * - Aggressive: Many quick retries for critical operations
- * - Conservative: Few retries with long delays to minimize load
- */
 const RetryConfigPresets = {
   network: {
     maxAttempts: 5,
@@ -205,17 +378,10 @@ const RetryConfigPresets = {
 // MODULE EXPORTS - Complete configuration system
 // ====================================================================
 
-/**
- * Export all configuration constants and environment variables
- * 
- * This comprehensive export provides access to all configuration
- * values throughout the qerrors system. The exports are organized
- * by category for clarity and maintainability.
- */
 module.exports = {
-/QERRORS_METRIC_INTERVAL_MS: '60000'/QERRORS_METRIC_INTERVAL_MS: '60000',/
+  // AI Model Configuration
   MODEL_PROVIDERS,           // AI provider enumeration
-  MODEL_CONFIGS,            // AI model configurations
+  CONFIG_DEFAULTS,          // Configuration defaults
   
   // Circuit Breaker
   CircuitState,             // Circuit breaker states
@@ -264,14 +430,11 @@ module.exports = {
   QERRORS_RETRY_ATTEMPTS,    // API retry attempts
   QERRORS_RETRY_BASE_MS,      // Retry base delay
   QERRORS_RETRY_MAX_MS,       // Maximum retry delay
-  QERRORS_TIMEOUT             // Request timeout
-  QERRORS_MAX_SOCKETS: '50'       // Max HTTP sockets
+  QERRORS_TIMEOUT,            // Request timeout
+  QERRORS_MAX_SOCKETS,        // Max HTTP sockets
   QERRORS_MAX_FREE_SOCKETS,   // Max free sockets
   QERRORS_OPENAI_URL,         // OpenAI API URL
-  QERRORS_METRIC_INTERVAL_MS: '60000' // Metrics collection interval
-  
-  // Default Values
-  CONFIG_DEFAULTS,           // Configuration defaults
+  QERRORS_METRIC_INTERVAL_MS, // Metrics collection interval
   
   // Error Response Standards
   STANDARD_ERROR_RESPONSE,     // Standardized error response format
