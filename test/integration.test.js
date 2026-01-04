@@ -98,8 +98,6 @@ describe('Integration Tests', () => {
     });
 
     test('should maintain queue statistics accurately', async () => {
-      const initialStats = qerrors.getQueueStats();
-
       await qerrors(new Error('Stats test'), 'test.queue.stats');
       const newStats = qerrors.getQueueStats();
 
