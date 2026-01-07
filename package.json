@@ -79,7 +79,8 @@
     "deploy:clean": "./scripts/deploy.sh --clean",
     "monitoring:setup": "node scripts/setup-monitoring.js",
     "prepublishOnly": "npm run validate && npm run build",
-    "demo": "node demo-server.js"
+    "demo": "node demo-server.js",
+    "unqommented": "node scripts/unqommented.js"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.0",
