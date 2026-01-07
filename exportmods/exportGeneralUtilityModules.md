@@ -1,425 +1,440 @@
 ## General Utility
-### @qerrors/performance-timer
-**Purpose:** High-precision performance timing with optional memory tracking and integrated logging.
+
+### @qerrors/env-utils
+**Purpose:** Comprehensive environment variable validation, management, and health checking utilities.
+
 **Explanation:**  
-This module provides comprehensive performance timing utilities using Node.js's high-resolution timer for nanosecond precision timing. It includes optional memory usage tracking, integrated logging with performance metrics, flexible output formats for different use cases, and request correlation support. This is valuable for any application that needs accurate performance monitoring, API endpoint timing, database query performance analysis, or memory leak detection.
+This module provides enterprise-grade environment variable management with validation, health monitoring, and configuration completeness tracking. It includes both strict validation (throwing errors for missing required variables) and lenient validation (warnings for optional variables), along with comprehensive health reporting and .env file detection. The module is particularly valuable for applications that need robust configuration management and early failure detection for missing dependencies.
 
-Key problems solved:
-- Provides high-precision timing for accurate performance measurements
-- Integrates memory tracking for comprehensive performance analysis
-- Offers flexible output formats (ms, s, m) for different contexts
-- Includes automatic performance logging with context
-- Supports request correlation for distributed tracing
+The module solves the critical problem of configuration management and early failure detection in production environments. It would be reused across any Node.js application that needs reliable environment variable validation, including microservices, web applications, background job processors, and CLI tools.
 
-```javascript
-// Exact current implementation copied from the codebase
-const createUnifiedTimer = (operation, includeMemoryTracking = false, requestId = null) => {
-  const startTime = process.hrtime.bigint();
-  const startMemory = includeMemoryTracking ? process.memoryUsage() : null;
+Inputs: Arrays of required and optional environment variable names, validation options.
+Outputs: Validation results, health reports, error messages, and configuration metrics.
 
-  return {
-    elapsed: () => Number(process.hrtime.bigint() - startTime) / 1000000,
+Important constraints: The module provides both synchronous and asynchronous APIs for backward compatibility, includes comprehensive error logging, and handles edge cases like missing .env files and malformed environment variables.
 
-    elapsedFormatted: () => {
-      const ms = Number(process.hrtime.bigint() - startTime) / 1000000;
-      return ms < 1000
-        ? `${ms.toFixed(2)}ms`
-        : ms < 60000
-          ? `${(ms / 1000).toFixed(2)}s`
-          : `${(ms / 60000).toFixed(2)}m`;
-    },
+```js
+'use strict';
 
-    logPerformance: async (success = true, additionalContext = {}) => {
-      const endTime = process.hrtime.bigint();
-      const endMemory = includeMemoryTracking ? process.memoryUsage() : null;
-      const duration = Number(endTime - startTime) / 1000000;
+/**
+ * Environment Utilities Module
+ * 
+ * Purpose: Provides comprehensive environment variable validation, management,
+ * and health checking utilities for Node.js applications. This module ensures
+ * that required configuration is available before application startup and
+ * provides clear feedback about missing or misconfigured environment variables.
+ * 
+ * Design Rationale:
+ * - Early failure detection: Prevents runtime errors due to missing configuration
+ * - Clear error messaging: Provides descriptive feedback about missing variables
+ * - Flexible validation: Supports both strict (throw) and lenient (warn) validation modes
+ * - Health monitoring: Enables configuration monitoring and reporting
+ * - Environment file detection: Automatically detects .env file presence
+ * 
+ * Key Features:
+ * - Required variable validation with automatic error throwing
+ * - Optional variable validation with warning generation
+ * - Environment health reporting with detailed metrics
+ * - .env file detection and validation
+ * - Comprehensive error messages for debugging
+ * - Support for custom validation messages
+ */
 
-      const context = {
-        operation,
-        duration_ms: Math.round(duration * 100) / 100,
-        success,
-        ...additionalContext
-      };
+const { loadDotenv: loadDotenvUtil, checkEnvFileExists: checkEnvFileExistsUtil } = require('./shared/environmentLoader');
+const { logError, logWarning } = require('./shared/errorLogger');
+const loadDotenv = loadDotenvUtil;
+const checkEnvFileExists = checkEnvFileExistsUtil;
 
-      if (includeMemoryTracking && startMemory && endMemory) {
-        context.memory_delta = {
-          heapUsed: Math.round((endMemory.heapUsed - startMemory.heapUsed) / 1024),
-          external: Math.round((endMemory.external - startMemory.external) / 1024)
-        };
-      }
-
-      const message = `${operation} completed in ${context.duration_ms}ms (${success ? 'success' : 'failure'})`;
-
-      try {
-        const logger = require('../logger');
-        if (success) {
-          await logger.logInfo(message, context, requestId);
-        } else {
-          await logger.logWarn(message, context, requestId);
-        }
-      } catch (err) {
-        console[success ? 'log' : 'warn'](message, context);
-      }
-
-      return context;
-    }
-  };
-};
-
-const createTimer = () => createUnifiedTimer('operation', false);
-
-const createPerformanceTimer = (operation, requestId = null) => createUnifiedTimer(operation, true, requestId);
-
-module.exports = {
-  createUnifiedTimer,
-  createTimer,
-  createPerformanceTimer
-};
-```
-
-### @qerrors/lazy-imports
-**Purpose:** Centralized import management with lazy loading and caching for optimized performance.
-**Explanation:**  
-This module provides a unified import system that centralizes commonly used import patterns to reduce duplication across codebases. It implements lazy loading with caching to reduce startup time, provides standardized import patterns across all files, and includes import combination helpers for frequently used module groups. This is valuable for any large application that needs to manage dependencies efficiently, reduce import statement duplication, and optimize module loading performance.
-
-Key problems solved:
-- Reduces import statement duplication across large codebases
-- Implements lazy loading to improve application startup performance
-- Provides centralized dependency management for easier maintenance
-- Offers pre-configured import groups for common patterns
-- Includes caching to avoid redundant module loads
-
-```javascript
-// Exact current implementation copied from the codebase
-const importCache = new Map();
-
-function lazyImport (modulePath) {
-  if (!importCache.has(modulePath)) {
-    try {
-      const module = require(modulePath);
-      importCache.set(modulePath, module);
-      return module;
-    } catch (error) {
-      throw new Error(`Failed to import module ${modulePath}: ${error.message}`);
-    }
-  }
-  return importCache.get(modulePath);
-}
-
-const sharedModules = {
-  logging: () => lazyImport('./logging'),
-  security: () => lazyImport('./security'),
-  constants: () => lazyImport('./constants'),
-  execution: () => lazyImport('./execution'),
-  dataStructures: () => lazyImport('./dataStructures'),
-  response: () => lazyImport('./response'),
-  validation: () => lazyImport('./validation'),
-  contracts: () => lazyImport('./contracts'),
-  asyncContracts: () => lazyImport('./asyncContracts')
-};
-
-const commonImports = {
-  logging: () => {
-    const logging = sharedModules.logging();
-    return {
-      stringifyContext: logging.stringifyContext,
-      verboseLog: logging.verboseLog,
-      createEnhancedLogEntry: logging.createEnhancedLogEntry,
-      safeLogError: logging.safeLogError,
-      safeLogInfo: logging.safeLogInfo,
-      safeLogWarn: logging.safeLogWarn,
-      safeLogDebug: logging.safeLogDebug
-    };
-  },
-
-  security: () => {
-    const security = sharedModules.security();
-    return {
-      sanitizeErrorMessage: security.sanitizeErrorMessage,
-      sanitizeContextForLog: security.sanitizeContextForLog,
-      sanitizeErrorInput: security.sanitizeErrorInput
-    };
-  },
-
-  constants: () => {
-    const constants = sharedModules.constants();
-    return {
-      LOG_LEVELS: constants.LOG_LEVELS,
-      ERROR_SEVERITY: constants.ERROR_SEVERITY,
-      OPERATION_TYPES: constants.OPERATION_TYPES
-    };
-  },
-
-  execution: () => {
-    const execution = sharedModules.execution();
-    return {
-      createTimer: execution.createTimer,
-      createUnifiedTimer: execution.createUnifiedTimer,
-      safeRun: execution.safeRun,
-      attempt: execution.attempt,
-      executeWithQerrors: execution.executeWithQerrors
-    };
-  }
-};
-
-const importGroups = {
-  errorHandling: () => ({
-    ...commonImports.logging(),
-    ...commonImports.security(),
-    ...commonImports.constants()
-  }),
-
-  asyncOperations: () => ({
-    ...commonImports.execution(),
-    ...commonImports.logging(),
-    ...sharedModules.asyncContracts()
-  }),
-
-  validation: () => ({
-    ...commonImports.security(),
-    ...sharedModules.validation(),
-    ...commonImports.logging()
-  }),
-
-  fullSuite: () => ({
-    ...commonImports.logging(),
-    ...commonImports.security(),
-    ...commonImports.constants(),
-    ...commonImports.execution(),
-    ...sharedModules.dataStructures(),
-    ...sharedModules.response(),
-    ...sharedModules.validation(),
-    ...sharedModules.contracts(),
-    ...sharedModules.asyncContracts()
-  })
-};
-
-function clearCache () {
-  importCache.clear();
-}
-
-function getCacheStats () {
-  return {
-    size: importCache.size,
-    cachedModules: Array.from(importCache.keys())
-  };
-}
-
-module.exports = {
-  sharedModules,
-  commonImports,
-  importGroups,
-  lazyImport,
-  clearCache,
-  getCacheStats
-};
-```
-
-### @qerrors/env-config
-**Purpose:** Environment variable management with type validation and defaults handling.
-**Explanation:**  
-This module provides comprehensive environment variable management with type validation, default value handling, and configuration validation. It includes utilities for getting string, integer, and boolean values from environment variables with proper fallbacks, validation for required environment variables, and configuration summary generation. This is valuable for any application that needs robust environment configuration management with type safety and validation.
-
-Key problems solved:
-- Provides type-safe environment variable access with validation
-- Handles default values and fallbacks gracefully
-- Includes comprehensive boolean parsing with various string formats
-- Offers validation for required environment variables
-- Provides configuration summaries for debugging and monitoring
-
-```javascript
-// Exact current implementation copied from the codebase
-const { loadDotenv, checkEnvFileExists } = require('./shared/environmentLoader');
+// Import local configuration variables and constants
 const localVars = require('../config/localVars');
-const { CONFIG_DEFAULTS } = localVars;
-const defaults = CONFIG_DEFAULTS;
+const { NODE_ENV } = localVars;
 
-const getEnv = (name, defaultVal) => 
-  process.env[name] !== undefined ? process.env[name] : 
-  defaultVal !== undefined ? defaultVal : defaults[name];
+// Default error message for missing environment variables
+const DEFAULT_ERROR_MESSAGE = 'An unexpected error occurred';
 
-const safeRun = (name, fn, fallback, info) => {
+/**
+ * Check which environment variables are missing from the current environment
+ * 
+ * This function filters an array of environment variable names to identify
+ * which ones are not currently set in process.env. It's used by other
+ * validation functions to determine configuration completeness.
+ * 
+ * @param {string[]} varArr - Array of environment variable names to check
+ * @returns {string[]} Array of missing environment variable names
+ * 
+ * Example:
+ * const missing = getMissingEnvVars(['API_KEY', 'DB_URL']);
+ * console.log(missing); // ['API_KEY'] if API_KEY is not set
+ */
+const getMissingEnvVars=varArr=>{varArr.forEach(name=>{if(!process.env[name]){logError(new Error(`Missing environment variable: ${name}`),'envUtils.getMissingEnvVars',{operation:'environment_variable_check',variableName:name});}});return varArr.filter(name=>!process.env[name]);};
+
+/**
+ * Validate required environment variables and throw error if any are missing
+ * 
+ * This function performs strict validation of required environment variables.
+ * If any variables from the provided array are missing, it will throw a detailed
+ * error message and also log the error to console for visibility.
+ * 
+ * Use this function when your application cannot function without specific
+ * environment variables being set. This is ideal for API keys, database URLs,
+ * and other critical configuration that must be present for the application
+ * to operate correctly.
+ * 
+ * @param {string[]} varArr - Array of required environment variable names
+ * @returns {string[]} Array of missing environment variable names (empty if all present)
+ * @throws {Error} If any required environment variables are missing
+ * 
+ * Example:
+ * try {
+ *   throwIfMissingEnvVars(['OPENAI_API_KEY', 'DATABASE_URL']);
+ *   console.log('All required variables are present');
+ * } catch (error) {
+ *   console.error('Configuration error:', error.message);
+ *   process.exit(1);
+ * }
+ */
+const throwIfMissingEnvVars = varArr => {
   try {
-    return fn();
-  } catch (err) {
-    console.error(`${name} failed`, info);
-    return fallback;
-  }
-};
-
-const getInt = (name, defaultValOrMin, min) => {
-  const envValue = process.env[name];
-  const int = parseInt(envValue || '', 10);
-  const moduleDefault = typeof defaults[name] === 'number' ? defaults[name] : parseInt(defaults[name] || '0', 10);
-  
-  let fallbackVal, minVal;
-  if (arguments.length <= 1) {
-    fallbackVal = moduleDefault;
-    minVal = 1;
-  } else if (arguments.length === 2) {
-    fallbackVal = moduleDefault;
-    minVal = typeof defaultValOrMin === 'number' ? defaultValOrMin : 1;
-  } else {
-    fallbackVal = typeof defaultValOrMin === 'number' ? defaultValOrMin : moduleDefault;
-    minVal = typeof min === 'number' ? min : 1;
-  }
-  
-  const val = Number.isNaN(int) ? fallbackVal : int;
-  return val >= minVal ? val : minVal;
-};
-
-const getBool = (name, defaultVal) => {
-  const parseBool = (value) => {
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'number') return value !== 0;
-    if (typeof value !== 'string') return null;
-
-    const normalized = value.trim().toLowerCase();
-    if (normalized === '') return null;
-    if (['1', 'true', 'yes', 'y', 'on', 'enable', 'enabled'].includes(normalized)) return true;
-    if (['0', 'false', 'no', 'n', 'off', 'disable', 'disabled'].includes(normalized)) return false;
-    return null;
-  };
-
-  const envValue = process.env[name];
-  const envParsed = envValue !== undefined ? parseBool(String(envValue)) : null;
-  if (envParsed !== null) return envParsed;
-
-  const moduleDefault = defaults[name];
-  const fallback = defaultVal !== undefined ? defaultVal : moduleDefault;
-  const fallbackParsed = parseBool(fallback);
-
-  return fallbackParsed !== null ? fallbackParsed : false;
-};
-
-const validateRequiredVars = varNames => {
-  const missing = [];
-  const present = [];
-  for (const name of varNames) {
-    process.env.hasOwnProperty(name) ? present.push(name) : missing.push(name);
-  }
-  return { isValid: missing.length === 0, missing, present };
-};
-
-const getConfigSummary = async () => {
-  const hasEnvFile = await checkEnvFileExists();
-  
-  return {
-    environment: localVars.NODE_ENV || 'development',
-    hasEnvFile,
-    configuredVars: Object.keys(defaults).filter(key => process.env[key] !== undefined),
-    totalVars: Object.keys(defaults).length
-  };
-};
-
-const getConfigSummarySync = () => {
-  console.warn('getConfigSummarySync is deprecated - use async getConfigSummary() instead');
-  const fs = require('fs');
-  let hasEnvFile = null;
-  try {
-    hasEnvFile = fs.existsSync('.env');
-  } catch (error) {
-    hasEnvFile = false;
-  }
-  
-  return {
-    environment: localVars.NODE_ENV || 'development',
-    hasEnvFile,
-    configuredVars: Object.keys(defaults).filter(key => process.env[key] !== undefined),
-    totalVars: Object.keys(defaults).length
-  };
-};
-
-module.exports = {
-  defaults,
-  getEnv,
-  safeRun,
-  getInt,
-  getBool,
-  validateRequiredVars,
-  getConfigSummary,
-  getConfigSummarySync,
-  loadDotenv
-};
-```
-
-### @qerrors/logging-core
-**Purpose:** Comprehensive logging utilities with circular reference handling and error safety.
-**Explanation:**  
-This module provides essential logging utilities with comprehensive error handling, circular reference detection, and safe string conversion. It includes context stringification with circular reference prevention, safe error message extraction from various error types, environment-based verbose logging, and enhanced log entry creation. This is valuable for any application that needs robust logging capabilities that won't fail due to serialization errors or complex object structures.
-
-Key problems solved:
-- Prevents JSON.stringify errors from circular object references
-- Provides safe error message extraction from various error types
-- Includes environment-controlled verbose logging for debugging
-- Offers enhanced log entry creation with memory tracking
-- Handles all data types safely without breaking the logging system
-
-```javascript
-// Exact current implementation copied from the codebase
-const { createEnhancedLogEntry } = require('./errorContext');
-const localVars = require('../../config/localVars');
-const { LOG_LEVELS } = localVars;
-
-const createLogEntry = (level, message, context = {}, requestId = null) => { 
-  const entry = createEnhancedLogEntry(level, message, context, requestId); 
-  const levelConfig = LOG_LEVELS[level.toUpperCase()]; 
-  if (levelConfig && levelConfig.priority >= LOG_LEVELS.WARN.priority) { 
-    const memUsage = process.memoryUsage(); 
-    entry.memory = { 
-      heapUsed: Math.round(memUsage.heapUsed / 1048576), 
-      heapTotal: Math.round(memUsage.heapTotal / 1048576), 
-      external: Math.round(memUsage.external / 1048576), 
-      rss: Math.round(memUsage.rss / 1048576) 
-    }; 
-  } 
-  return entry; 
-};
-
-const stringifyContext = ctx => {
-  try {
-    if (typeof ctx === 'string') return ctx;
-
-    if (typeof ctx === 'object' && ctx !== null) {
-      const seen = new Set();
-
-      return JSON.stringify(ctx, (_, value) => {
-        if (typeof value === 'object' && value !== null) {
-          if (value === ctx) return '[Circular *1]';
-
-          if (seen.has(value)) return '[Circular]';
-
-          seen.add(value);
-        }
-        return value;
-      });
+    const missingEnvVars = getMissingEnvVars(varArr);
+    
+    if (missingEnvVars.length) {
+      const errorMessage = `Missing required environment variables: ${missingEnvVars.join(', ')}`;
+      
+      // Log error to console for immediate visibility
+      console.error(errorMessage);
+      
+      missingEnvVars.forEach(varName => {
+          logError(new Error(`Missing environment variable: ${varName}`), 'envUtils.throwIfMissingEnvVars', {
+            operation: 'required_environment_variable_validation',
+            variableName: varName
+          });
+        });
+      
+      // Create and throw error for programmatic handling
+      const err = new Error(errorMessage);
+      console.error(err);
+      throw err;
     }
-
-    return String(ctx);
-  } catch (err) {
-    return 'unknown context';
+    
+    return missingEnvVars;
+  } catch (error) {
+    console.error('Error in throwIfMissingEnvVars:', error.message);
+    throw error;
   }
 };
 
-const safeErrorMessage = (error, fallback = 'Unknown error') => {
-  if (error && typeof error === 'object' && 'message' in error) {
-    const msg = String(error.message || '').trim();
-    if (msg) return msg;
+/**
+ * Validate optional environment variables and log warning if any are missing
+ * 
+ * This function performs lenient validation of optional environment variables.
+ * Instead of throwing an error, it logs a warning message to inform developers
+ * that some optional configuration is missing. This allows the application
+ * to continue running while providing visibility into potentially missing
+ * functionality.
+ * 
+ * Use this function for environment variables that enhance functionality
+ * but are not required for basic operation. Examples include feature flags,
+ * optional service URLs, or configuration that has sensible defaults.
+ * 
+ * @param {string[]} varArr - Array of optional environment variable names
+ * @param {string} [customMessage=''] - Custom warning message to display instead of default
+ * @returns {boolean} True if all optional variables are present, false otherwise
+ * 
+ * Example:
+ * const isComplete = warnIfMissingEnvVars(['REDIS_URL', 'FEATURE_FLAG_X']);
+ * if (!isComplete) {
+ *   console.log('Some optional features may not be available');
+ * }
+ */
+const warnIfMissingEnvVars = (varArr, customMessage = '') => {
+  try {
+    const missingEnvVars = getMissingEnvVars(varArr);
+    
+    if (missingEnvVars.length) {
+      const warningMessage = customMessage || `Missing optional environment variables: ${missingEnvVars.join(', ')}`;
+      
+      missingEnvVars.forEach(varName => {
+          logWarning(new Error(`Missing optional environment variable: ${varName}`), 'envUtils.warnIfMissingEnvVars', {
+            operation: 'optional_environment_variable_check',
+            variableName: varName,
+            isWarning: true
+          });
+        });
+      
+      // Log warning to console for visibility
+      console.warn(warningMessage);
+    }
+    
+    return missingEnvVars.length === 0; // Return true if complete
+  } catch (error) {
+    console.error('Error in warnIfMissingEnvVars:', error.message);
+    return false;
   }
-
-  if (typeof error === 'string' && error.trim()) {
-    return error.trim();
-  }
-
-  return fallback;
 };
 
-const verboseLog = msg => localVars.QERRORS_VERBOSE !== 'false' && console.log(msg);
+/**
+ * Alias for throwIfMissingEnvVars - validates required environment variables
+ * 
+ * This function provides a more descriptive name for the same functionality
+ * as throwIfMissingEnvVars. It's useful when you want to be explicit about
+ * validating required variables in your code.
+ * 
+ * @param {string[]} vars - Array of required environment variable names
+ * @returns {string[]} Array of missing environment variable names
+ * @throws {Error} If any required environment variables are missing
+ */
+const validateRequiredEnvVars = vars => throwIfMissingEnvVars(vars);
 
+/**
+ * Alias for warnIfMissingEnvVars - validates optional environment variables
+ * 
+ * This function provides a more descriptive name for the same functionality
+ * as warnIfMissingEnvVars. It's useful when you want to be explicit about
+ * validating optional variables in your code.
+ * 
+ * @param {string[]} vars - Array of optional environment variable names
+ * @returns {boolean} True if all optional variables are present, false otherwise
+ */
+const warnMissingEnvVars = vars => warnIfMissingEnvVars(vars);
+
+/**
+ * Check if .env file exists in the current working directory
+ * 
+ * This function detects the presence of a .env file, which is commonly
+ * used for local development environment configuration. The presence
+ * of this file indicates that environment variables may be loaded from
+ * a file rather than being set directly in the system environment.
+ * 
+ * @returns {Promise<boolean>} True if .env file exists, false otherwise
+ * 
+ * Example:
+ * const exists = await hasEnvFile();
+ * if (exists) {
+ *   console.log('Environment variables may be loaded from .env file');
+ * } else {
+ *   console.log('Using system environment variables only');
+ * }
+ */
+const hasEnvFile = async () => await checkEnvFileExists();
+
+/**
+ * Synchronous version for backward compatibility - DEPRECATED
+ * Use async hasEnvFile() instead to avoid blocking operations
+ * @returns {boolean} Cached result or synchronous check
+ */
+const hasEnvFileSync = () => {
+  console.warn('hasEnvFileSync is deprecated - use async hasEnvFile() instead');
+  if (envFileExistsCache === null) {
+    // Initialize cache synchronously if not already done
+    try {
+      const exists = require('fs').existsSync('.env');
+      envFileExistsCache = exists;
+      return exists;
+    } catch (error) {
+      console.error('Error checking .env file:', error.message);
+      envFileExistsCache = false;
+      return false;
+    }
+  }
+  return envFileExistsCache;
+};
+
+/**
+ * Generate comprehensive environment health report
+ * 
+ * This function provides a detailed analysis of the current environment
+ * configuration, including which required and optional variables are set,
+ * which are missing, and overall configuration health status. It's useful
+ * for debugging configuration issues and for monitoring environment state
+ * in production applications.
+ * 
+ * The returned object includes metrics for both required and optional
+ * variables, allowing you to track configuration completeness over time.
+ * 
+ * @param {string[]} [requiredVars=[]] - Array of required environment variable names
+ * @param {string[]} [optionalVars=[]] - Array of optional environment variable names
+ * @returns {Object} Comprehensive environment health report
+ * @returns {string} returns.environment - Current NODE_ENV value
+ * @returns {boolean} returns.hasEnvFile - Whether .env file exists
+ * @returns {boolean} returns.isHealthy - Whether all required variables are present
+ * @returns {Object} returns.required - Metrics for required variables
+ * @returns {Object} returns.optional - Metrics for optional variables
+ * @returns {Object} returns.summary - Overall configuration summary
+ * 
+ * Example:
+ * const health = getEnvHealth(
+ *   ['API_KEY', 'DATABASE_URL'],           // required variables
+ *   ['REDIS_URL', 'DEBUG_MODE']            // optional variables
+ * );
+ * 
+ * if (!health.isHealthy) {
+ *   console.error('Environment is not healthy:', health.required.missing);
+ * }
+ * 
+ * console.log(`Configuration completeness: ${health.summary.configuredVars}/${health.summary.totalVars}`);
+ */
+const getEnvHealth = async (requiredVars = [], optionalVars = []) => {
+  const missingRequired = getMissingEnvVars(requiredVars);
+  const missingOptional = getMissingEnvVars(optionalVars);
+  
+  return {
+    environment: NODE_ENV,
+    hasEnvFile: await hasEnvFile(),
+    isHealthy: missingRequired.length === 0,
+    
+    // Required variables metrics
+    required: {
+      total: requiredVars.length,
+      configured: requiredVars.length - missingRequired.length,
+      missing: missingRequired
+    },
+    
+    // Optional variables metrics
+    optional: {
+      total: optionalVars.length,
+      configured: optionalVars.length - missingOptional.length,
+      missing: missingOptional
+    },
+    
+    // Overall summary
+    summary: {
+      totalVars: requiredVars.length + optionalVars.length,
+      configuredVars: (requiredVars.length - missingRequired.length) + (optionalVars.length - missingOptional.length)
+    }
+  };
+};
+
+/**
+ * Synchronous version for backward compatibility
+ */
+const getEnvHealthSync = (requiredVars = [], optionalVars = []) => {
+  const missingRequired = getMissingEnvVars(requiredVars);
+  const missingOptional = getMissingEnvVars(optionalVars);
+  
+  return {
+    environment: NODE_ENV,
+    hasEnvFile: hasEnvFileSync(),
+    isHealthy: missingRequired.length === 0,
+    
+    // Required variables metrics
+    required: {
+      total: requiredVars.length,
+      configured: requiredVars.length - missingRequired.length,
+      missing: missingRequired
+    },
+    
+    // Optional variables metrics
+    optional: {
+      total: optionalVars.length,
+      configured: optionalVars.length - missingOptional.length,
+      missing: missingOptional
+    },
+    
+    // Overall summary
+    summary: {
+      totalVars: requiredVars.length + optionalVars.length,
+      configuredVars: (requiredVars.length - missingRequired.length) + (optionalVars.length - missingOptional.length)
+    }
+  };
+};
+
+/**
+ * Comprehensive environment validation with configurable error handling
+ * 
+ * This function provides a unified interface for environment validation,
+ * combining the functionality of getEnvHealth with configurable error
+ * handling. It's useful for application startup validation where you
+ * want either strict validation (throw on error) or lenient validation
+ * (return health report) based on configuration.
+ * 
+ * The function is designed to be flexible, allowing you to validate
+ * different sets of variables in different contexts while maintaining
+ * consistent error reporting and health metrics.
+ * 
+ * @param {Object} [options={}] - Configuration options for validation
+ * @param {string[]} [options.required=[]] - Required environment variables
+ * @param {string[]} [options.optional=[]] - Optional environment variables
+ * @param {boolean} [options.throwOnError=true] - Whether to throw error on missing required vars
+ * @returns {Object} Environment health report (same format as getEnvHealth)
+ * @throws {Error} If throwOnError is true and required variables are missing
+ * 
+ * Example:
+ * // Strict validation - throws error on missing required variables
+ * try {
+ *   const health = validateEnvironment({
+ *     required: ['API_KEY', 'DATABASE_URL'],
+ *     optional: ['REDIS_URL'],
+ *     throwOnError: true
+ *   });
+ *   console.log('Environment is healthy:', health.isHealthy);
+ * } catch (error) {
+ *   console.error('Environment validation failed:', error.message);
+ * }
+ * 
+ * // Lenient validation - returns health report without throwing
+ * const health = validateEnvironment({
+ *   required: ['API_KEY', 'DATABASE_URL'],
+ *   optional: ['REDIS_URL'],
+ *   throwOnError: false
+ * });
+ * 
+ * if (!health.isHealthy) {
+ *   console.warn('Environment has issues:', health.required.missing);
+ * }
+ */
+const validateEnvironment = async (options = {}) => {
+  const { required = [], optional = [], throwOnError = true } = options;
+  
+  const health = await getEnvHealth(required, optional);
+  
+  // Throw error if required variables are missing and strict validation is enabled
+  if (throwOnError && !health.isHealthy) {
+    throwIfMissingEnvVars(required);
+  }
+  
+  return health;
+};
+
+/**
+ * Synchronous version for backward compatibility
+ */
+const validateEnvironmentSync = (options = {}) => {
+  const { required = [], optional = [], throwOnError = true } = options;
+  
+  const health = getEnvHealthSync(required, optional);
+  
+  // Throw error if required variables are missing and strict validation is enabled
+  if (throwOnError && !health.isHealthy) {
+    throwIfMissingEnvVars(required);
+  }
+  
+  return health;
+};
+
+// Export all utility functions for use in other modules
 module.exports = {
-  createLogEntry,
-  stringifyContext,
-  safeErrorMessage,
-  verboseLog
+  // Core validation functions
+  getMissingEnvVars,
+  throwIfMissingEnvVars,
+  warnIfMissingEnvVars,
+  
+  // Convenience aliases
+  validateRequiredEnvVars,
+  warnMissingEnvVars,
+  
+  // Environment health and monitoring
+  hasEnvFile,
+  hasEnvFileSync, // Backward compatibility
+  getEnvHealth,
+  getEnvHealthSync, // Backward compatibility
+  validateEnvironment,
+  validateEnvironmentSync, // Backward compatibility
+  
+  // Constants
+  NODE_ENV,
+  DEFAULT_ERROR_MESSAGE,
+  
+  // Async initialization
+  loadDotenv
 };
 ```
