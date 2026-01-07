@@ -1,80 +1,25 @@
-## @qerrors/timers
-**Purpose:** High-precision performance timing utilities with memory tracking and integrated logging.
-
+## General Utility
+### @qerrors/performance-timer
+**Purpose:** High-precision performance timing with optional memory tracking and integrated logging.
 **Explanation:**  
-This module provides unified performance timer implementation using Node.js's high-resolution timer for nanosecond precision timing. It includes optional memory usage tracking, integrated logging with application logging systems, flexible output formats (milliseconds, seconds, minutes), and request correlation support. The timers are broadly applicable to any application that needs performance monitoring for API endpoints, database queries, external service calls, memory leak detection, or performance bottleneck identification.
+This module provides comprehensive performance timing utilities using Node.js's high-resolution timer for nanosecond precision timing. It includes optional memory usage tracking, integrated logging with performance metrics, flexible output formats for different use cases, and request correlation support. This is valuable for any application that needs accurate performance monitoring, API endpoint timing, database query performance analysis, or memory leak detection.
 
-```js
-/**
- * Unified Performance Timer Implementation
- *
- * Purpose: Provides high-precision performance timing for operations with optional
- * memory tracking and integrated logging. This timer uses Node.js's high-resolution
- * timer (process.hrtime.bigint()) for nanosecond precision timing.
- *
- * Design Rationale:
- * - High precision: Uses process.hrtime.bigint() for accurate timing
- * - Memory awareness: Optional memory usage tracking for performance analysis
- * - Integrated logging: Built-in performance logging with context
- * - Flexible formatting: Multiple output formats for different use cases
- * - Request correlation: Optional request ID for distributed tracing
- *
- * Use Cases:
- * - API endpoint performance monitoring
- * - Database query timing
- * - External service call timing
- * - Memory leak detection
- * - Performance bottleneck identification
- */
+Key problems solved:
+- Provides high-precision timing for accurate performance measurements
+- Integrates memory tracking for comprehensive performance analysis
+- Offers flexible output formats (ms, s, m) for different contexts
+- Includes automatic performance logging with context
+- Supports request correlation for distributed tracing
 
-/**
- * Create unified performance timer with comprehensive tracking
- *
- * Purpose: Creates a timer instance that can track operation duration, optional
- * memory usage, and automatically log performance metrics. The timer provides
- * multiple output formats and integrates with the application's logging system.
- *
- * @param {string} operation - Human-readable name of the operation being timed
- * @param {boolean} [includeMemoryTracking=false] - Whether to track memory usage changes
- * @param {string} [requestId=null] - Optional request ID for correlation
- * @returns {Object} Timer instance with multiple timing and logging methods
- */
+```javascript
+// Exact current implementation copied from the codebase
 const createUnifiedTimer = (operation, includeMemoryTracking = false, requestId = null) => {
-  // Capture start time using high-resolution timer for precision
   const startTime = process.hrtime.bigint();
-  // Optionally capture initial memory usage for delta calculations
   const startMemory = includeMemoryTracking ? process.memoryUsage() : null;
 
-  /**
-   * Timer instance object with comprehensive timing capabilities
-   *
-   * This object provides multiple methods for accessing timing data in different
-   * formats and automatically logs performance metrics when operations complete.
-   */
   return {
-    /**
-     * Get elapsed time in milliseconds with high precision
-     *
-     * Purpose: Returns the exact elapsed time since timer creation using
-     * high-resolution timing for accurate performance measurements.
-     *
-     * @returns {number} Elapsed time in milliseconds with decimal precision
-     */
     elapsed: () => Number(process.hrtime.bigint() - startTime) / 1000000,
 
-    /**
-     * Get elapsed time in human-readable format
-     *
-     * Purpose: Returns elapsed time in the most appropriate unit based on duration.
-     * This provides intuitive timing information for logs and debugging.
-     *
-     * Format Logic:
-     * - < 1000ms: Display in milliseconds (e.g., "123.45ms")
-     * - 1000ms-60s: Display in seconds (e.g., "1.23s")
-     * - > 60s: Display in minutes (e.g., "2.34m")
-     *
-     * @returns {string} Formatted elapsed time with appropriate unit
-     */
     elapsedFormatted: () => {
       const ms = Number(process.hrtime.bigint() - startTime) / 1000000;
       return ms < 1000
@@ -84,45 +29,18 @@ const createUnifiedTimer = (operation, includeMemoryTracking = false, requestId 
           : `${(ms / 60000).toFixed(2)}m`;
     },
 
-    /**
-     * Log performance metrics with comprehensive context
-     *
-     * Purpose: Automatically logs operation performance including duration,
-     * success status, optional memory usage changes, and additional context.
-     * This method integrates with the application's logging system and provides
-     * fallback to console logging if the logger is unavailable.
-     *
-     * Performance Data Captured:
-     * - Operation duration in milliseconds with 2 decimal precision
-     * - Success/failure status for operation outcome tracking
-     * - Memory usage deltas (if tracking enabled)
-     * - Additional context provided by caller
-     * - Request correlation ID (if provided)
-     *
-     * Error Handling:
-     * - Gracefully falls back to console logging if logger fails
-     * - Prevents logging errors from affecting application flow
-     * - Maintains consistent log format across all logging methods
-     *
-     * @param {boolean} [success=true] - Whether the operation completed successfully
-     * @param {Object} [additionalContext={}] - Additional context data to include in logs
-     * @returns {Promise<Object>} Performance context data with timing and metrics
-     */
     logPerformance: async (success = true, additionalContext = {}) => {
-      // Capture end time and memory for delta calculations
       const endTime = process.hrtime.bigint();
       const endMemory = includeMemoryTracking ? process.memoryUsage() : null;
       const duration = Number(endTime - startTime) / 1000000;
 
-      // Build comprehensive performance context
       const context = {
         operation,
-        duration_ms: Math.round(duration * 100) / 100, // Round to 2 decimal places
+        duration_ms: Math.round(duration * 100) / 100,
         success,
         ...additionalContext
       };
 
-      // Calculate memory usage deltas if tracking is enabled
       if (includeMemoryTracking && startMemory && endMemory) {
         context.memory_delta = {
           heapUsed: Math.round((endMemory.heapUsed - startMemory.heapUsed) / 1024),
@@ -130,11 +48,9 @@ const createUnifiedTimer = (operation, includeMemoryTracking = false, requestId 
         };
       }
 
-      // Generate human-readable performance message
       const message = `${operation} completed in ${context.duration_ms}ms (${success ? 'success' : 'failure'})`;
 
       try {
-        // Attempt to use application logger with appropriate log level
         const logger = require('../logger');
         if (success) {
           await logger.logInfo(message, context, requestId);
@@ -142,7 +58,6 @@ const createUnifiedTimer = (operation, includeMemoryTracking = false, requestId 
           await logger.logWarn(message, context, requestId);
         }
       } catch (err) {
-        // Fallback to console logging if application logger fails
         console[success ? 'log' : 'warn'](message, context);
       }
 
@@ -151,50 +66,360 @@ const createUnifiedTimer = (operation, includeMemoryTracking = false, requestId 
   };
 };
 
-/**
- * Backward compatibility aliases
- *
- * These aliases maintain compatibility with existing code that uses the older
- * timer creation functions. New code should use createUnifiedTimer directly.
- *
- * @deprecated Use createUnifiedTimer for new implementations
- */
-
-/**
- * Basic timer without memory tracking
- *
- * Purpose: Provides a simple timer for basic duration measurement without
- * the overhead of memory tracking. This is useful for quick timing checks
- * where memory usage is not relevant.
- *
- * @deprecated Use createUnifiedTimer('operation', false) instead
- * @returns {Object} Basic timer instance
- */
 const createTimer = () => createUnifiedTimer('operation', false);
 
-/**
- * Performance timer with memory tracking
- *
- * Purpose: Creates a timer with memory tracking enabled for comprehensive
- * performance analysis. This is useful for identifying memory-related
- * performance issues and resource usage patterns.
- *
- * @deprecated Use createUnifiedTimer(operation, true, requestId) instead
- * @param {string} operation - Operation name for timing
- * @param {string} [requestId] - Optional request ID for correlation
- * @returns {Object} Performance timer with memory tracking
- */
 const createPerformanceTimer = (operation, requestId = null) => createUnifiedTimer(operation, true, requestId);
 
-/**
- * Module exports - Timer utilities
- *
- * Exports all timer creation functions with clear naming to indicate
- * their specific capabilities and use cases.
- */
 module.exports = {
   createUnifiedTimer,
   createTimer,
   createPerformanceTimer
+};
+```
+
+### @qerrors/lazy-imports
+**Purpose:** Centralized import management with lazy loading and caching for optimized performance.
+**Explanation:**  
+This module provides a unified import system that centralizes commonly used import patterns to reduce duplication across codebases. It implements lazy loading with caching to reduce startup time, provides standardized import patterns across all files, and includes import combination helpers for frequently used module groups. This is valuable for any large application that needs to manage dependencies efficiently, reduce import statement duplication, and optimize module loading performance.
+
+Key problems solved:
+- Reduces import statement duplication across large codebases
+- Implements lazy loading to improve application startup performance
+- Provides centralized dependency management for easier maintenance
+- Offers pre-configured import groups for common patterns
+- Includes caching to avoid redundant module loads
+
+```javascript
+// Exact current implementation copied from the codebase
+const importCache = new Map();
+
+function lazyImport (modulePath) {
+  if (!importCache.has(modulePath)) {
+    try {
+      const module = require(modulePath);
+      importCache.set(modulePath, module);
+      return module;
+    } catch (error) {
+      throw new Error(`Failed to import module ${modulePath}: ${error.message}`);
+    }
+  }
+  return importCache.get(modulePath);
+}
+
+const sharedModules = {
+  logging: () => lazyImport('./logging'),
+  security: () => lazyImport('./security'),
+  constants: () => lazyImport('./constants'),
+  execution: () => lazyImport('./execution'),
+  dataStructures: () => lazyImport('./dataStructures'),
+  response: () => lazyImport('./response'),
+  validation: () => lazyImport('./validation'),
+  contracts: () => lazyImport('./contracts'),
+  asyncContracts: () => lazyImport('./asyncContracts')
+};
+
+const commonImports = {
+  logging: () => {
+    const logging = sharedModules.logging();
+    return {
+      stringifyContext: logging.stringifyContext,
+      verboseLog: logging.verboseLog,
+      createEnhancedLogEntry: logging.createEnhancedLogEntry,
+      safeLogError: logging.safeLogError,
+      safeLogInfo: logging.safeLogInfo,
+      safeLogWarn: logging.safeLogWarn,
+      safeLogDebug: logging.safeLogDebug
+    };
+  },
+
+  security: () => {
+    const security = sharedModules.security();
+    return {
+      sanitizeErrorMessage: security.sanitizeErrorMessage,
+      sanitizeContextForLog: security.sanitizeContextForLog,
+      sanitizeErrorInput: security.sanitizeErrorInput
+    };
+  },
+
+  constants: () => {
+    const constants = sharedModules.constants();
+    return {
+      LOG_LEVELS: constants.LOG_LEVELS,
+      ERROR_SEVERITY: constants.ERROR_SEVERITY,
+      OPERATION_TYPES: constants.OPERATION_TYPES
+    };
+  },
+
+  execution: () => {
+    const execution = sharedModules.execution();
+    return {
+      createTimer: execution.createTimer,
+      createUnifiedTimer: execution.createUnifiedTimer,
+      safeRun: execution.safeRun,
+      attempt: execution.attempt,
+      executeWithQerrors: execution.executeWithQerrors
+    };
+  }
+};
+
+const importGroups = {
+  errorHandling: () => ({
+    ...commonImports.logging(),
+    ...commonImports.security(),
+    ...commonImports.constants()
+  }),
+
+  asyncOperations: () => ({
+    ...commonImports.execution(),
+    ...commonImports.logging(),
+    ...sharedModules.asyncContracts()
+  }),
+
+  validation: () => ({
+    ...commonImports.security(),
+    ...sharedModules.validation(),
+    ...commonImports.logging()
+  }),
+
+  fullSuite: () => ({
+    ...commonImports.logging(),
+    ...commonImports.security(),
+    ...commonImports.constants(),
+    ...commonImports.execution(),
+    ...sharedModules.dataStructures(),
+    ...sharedModules.response(),
+    ...sharedModules.validation(),
+    ...sharedModules.contracts(),
+    ...sharedModules.asyncContracts()
+  })
+};
+
+function clearCache () {
+  importCache.clear();
+}
+
+function getCacheStats () {
+  return {
+    size: importCache.size,
+    cachedModules: Array.from(importCache.keys())
+  };
+}
+
+module.exports = {
+  sharedModules,
+  commonImports,
+  importGroups,
+  lazyImport,
+  clearCache,
+  getCacheStats
+};
+```
+
+### @qerrors/env-config
+**Purpose:** Environment variable management with type validation and defaults handling.
+**Explanation:**  
+This module provides comprehensive environment variable management with type validation, default value handling, and configuration validation. It includes utilities for getting string, integer, and boolean values from environment variables with proper fallbacks, validation for required environment variables, and configuration summary generation. This is valuable for any application that needs robust environment configuration management with type safety and validation.
+
+Key problems solved:
+- Provides type-safe environment variable access with validation
+- Handles default values and fallbacks gracefully
+- Includes comprehensive boolean parsing with various string formats
+- Offers validation for required environment variables
+- Provides configuration summaries for debugging and monitoring
+
+```javascript
+// Exact current implementation copied from the codebase
+const { loadDotenv, checkEnvFileExists } = require('./shared/environmentLoader');
+const localVars = require('../config/localVars');
+const { CONFIG_DEFAULTS } = localVars;
+const defaults = CONFIG_DEFAULTS;
+
+const getEnv = (name, defaultVal) => 
+  process.env[name] !== undefined ? process.env[name] : 
+  defaultVal !== undefined ? defaultVal : defaults[name];
+
+const safeRun = (name, fn, fallback, info) => {
+  try {
+    return fn();
+  } catch (err) {
+    console.error(`${name} failed`, info);
+    return fallback;
+  }
+};
+
+const getInt = (name, defaultValOrMin, min) => {
+  const envValue = process.env[name];
+  const int = parseInt(envValue || '', 10);
+  const moduleDefault = typeof defaults[name] === 'number' ? defaults[name] : parseInt(defaults[name] || '0', 10);
+  
+  let fallbackVal, minVal;
+  if (arguments.length <= 1) {
+    fallbackVal = moduleDefault;
+    minVal = 1;
+  } else if (arguments.length === 2) {
+    fallbackVal = moduleDefault;
+    minVal = typeof defaultValOrMin === 'number' ? defaultValOrMin : 1;
+  } else {
+    fallbackVal = typeof defaultValOrMin === 'number' ? defaultValOrMin : moduleDefault;
+    minVal = typeof min === 'number' ? min : 1;
+  }
+  
+  const val = Number.isNaN(int) ? fallbackVal : int;
+  return val >= minVal ? val : minVal;
+};
+
+const getBool = (name, defaultVal) => {
+  const parseBool = (value) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value !== 'string') return null;
+
+    const normalized = value.trim().toLowerCase();
+    if (normalized === '') return null;
+    if (['1', 'true', 'yes', 'y', 'on', 'enable', 'enabled'].includes(normalized)) return true;
+    if (['0', 'false', 'no', 'n', 'off', 'disable', 'disabled'].includes(normalized)) return false;
+    return null;
+  };
+
+  const envValue = process.env[name];
+  const envParsed = envValue !== undefined ? parseBool(String(envValue)) : null;
+  if (envParsed !== null) return envParsed;
+
+  const moduleDefault = defaults[name];
+  const fallback = defaultVal !== undefined ? defaultVal : moduleDefault;
+  const fallbackParsed = parseBool(fallback);
+
+  return fallbackParsed !== null ? fallbackParsed : false;
+};
+
+const validateRequiredVars = varNames => {
+  const missing = [];
+  const present = [];
+  for (const name of varNames) {
+    process.env.hasOwnProperty(name) ? present.push(name) : missing.push(name);
+  }
+  return { isValid: missing.length === 0, missing, present };
+};
+
+const getConfigSummary = async () => {
+  const hasEnvFile = await checkEnvFileExists();
+  
+  return {
+    environment: localVars.NODE_ENV || 'development',
+    hasEnvFile,
+    configuredVars: Object.keys(defaults).filter(key => process.env[key] !== undefined),
+    totalVars: Object.keys(defaults).length
+  };
+};
+
+const getConfigSummarySync = () => {
+  console.warn('getConfigSummarySync is deprecated - use async getConfigSummary() instead');
+  const fs = require('fs');
+  let hasEnvFile = null;
+  try {
+    hasEnvFile = fs.existsSync('.env');
+  } catch (error) {
+    hasEnvFile = false;
+  }
+  
+  return {
+    environment: localVars.NODE_ENV || 'development',
+    hasEnvFile,
+    configuredVars: Object.keys(defaults).filter(key => process.env[key] !== undefined),
+    totalVars: Object.keys(defaults).length
+  };
+};
+
+module.exports = {
+  defaults,
+  getEnv,
+  safeRun,
+  getInt,
+  getBool,
+  validateRequiredVars,
+  getConfigSummary,
+  getConfigSummarySync,
+  loadDotenv
+};
+```
+
+### @qerrors/logging-core
+**Purpose:** Comprehensive logging utilities with circular reference handling and error safety.
+**Explanation:**  
+This module provides essential logging utilities with comprehensive error handling, circular reference detection, and safe string conversion. It includes context stringification with circular reference prevention, safe error message extraction from various error types, environment-based verbose logging, and enhanced log entry creation. This is valuable for any application that needs robust logging capabilities that won't fail due to serialization errors or complex object structures.
+
+Key problems solved:
+- Prevents JSON.stringify errors from circular object references
+- Provides safe error message extraction from various error types
+- Includes environment-controlled verbose logging for debugging
+- Offers enhanced log entry creation with memory tracking
+- Handles all data types safely without breaking the logging system
+
+```javascript
+// Exact current implementation copied from the codebase
+const { createEnhancedLogEntry } = require('./errorContext');
+const localVars = require('../../config/localVars');
+const { LOG_LEVELS } = localVars;
+
+const createLogEntry = (level, message, context = {}, requestId = null) => { 
+  const entry = createEnhancedLogEntry(level, message, context, requestId); 
+  const levelConfig = LOG_LEVELS[level.toUpperCase()]; 
+  if (levelConfig && levelConfig.priority >= LOG_LEVELS.WARN.priority) { 
+    const memUsage = process.memoryUsage(); 
+    entry.memory = { 
+      heapUsed: Math.round(memUsage.heapUsed / 1048576), 
+      heapTotal: Math.round(memUsage.heapTotal / 1048576), 
+      external: Math.round(memUsage.external / 1048576), 
+      rss: Math.round(memUsage.rss / 1048576) 
+    }; 
+  } 
+  return entry; 
+};
+
+const stringifyContext = ctx => {
+  try {
+    if (typeof ctx === 'string') return ctx;
+
+    if (typeof ctx === 'object' && ctx !== null) {
+      const seen = new Set();
+
+      return JSON.stringify(ctx, (_, value) => {
+        if (typeof value === 'object' && value !== null) {
+          if (value === ctx) return '[Circular *1]';
+
+          if (seen.has(value)) return '[Circular]';
+
+          seen.add(value);
+        }
+        return value;
+      });
+    }
+
+    return String(ctx);
+  } catch (err) {
+    return 'unknown context';
+  }
+};
+
+const safeErrorMessage = (error, fallback = 'Unknown error') => {
+  if (error && typeof error === 'object' && 'message' in error) {
+    const msg = String(error.message || '').trim();
+    if (msg) return msg;
+  }
+
+  if (typeof error === 'string' && error.trim()) {
+    return error.trim();
+  }
+
+  return fallback;
+};
+
+const verboseLog = msg => localVars.QERRORS_VERBOSE !== 'false' && console.log(msg);
+
+module.exports = {
+  createLogEntry,
+  stringifyContext,
+  safeErrorMessage,
+  verboseLog
 };
 ```

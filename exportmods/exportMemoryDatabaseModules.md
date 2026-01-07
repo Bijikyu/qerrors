@@ -1,384 +1,250 @@
-## @qerrors/memory-monitor
-**Purpose:** Centralized memory monitoring with configurable pressure levels and event-driven notifications.
-
+## Memory/Database
+### @qerrors/circular-buffer
+**Purpose:** High-performance circular buffer implementation with memory-efficient bounded storage.
 **Explanation:**  
-This module provides comprehensive memory pressure detection with singleton pattern for consistent state management, configurable pressure thresholds (CRITICAL, HIGH, MEDIUM, LOW), event-driven architecture for responsive memory management, and cached calculations to minimize monitoring overhead. It includes actionable recommendations based on current memory pressure, integration with application logging, and support for continuous monitoring. The memory monitor is broadly applicable to any Node.js application that needs proactive memory management, memory leak detection, or performance optimization based on memory usage patterns.
+This module provides a unified circular buffer implementation that combines the best features from various buffer implementations with enhanced performance and safety features. It uses the denque library for optimal performance when available, with array fallback for compatibility. The buffer is memory-efficient with bounded storage, comprehensive metrics tracking, and overflow handling, making it valuable for any application that needs efficient circular data storage for logs, metrics, or streaming data.
 
-```js
-/**
- * Memory Pressure Detection Utility
- *
- * Purpose: Provides centralized memory monitoring with configurable pressure levels
- * and event-driven notifications for memory state changes. This utility helps
- * prevent memory exhaustion and enables proactive resource management.
- *
- * Design Rationale:
- * - Singleton pattern for consistent memory state across the application
- * - Configurable pressure thresholds for different operational requirements
- * - Event-driven architecture for responsive memory management
- * - Cached calculations to minimize monitoring overhead
- * - Integration with application logging for observability
- *
- * Memory Pressure Levels:
- * - CRITICAL: >85% memory usage - Immediate action required
- * - HIGH: 70-85% memory usage - Caution, proactive cleanup recommended
- * - MEDIUM: 50-70% memory usage - Normal operation with monitoring
- * - LOW: <50% memory usage - Optimal performance
- */
+Key problems solved:
+- Provides memory-efficient bounded data storage with predictable memory usage
+- Handles overflow scenarios gracefully with automatic old item removal
+- Offers comprehensive performance metrics and utilization tracking
+- Supports multiple use cases (logging, memory, metrics) with factory patterns
+- Includes error safety and input validation for robust operation
 
-const EventEmitter = require('events');
-const { safeLogInfo, safeLogWarn, safeLogError } = require('./safeLogging');
+```javascript
+// Exact current implementation copied from the codebase
+const { withQerrorsErrorHandling } = require('./errorWrapper');
+const { verboseLog } = require('./logging');
 
-/**
- * Memory pressure level constants
- */
-const MEMORY_PRESSURE_LEVELS = {
-  CRITICAL: { threshold: 0.85, priority: 4, name: 'CRITICAL' },
-  HIGH: { threshold: 0.70, priority: 3, name: 'HIGH' },
-  MEDIUM: { threshold: 0.50, priority: 2, name: 'MEDIUM' },
-  LOW: { threshold: 0.0, priority: 1, name: 'LOW' }
-};
-
-/**
- * Memory Monitor Class
- *
- * Implements singleton pattern for consistent memory monitoring across
- * the application with configurable thresholds and event notifications.
- */
-class MemoryMonitor extends EventEmitter {
-  constructor () {
-    super();
-
-    // Singleton enforcement
-    if (MemoryMonitor.instance) {
-      return MemoryMonitor.instance;
-    }
-
-    this.currentLevel = null;
-    this.lastCheck = 0;
-    this.checkInterval = 5000; // 5 seconds between checks
-    this.cachedMemoryUsage = null;
-    this.cacheExpiry = 1000; // Cache for 1 second
-
-    // Configurable thresholds (can be customized per module)
-    this.thresholds = { ...MEMORY_PRESSURE_LEVELS };
-
-    MemoryMonitor.instance = this;
-  }
-
-  /**
-   * Configure custom thresholds for specific use cases
-   *
-   * @param {Object} customThresholds - Custom threshold configuration
-   */
-  configureThresholds (customThresholds) {
-    this.thresholds = { ...this.thresholds, ...customThresholds };
-    safeLogInfo('Memory monitor thresholds configured', { thresholds: this.thresholds });
-  }
-
-  /**
-   * Get current memory usage with caching to reduce overhead
-   *
-   * @returns {Object} Memory usage information with pressure level
-   */
-  getMemoryUsage () {
-    const now = Date.now();
-
-    // Use cached value if still valid
-    if (this.cachedMemoryUsage && (now - this.lastCheck) < this.cacheExpiry) {
-      return this.cachedMemoryUsage;
-    }
-
-    // Calculate fresh memory usage
-    const memUsage = process.memoryUsage();
-    const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
-    const heapTotalMB = Math.round(memUsage.heapTotal / 1024 / 1024);
-    const heapUsageRatio = memUsage.heapUsed / memUsage.heapTotal;
-
-    // Determine current pressure level
-    const currentLevel = this.calculatePressureLevel(heapUsageRatio);
-
-    this.cachedMemoryUsage = {
-      raw: memUsage,
-      heapUsedMB,
-      heapTotalMB,
-      heapUsageRatio,
-      pressureLevel: currentLevel,
-      timestamp: now
+class UnifiedCircularBuffer {
+  constructor (maxSize = 1000, options = {}) {
+    this.maxSize = Math.max(1, parseInt(maxSize) || 1000);
+    this.options = {
+      enableMetrics: false,
+      enableOverflowLogging: false,
+      name: 'UnifiedCircularBuffer',
+      ...options
     };
 
-    this.lastCheck = now;
+    try {
+      const Denque = require('denque');
+      this.buffer = new Denque();
+    } catch (error) {
+      this.buffer = [];
+      this._useArrayFallback = true;
+    }
 
-    // Emit events for pressure level changes
-    this.handlePressureLevelChange(currentLevel);
-
-    return this.cachedMemoryUsage;
-  }
-
-  /**
-   * Calculate memory pressure level based on usage ratio
-   *
-   * @param {number} ratio - Memory usage ratio (0.0 to 1.0)
-   * @returns {string} Current pressure level
-   */
-  calculatePressureLevel (ratio) {
-    if (ratio >= this.thresholds.CRITICAL.threshold) {
-      return 'CRITICAL';
-    } else if (ratio >= this.thresholds.HIGH.threshold) {
-      return 'HIGH';
-    } else if (ratio >= this.thresholds.MEDIUM.threshold) {
-      return 'MEDIUM';
-    } else {
-      return 'LOW';
+    if (this.options.enableMetrics) {
+      this.metrics = {
+        pushCount: 0,
+        shiftCount: 0,
+        overflowCount: 0,
+        totalProcessed: 0
+      };
     }
   }
 
-  /**
-   * Handle pressure level changes and emit appropriate events
-   *
-   * @param {string} newLevel - New pressure level
-   */
-  handlePressureLevelChange (newLevel) {
-    if (this.currentLevel !== newLevel) {
-      const oldLevel = this.currentLevel;
-      this.currentLevel = newLevel;
+  push (item) {
+    try {
+      if (this.length >= this.maxSize) {
+        if (this.options.enableOverflowLogging) {
+          verboseLog(`${this.options.name}: Buffer overflow, removing oldest item`);
+        }
 
-      safeLogInfo('Memory pressure level changed', {
-        from: oldLevel,
-        to: newLevel,
-        memory: this.cachedMemoryUsage
-      });
+        if (this._useArrayFallback) {
+          this.buffer.shift();
+        } else {
+          this.buffer.shift();
+        }
 
-      // Emit change event with error handling
-      try {
-        this.emit('pressureChange', {
-          from: oldLevel,
-          to: newLevel,
-          memory: this.cachedMemoryUsage
-        });
+        if (this.options.enableMetrics) {
+          this.metrics.overflowCount++;
+        }
+      }
 
-        // Emit level-specific events with error handling
-        this.emit(newLevel.toLowerCase(), this.cachedMemoryUsage);
-      } catch (eventError) {
-        safeLogError('Error in memory pressure event handlers', {
-          error: eventError.message,
-          level: newLevel,
-          from: oldLevel
-        });
+      if (this._useArrayFallback) {
+        this.buffer.push(item);
+      } else {
+        this.buffer.push(item);
+      }
+
+      if (this.options.enableMetrics) {
+        this.metrics.pushCount++;
+        this.metrics.totalProcessed++;
+      }
+
+      return this.length;
+    } catch (error) {
+      const wrappedOperation = withQerrorsErrorHandling(
+        () => { throw error; },
+        `${this.options.name}.push`
+      );
+      wrappedOperation();
+      throw error;
+    }
+  }
+
+  shift () {
+    try {
+      const item = this._useArrayFallback
+        ? this.buffer.shift()
+        : this.buffer.shift();
+
+      if (item !== undefined && this.options.enableMetrics) {
+        this.metrics.shiftCount++;
+      }
+
+      return item;
+    } catch (error) {
+      const wrappedOperation = withQerrorsErrorHandling(
+        () => { throw error; },
+        `${this.options.name}.shift`
+      );
+      wrappedOperation();
+      throw error;
+    }
+  }
+
+  peek () {
+    try {
+      return this._useArrayFallback
+        ? this.buffer[0]
+        : this.buffer.peekFirst();
+    } catch (error) {
+      return undefined;
+    }
+  }
+
+  peekLast () {
+    try {
+      if (this._useArrayFallback) {
+        return this.buffer[this.buffer.length - 1];
+      } else {
+        return this.buffer.peekLast();
+      }
+    } catch (error) {
+      return undefined;
+    }
+  }
+
+  get length () {
+    return this._useArrayFallback
+      ? this.buffer.length
+      : this.buffer.length;
+  }
+
+  isEmpty () {
+    return this.length === 0;
+  }
+
+  isFull () {
+    return this.length >= this.maxSize;
+  }
+
+  getUtilization () {
+    return Math.round((this.length / this.maxSize) * 100);
+  }
+
+  toArray () {
+    if (this._useArrayFallback) {
+      return [...this.buffer];
+    } else {
+      return this.buffer.toArray();
+    }
+  }
+
+  splice (count) {
+    const result = [];
+    const itemsToRemove = Math.min(count, this.length);
+
+    for (let i = 0; i < itemsToRemove; i++) {
+      const item = this.shift();
+      if (item !== undefined) {
+        result.push(item);
       }
     }
+
+    return result;
   }
 
-  /**
-   * Check if memory pressure is at or above specified level
-   *
-   * @param {string} level - Minimum pressure level to check
-   * @returns {boolean} True if pressure is at or above specified level
-   */
-  isPressureLevel (level) {
-    const memory = this.getMemoryUsage();
-    const levelPriority = this.thresholds[level]?.priority || 0;
-    const currentPriority = this.thresholds[memory.pressureLevel]?.priority || 0;
+  clear () {
+    try {
+      if (this._useArrayFallback) {
+        this.buffer.length = 0;
+      } else {
+        this.buffer.clear();
+      }
 
-    return currentPriority >= levelPriority;
-  }
-
-  /**
-   * Get memory usage recommendations based on current pressure
-   *
-   * @returns {Array} Array of actionable recommendations
-   */
-  getRecommendations () {
-    const memory = this.getMemoryUsage();
-    const recommendations = [];
-
-    switch (memory.pressureLevel) {
-    case 'CRITICAL':
-      recommendations.push({
-        priority: 'immediate',
-        action: 'emergency_gc',
-        description: 'Force garbage collection immediately'
-      });
-      recommendations.push({
-        priority: 'immediate',
-        action: 'clear_caches',
-        description: 'Clear all application caches'
-      });
-      recommendations.push({
-        priority: 'immediate',
-        action: 'reject_operations',
-        description: 'Reject non-critical operations'
-      });
-      break;
-
-    case 'HIGH':
-      recommendations.push({
-        priority: 'high',
-        action: 'proactive_gc',
-        description: 'Trigger proactive garbage collection'
-      });
-      recommendations.push({
-        priority: 'high',
-        action: 'reduce_cache_sizes',
-        description: 'Reduce cache TTLs and sizes'
-      });
-      recommendations.push({
-        priority: 'medium',
-        action: 'limit_concurrency',
-        description: 'Limit operation concurrency'
-      });
-      break;
-
-    case 'MEDIUM':
-      recommendations.push({
-        priority: 'medium',
-        action: 'monitor_closely',
-        description: 'Increase monitoring frequency'
-      });
-      recommendations.push({
-        priority: 'low',
-        action: 'optimize_allocations',
-        description: 'Review memory allocation patterns'
-      });
-      break;
-
-    case 'LOW':
-      recommendations.push({
-        priority: 'info',
-        action: 'normal_operation',
-        description: 'Memory usage is optimal'
-      });
-      break;
-    }
-
-    return recommendations;
-  }
-
-  /**
-   * Start continuous memory monitoring
-   *
-   * @param {number} [interval=5000] - Monitoring interval in milliseconds
-   */
-  startMonitoring (interval = 5000) {
-    this.checkInterval = interval;
-
-    if (this.monitoringTimer) {
-      clearInterval(this.monitoringTimer);
-    }
-
-    this.monitoringTimer = setInterval(() => {
-      this.getMemoryUsage();
-    }, this.checkInterval);
-
-    safeLogInfo('Memory monitoring started', { interval: this.checkInterval });
-  }
-
-  /**
-   * Stop continuous memory monitoring
-   */
-  stopMonitoring () {
-    if (this.monitoringTimer) {
-      clearInterval(this.monitoringTimer);
-      this.monitoringTimer = null;
-      safeLogInfo('Memory monitoring stopped');
+      if (this.options.enableMetrics) {
+        this.metrics.totalProcessed = 0;
+      }
+    } catch (error) {
+      const wrappedOperation = withQerrorsErrorHandling(
+        () => { throw error; },
+        `${this.options.name}.clear`
+      );
+      wrappedOperation();
     }
   }
 
-  /**
-   * Get memory usage statistics over time
-   *
-   * @param {number} [samples=10] - Number of recent samples to analyze
-   * @returns {Object} Statistical summary of memory usage
-   */
-  getMemoryStatistics (samples = 10) {
-    // For now, return current statistics
-    // In a full implementation, this would maintain a history buffer
-    const memory = this.getMemoryUsage();
+  getMetrics () {
+    if (!this.options.enableMetrics) {
+      return null;
+    }
 
     return {
-      current: memory,
-      average: memory.heapUsedMB, // Would be calculated from history
-      peak: memory.heapUsedMB, // Would be calculated from history
-      samples: 1, // Would be actual sample count
-      trend: 'stable' // Would be calculated from trend analysis
+      ...this.metrics,
+      utilization: this.getUtilization(),
+      capacity: this.maxSize,
+      currentSize: this.length
     };
   }
 
-  /**
-   * Force garbage collection if available
-   *
-   * @returns {boolean} True if GC was triggered
-   */
-  forceGarbageCollection () {
-    if (global.gc) {
-      global.gc();
-      safeLogInfo('Forced garbage collection');
-      return true;
-    } else {
-      safeLogWarn('Garbage collection not available (run with --expose-gc)');
-      return false;
-    }
+  getStats () {
+    return {
+      maxSize: this.maxSize,
+      currentSize: this.length,
+      utilization: this.getUtilization(),
+      isEmpty: this.isEmpty(),
+      isFull: this.isFull(),
+      metrics: this.getMetrics()
+    };
   }
 }
 
-// Create singleton instance
-const memoryMonitor = new MemoryMonitor();
+const BufferFactory = {
+  createLogBuffer: (size = 500, options = {}) => {
+    return new UnifiedCircularBuffer(size, {
+      name: 'LogBuffer',
+      enableMetrics: true,
+      enableOverflowLogging: true,
+      ...options
+    });
+  },
 
-/**
- * Convenience functions for common memory monitoring tasks
- */
+  createMemoryBuffer: (size = 1000, options = {}) => {
+    return new UnifiedCircularBuffer(size, {
+      name: 'MemoryBuffer',
+      enableMetrics: false,
+      enableOverflowLogging: false,
+      ...options
+    });
+  },
 
-/**
- * Check current memory pressure level
- */
-function getCurrentMemoryPressure () {
-  return memoryMonitor.getMemoryUsage();
-}
-
-/**
- * Check if memory pressure is critical
- */
-function isMemoryCritical () {
-  return memoryMonitor.isPressureLevel('CRITICAL');
-}
-
-/**
- * Check if memory pressure is high or critical
- */
-function isMemoryHigh () {
-  return memoryMonitor.isPressureLevel('HIGH');
-}
-
-/**
- * Get memory usage recommendations
- */
-function getMemoryRecommendations () {
-  return memoryMonitor.getRecommendations();
-}
-
-/**
- * Start memory monitoring
- */
-function startMemoryMonitoring (interval) {
-  return memoryMonitor.startMonitoring(interval);
-}
-
-/**
- * Stop memory monitoring
- */
-function stopMemoryMonitoring () {
-  return memoryMonitor.stopMonitoring();
-}
+  createMetricsBuffer: (size = 200, options = {}) => {
+    return new UnifiedCircularBuffer(size, {
+      name: 'MetricsBuffer',
+      enableMetrics: true,
+      enableOverflowLogging: false,
+      ...options
+    });
+  }
+};
 
 module.exports = {
-  MemoryMonitor,
-  memoryMonitor,
-  getCurrentMemoryPressure,
-  isMemoryCritical,
-  isMemoryHigh,
-  getMemoryRecommendations,
-  startMemoryMonitoring,
-  stopMemoryMonitoring,
-  MEMORY_PRESSURE_LEVELS
+  UnifiedCircularBuffer,
+  BufferFactory,
+  CircularBuffer: UnifiedCircularBuffer,
+  CircularLogBuffer: UnifiedCircularBuffer
 };
 ```
