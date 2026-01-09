@@ -1,7 +1,7 @@
 {
   "name": "qerrors",
   "version": "1.2.7",
-  "description": "Intelligent error handling middleware with AI-powered analysis, environment validation, caching, and production-ready logging. Uses industry-standard libraries (opossum, dotenv, lodash) for enhanced reliability and ecosystem integration. Provides OpenAI-based error suggestions, queue management, retry mechanisms, and comprehensive configuration options for Node.js applications.",
+  "description": "Intelligent error handling middleware with AI-powered analysis, environment validation, caching, and production-ready logging. Uses industry-standard libraries (opossum, dotenv, lodash, @langchain/openai) for enhanced reliability and ecosystem integration. Provides OpenAI-based error suggestions, queue management, retry mechanisms, and comprehensive configuration options for Node.js applications.",
   "main": "dist/index.js",
   "keywords": [
     "error",
@@ -27,7 +27,7 @@
   "author": "Q",
   "license": "ISC",
   "dependencies": {
-    "@langchain/core": "^0.3.80",
+    "@langchain/openai": "^0.6.17",
     "axios": "^1.9.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
@@ -38,11 +38,9 @@
     "express-slow-down": "^3.0.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "langchain": "^0.3.37",
     "lodash": "^4.17.21",
     "lru-cache": "^10.4.3",
     "node-cache": "^5.1.2",
-    "opencode-ai": "1.1.6",
     "opossum": "^9.0.0",
     "p-limit": "^7.2.0",
     "quick-lru": "^7.3.0",
