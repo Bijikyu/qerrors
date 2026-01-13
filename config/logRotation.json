@@ -1,0 +1,12 @@
+{
+  "datePattern": "YYYY-MM-DD",
+  "maxSize": "20m",
+  "maxFiles": "14d",
+  "frequency": "daily",
+  "createSymlink": true,
+  "symlinkName": "current.log",
+  "auditFile": "./logs/audit.json",
+  "compressOnRotation": true,
+  "rotateOnlyOnRotation": false,
+  "zippedArchive": true
+}

@@ -71,10 +71,6 @@ export const safeJsonParse = (text: string, fallback: any = null): any => {
   }
 };
 
-export const safeJsonStringify = (value: any, fallback: string = '{}'): string => {
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return fallback;
-  }
-};
+import { safeJsonStringify as _safeJsonStringify } from './jsonHelpers.js';
+
+export const safeJsonStringify = _safeJsonStringify;

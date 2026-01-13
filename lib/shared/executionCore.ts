@@ -24,6 +24,7 @@
 import { createUnifiedTimer as createTimerInternal } from './timers.js';
 // @ts-ignore - lodash doesn't have ESM exports
 import _ from 'lodash/index.js';
+import qerrors from '../../lib/qerrors.js';
 
 // Re-export for backward compatibility
 export { createUnifiedTimer, createPerformanceTimer } from './timers.js';
@@ -134,6 +135,17 @@ export const attempt = async <T>(fn: () => T | Promise<T>): Promise<{
     const value = await Promise.resolve().then(fn);
     return { ok: true, value };
   } catch (error) {
+    // Log error with qerrors for sophisticated analysis
+    try {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      await qerrors(errorObj, 'executionCore.attempt', {
+        functionType: typeof fn,
+        timestamp: new Date().toISOString()
+      });
+    } catch (qerror) {
+      // Fallback logging if qerrors fails
+      console.error('qerrors logging failed in attempt', qerror);
+    }
     return { ok: false, error };
   }
 };
@@ -178,6 +190,15 @@ export const executeWithErrorHandling = async <T>(options: {
       errorType,
       timestamp: new Date().toISOString()
     };
+    
+    // Use qerrors for sophisticated error reporting
+    try {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      await qerrors(errorObj, `executionCore.${opName}`, errorContext);
+    } catch (qerror) {
+      // Fallback logging if qerrors fails
+      console.error(`qerrors logging failed for ${opName}`, qerror);
+    }
     
     if (logMessage || failureMessage) {
       const message = logMessage || failureMessage || `${opName} failed`;
