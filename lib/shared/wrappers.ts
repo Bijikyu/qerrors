@@ -4,6 +4,71 @@
 
 // @ts-ignore - lodash doesn't have ESM exports
 import _ from 'lodash';
+import qerrors from '../qerrors.js';
+
+/**
+ * Wraps service operations with consistent error handling and logging.
+ * Provides standardized try/catch pattern with qerrors integration.
+ * Unlike createSafeOperation, this re-throws the error after logging.
+ * 
+ * @param operationName - Name of the operation for error context (e.g., 'uploads.uploadImageSvc')
+ * @param operation - The async function to execute
+ * @param errorContext - Additional context data to include in error logs
+ * @returns Promise with the operation result or throws the error
+ * 
+ * @example
+ * export async function uploadImageSvc(objectStorageService, file): Promise<string> {
+ *   return await createServiceOperation(
+ *     'uploads.uploadImageSvc',
+ *     () => objectStorageService.uploadFileBuffer(file.buffer, file.originalname, file.mimetype),
+ *     { filename: file.originalname, mimetype: file.mimetype }
+ *   );
+ * }
+ */
+export async function createServiceOperation<T>(
+  operationName: string,
+  operation: () => Promise<T>,
+  errorContext: Record<string, any> = {}
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    qerrors(error as Error, operationName, errorContext);
+    throw error;
+  }
+}
+
+/**
+ * Wraps database operations with consistent error handling and logging.
+ * Provides standardized try/catch pattern specifically for database operations.
+ * Unlike createSafeOperation, this re-throws the error after logging.
+ * 
+ * @param operationName - Name of the database operation for error context
+ * @param operation - The async database function to execute
+ * @param errorContext - Additional context data to include in error logs
+ * @returns Promise with the operation result or throws the error
+ * 
+ * @example
+ * export async function getJob(jobId: string): Promise<Job | undefined> {
+ *   return await createDatabaseOperation(
+ *     'jobs.getJobSvc',
+ *     () => storage.getJob(jobId),
+ *     { jobId }
+ *   );
+ * }
+ */
+export async function createDatabaseOperation<T>(
+  operationName: string,
+  operation: () => Promise<T>,
+  errorContext: Record<string, any> = {}
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    qerrors(error as Error, operationName, errorContext);
+    throw error;
+  }
+}
 
 export const createSafeAsyncWrapper = (options: {
   modulePath?: string;
