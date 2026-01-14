@@ -234,3 +234,193 @@ export function ensureError<T extends { error?: string }>(result: T, message: st
   }
   return result;
 }
+
+/**
+ * Express request interface for type safety
+ */
+interface ExpressRequest {
+  params?: Record<string, unknown>;
+  body?: Record<string, unknown>;
+  query?: Record<string, unknown>;
+  method?: string;
+  url?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Express response interface for type safety
+ */
+interface ExpressResponse {
+  headersSent?: boolean;
+  status: (code: number) => ExpressResponse;
+  json: (data: unknown) => void;
+}
+
+/**
+ * Express next function type
+ */
+type ExpressNext = (error?: unknown) => void;
+
+/**
+ * Standardized error response object
+ */
+interface ErrorResponseObject {
+  statusCode: number;
+  response: {
+    error: string;
+    details?: unknown;
+    timestamp: string;
+  };
+}
+
+/**
+ * Validates required request parameters
+ * @param req - Express request object
+ * @param requiredFields - Array of required field names
+ * @param location - Where to check fields ('params', 'body', 'query')
+ * @returns Validation error response or null if valid
+ */
+export const validateRequiredFields = (
+  req: ExpressRequest,
+  requiredFields: string[],
+  location: 'params' | 'body' | 'query' = 'body'
+): ErrorResponseObject | null => {
+  const source = req[location] as Record<string, unknown> | undefined;
+  if (!source) {
+    return {
+      statusCode: 400,
+      response: {
+        error: `Request ${location} is missing`,
+        details: { required: requiredFields },
+        timestamp: new Date().toISOString()
+      }
+    };
+  }
+  
+  const missingFields = requiredFields.filter(field => 
+    source[field] === undefined || source[field] === null || source[field] === ''
+  );
+
+  if (missingFields.length > 0) {
+    return {
+      statusCode: 400,
+      response: {
+        error: 'Missing required fields',
+        details: { required: requiredFields, missing: missingFields },
+        timestamp: new Date().toISOString()
+      }
+    };
+  }
+
+  return null;
+};
+
+/**
+ * Handles resource not found scenarios consistently
+ * @param resourceType - Type of resource (e.g., 'email template', 'user')
+ * @param identifier - Optional identifier for the resource
+ * @returns Not found error response
+ */
+export const handleResourceNotFound = (
+  resourceType: string,
+  identifier?: string | number
+): ErrorResponseObject => {
+  const capitalizedType = resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
+  const message = identifier 
+    ? `${capitalizedType} with id '${identifier}' not found`
+    : `${capitalizedType} not found`;
+
+  return {
+    statusCode: 404,
+    response: {
+      error: message,
+      timestamp: new Date().toISOString()
+    }
+  };
+};
+
+/**
+ * Handles validation errors consistently
+ * @param message - Validation error message
+ * @param details - Additional validation details
+ * @returns Validation error response
+ */
+export const handleValidationError = (
+  message: string,
+  details?: unknown
+): ErrorResponseObject => {
+  return {
+    statusCode: 400,
+    response: {
+      error: message,
+      details,
+      timestamp: new Date().toISOString()
+    }
+  };
+};
+
+/**
+ * Standard error handler for controllers
+ * @param error - Error object
+ * @param operation - Operation being performed
+ * @param options - Error handling options
+ * @returns Error response object
+ */
+export const handleControllerError = async (
+  error: unknown,
+  operation: string,
+  options: { userMessage?: string; statusCode?: number } = {}
+): Promise<ErrorResponseObject> => {
+  const {
+    userMessage = `Failed to ${operation}`,
+    statusCode = 500
+  } = options;
+
+  // Log the error
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  console.error(`[${operation}] Controller error:`, errorMessage);
+
+  // Try qerrors logging
+  try {
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    await qerrors(errorObj, `controller.${operation}`, {
+      operation,
+      timestamp: new Date().toISOString()
+    });
+  } catch (qerror) {
+    console.error('qerrors logging failed in handleControllerError', qerror);
+  }
+
+  return {
+    statusCode,
+    response: {
+      error: userMessage,
+      details: errorMessage,
+      timestamp: new Date().toISOString()
+    }
+  };
+};
+
+/**
+ * Creates a standardized error-wrapped controller function
+ * @param controllerFn - Controller function to wrap
+ * @param operation - Operation description for error messages
+ * @returns Wrapped controller function with error handling
+ */
+export const createErrorHandledController = (
+  controllerFn: (req: ExpressRequest, res: ExpressResponse, next: ExpressNext) => Promise<void> | void,
+  operation: string
+): ((req: ExpressRequest, res: ExpressResponse, next: ExpressNext) => Promise<void>) => {
+  return async (req: ExpressRequest, res: ExpressResponse, next: ExpressNext): Promise<void> => {
+    try {
+      await controllerFn(req, res, next);
+    } catch (error) {
+      // Log and handle the error
+      const errorResponse = await handleControllerError(error, operation);
+      
+      if (!res.headersSent) {
+        res.status(errorResponse.statusCode).json(errorResponse.response);
+      }
+    }
+  };
+};
