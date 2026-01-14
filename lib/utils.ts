@@ -58,7 +58,19 @@ import {
   parseJsonBody,
   isJsonContentType,
   createAsyncErrorHandler,
-  createSyncErrorHandler
+  createSyncErrorHandler,
+  // Enhanced error handling utilities
+  ErrorSeverity,
+  getErrorStatusCode,
+  createErrorResponse,
+  createEnhancedErrorHandler,
+  createAsyncController,
+  createBatchOperation,
+  logOperation,
+  type EnhancedErrorHandlerOptions,
+  type AsyncControllerOptions,
+  type BatchOperationOptions,
+  type BatchOperationResult as ErrorHandlersBatchOperationResult
 } from './shared/errorHandlers.js';
 import qerrors from '../lib/qerrors.js';
 
@@ -227,6 +239,15 @@ export {
   createAsyncErrorHandler,
   createSyncErrorHandler,
   
+  // Enhanced error handling utilities (HTTP/Express)
+  ErrorSeverity,
+  getErrorStatusCode,
+  createErrorResponse,
+  createEnhancedErrorHandler,
+  createAsyncController,
+  createBatchOperation,
+  logOperation,
+  
   // Legacy exports
   logError,
   logInfo,
@@ -239,5 +260,10 @@ export type {
   BatchOperationResult,
   ExecuteWithQerrorsCoreOptions,
   ExecuteWithQerrorsHooks,
-  AttemptResult
+  AttemptResult,
+  // Enhanced error handling types
+  EnhancedErrorHandlerOptions,
+  AsyncControllerOptions,
+  BatchOperationOptions,
+  ErrorHandlersBatchOperationResult
 };
