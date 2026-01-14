@@ -1,4 +1,4 @@
-import express from 'express';import cors from 'cors';import path from 'path';import{createRequire}from'module';import compression from'compression';import rateLimit from'express-rate-limit';const{MemoryMonitor,MemoryUtils}=require('./lib/memoryManagement');const require=createRequire(import.meta.url);const{qerrors}=require('./index.js');const jwt=require('jsonwebtoken');
+import express from 'express';import cors from 'cors';import path from 'path';import{createRequire}from'module';import compression from'compression';import rateLimit from'express-rate-limit';const{MemoryMonitor,MemoryUtils}=require('../lib/memoryManagement');const require=createRequire(import.meta.url);const{qerrors}=require('../index.js');const jwt=require('jsonwebtoken');
 
 const memoryMonitor=new MemoryMonitor({warningThreshold:50*1024*1024,criticalThreshold:100*1024*1024,checkInterval:10000});const apiLimiter=rateLimit({windowMs:15*60*1000,max:1000,message:{error:'Too many requests',retryAfter:15*60},standardHeaders:true,legacyHeaders:false,keyGenerator:req=>req.ip||req.connection.remoteAddress});const app=express();
 

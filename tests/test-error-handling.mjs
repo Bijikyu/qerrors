@@ -7,7 +7,7 @@
  * and that qerrors integration is functional across critical paths.
  */
 
-import qerrors from './index.js';
+import qerrors from '../index.js';
 
 console.log('🔍 Comprehensive Error Handling Validation Test');
 console.log('='.repeat(50));

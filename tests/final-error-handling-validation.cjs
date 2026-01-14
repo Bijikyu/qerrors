@@ -7,7 +7,7 @@
  * using CommonJS (same as the actual test suite)
  */
 
-const qerrors = require('./index.js');
+const qerrors = require('../index.js');
 
 console.log('🔍 FINAL ERROR HANDLING VALIDATION');
 console.log('='.repeat(60));

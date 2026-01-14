@@ -6,7 +6,7 @@ async function finalValidation() {
   // Test 1: Core Functionality
   console.log('1. Core Functionality Validation...');
   try {
-    const qerrors = require('./lib/qerrors');
+    const qerrors = require('../lib/qerrors');
     const basicResult = await qerrors(new Error('Production validation test'), 'final.validation');
     const hasRequiredFields = basicResult.id && basicResult.message && basicResult.timestamp && basicResult.name;
     console.log('   ✓ Core error processing:', hasRequiredFields ? 'PASS' : 'FAIL');
@@ -22,7 +22,7 @@ async function finalValidation() {
   // Test 2: Performance Under Production Settings
   console.log('\n2. Performance Validation...');
   try {
-    const qerrors = require('./lib/qerrors');
+    const qerrors = require('../lib/qerrors');
     const iterations = 500;
     const start = performance.now();
     
@@ -46,7 +46,7 @@ async function finalValidation() {
   // Test 3: Memory Efficiency
   console.log('\n3. Memory Efficiency Validation...');
   try {
-    const qerrors = require('./lib/qerrors');
+    const qerrors = require('../lib/qerrors');
     const memBefore = process.memoryUsage();
     
     for (let i = 0; i < 200; i++) {
@@ -68,7 +68,7 @@ async function finalValidation() {
   // Test 4: Error Type Handling
   console.log('\n4. Error Type Handling Validation...');
   try {
-    const qerrors = require('./lib/qerrors');
+    const qerrors = require('../lib/qerrors');
     const errorTypes = [
       new Error('Standard error'),
       new TypeError('Type error'),
@@ -93,7 +93,7 @@ async function finalValidation() {
   // Test 5: Configuration Validation
   console.log('\n5. Configuration Validation...');
   try {
-    const config = require('./lib/config');
+    const config = require('../lib/config');
     const hasConfigAccess = config.getInt && config.getEnv && config.validateRequiredVars;
     console.log('   ✓ Configuration access:', hasConfigAccess ? 'PASS' : 'FAIL');
     
@@ -115,7 +115,7 @@ async function finalValidation() {
   // Test 6: Security Validation
   console.log('\n6. Security Validation...');
   try {
-    const { sanitizeMessage } = require('./lib/sanitization');
+    const { sanitizeMessage } = require('../lib/sanitization');
     
     // Test sanitization of sensitive data
     const testMessage = 'Password: secret123 and token: abc123def';
@@ -137,7 +137,7 @@ async function finalValidation() {
   console.log('\n7. Module Integration Validation...');
   try {
     // Test main module export
-    const mainExports = require('./index.js');
+    const mainExports = require('../index.js');
     const hasMainFunction = typeof mainExports === 'function';
     const hasUtilityFunctions = mainExports.sanitizeMessage && mainExports.getQueueStats;
     const hasErrorTypes = mainExports.ServiceError && mainExports.createTypedError;

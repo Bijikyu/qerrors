@@ -22,10 +22,10 @@ const path = require('path');        // Path utilities
 const compression = require('compression'); // Response compression
 
 // Import scalable static file server
-const { createStaticFileMiddleware, getStaticFileServer } = require('./lib/scalableStaticFileServer');
+const { createStaticFileMiddleware, getStaticFileServer } = require('../lib/scalableStaticFileServer');
 
 // Import qerrors for intelligent error handling
-const qerrorsModule = require('./index.js');
+const qerrorsModule = require('../index.js');
 const qerrors = qerrorsModule.qerrors;  // Extract main qerrors function
 
 // Initialize scalable static file server
@@ -257,19 +257,19 @@ const getStaticFileCacheStats = () => {
 preloadStaticFiles();
 
 // Security imports
-const auth = require('./lib/auth');
-const { rateLimiters, securityHeaders, cookieOptions } = require('./lib/securityMiddleware');
-const privacyManager = require('./lib/privacyManager');
-const dataRetentionService = require('./lib/dataRetentionService');
+const auth = require('../lib/auth');
+const { rateLimiters, securityHeaders, cookieOptions } = require('../lib/securityMiddleware');
+const privacyManager = require('../lib/privacyManager');
+const dataRetentionService = require('../lib/dataRetentionService');
 
 // Enhanced rate limiting for API endpoints with per-endpoint limits
-const { getEnhancedRateLimiter, dynamicRateLimiter, createRateLimitMiddleware } = require('./lib/enhancedRateLimiter');
+const { getEnhancedRateLimiter, dynamicRateLimiter, createRateLimitMiddleware } = require('../lib/enhancedRateLimiter');
 
 // Distributed rate limiting with Redis backend for scalability
-const { getDistributedRateLimiter, createDistributedRateLimitMiddleware } = require('./lib/distributedRateLimiter');
+const { getDistributedRateLimiter, createDistributedRateLimitMiddleware } = require('../lib/distributedRateLimiter');
 
 // Atomic static file cache for thread-safe file operations
-const { getAtomicFileCache } = require('./lib/atomicStaticFileCache');
+const { getAtomicFileCache } = require('../lib/atomicStaticFileCache');
 
 // Initialize distributed rate limiter for production scalability
 const distributedRateLimiter = getDistributedRateLimiter({
@@ -1204,8 +1204,8 @@ const gracefulShutdown = async (signal) => {
           
           try {
             // Cleanup qerrors resources with timeout
-            const { stopQueueMetrics, stopAdviceCleanup } = require('./lib/qerrorsCache');
-            const { stopQueueMetrics: stopQMetrics, cleanupTimers } = require('./lib/qerrorsQueue');
+            const { stopQueueMetrics, stopAdviceCleanup } = require('../lib/qerrorsCache');
+            const { stopQueueMetrics: stopQMetrics, cleanupTimers } = require('../lib/qerrorsQueue');
             
             cleanupPromises.push(
               Promise.race([
@@ -1344,8 +1344,8 @@ const gracefulShutdown = async (signal) => {
       const cleanupPromises = [];
       
       // Cleanup qerrors resources with timeout
-      const { stopQueueMetrics, stopAdviceCleanup } = require('./lib/qerrorsCache');
-      const { stopQueueMetrics: stopQMetrics, cleanupTimers } = require('./lib/qerrorsQueue');
+      const { stopQueueMetrics, stopAdviceCleanup } = require('../lib/qerrorsCache');
+      const { stopQueueMetrics: stopQMetrics, cleanupTimers } = require('../lib/qerrorsQueue');
       
       cleanupPromises.push(
         Promise.race([
@@ -1435,7 +1435,7 @@ const startServer = async () => {
   try {
     try {
       // Initialize async configuration (dotenv loading, etc.)
-      const { initializeAsync } = require('./lib/asyncInit');
+      const { initializeAsync } = require('../lib/asyncInit');
       await initializeAsync();
     } catch (initError) {
       qerrors(initError, 'server.startServer.asyncInit', {

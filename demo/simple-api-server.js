@@ -33,10 +33,10 @@ const {
   sendErrorResponse,
   sendSuccessResponse,
   createErrorHandler
-} = require('./lib/standardizedResponses');
+} = require('../lib/standardizedResponses');
 
 // Import endpoint validation
-const { validateRequest, getApiDocs, getSystemHealth, endpointRegistry } = require('./lib/endpointValidator');
+const { validateRequest, getApiDocs, getSystemHealth, endpointRegistry } = require('../lib/endpointValidator');
 
 // Server configuration
 const app = express();
@@ -568,7 +568,7 @@ app.get('/api/docs', getApiDocs);
 
 // Serve demo pages
 app.get('/', (req, res) => {
-  res.sendFile(path.join(process.cwd(), 'demo.html'));
+  res.sendFile(path.join(process.cwd(), 'demo', 'demo.html'));
 });
 
 /**
@@ -580,8 +580,8 @@ app.get('/', (req, res) => {
  */
 app.listen(PORT, () => {
   console.log(`🚀 QErrors API Server running on http://localhost:${PORT}`);
-  console.log(`📊 Demo UI: http://localhost:${PORT}/demo.html`);
-  console.log(`🔧 Functional Demo: http://localhost:${PORT}/demo-functional.html`);
+  console.log(`📊 Demo UI: http://localhost:${PORT}/`);
+  console.log(`🔧 Functional Demo: http://localhost:${PORT}/demo-functional`);
   console.log(`📡 API Endpoints available at http://localhost:${PORT}/api/`);
 });
 

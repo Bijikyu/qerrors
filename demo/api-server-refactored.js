@@ -6,9 +6,9 @@
  */
 
 import express from 'express';
-import { configureMiddleware } from './middleware/apiServerMiddleware.js';
-import { configureErrorHandling } from './middleware/apiServerErrorHandler.js';
-import { setupRoutes } from './routes/apiServerRoutes.js';
+import { configureMiddleware } from '../middleware/apiServerMiddleware.js';
+import { configureErrorHandling } from '../middleware/apiServerErrorHandler.js';
+import { setupRoutes } from '../routes/apiServerRoutes.js';
 
 /**
  * Main server function

@@ -20,7 +20,7 @@ import path from 'path';  // Path utilities
 
 // Server configuration
 const PORT = process.env.DEMO_PORT ? Number(process.env.DEMO_PORT) : 8080;  // Configurable port
-const ROOT = process.cwd();  // Serve files from current working directory
+const ROOT = path.join(process.cwd(), 'demo');  // Serve files from demo directory
 
 /**
  * MIME type mapping for proper content serving
