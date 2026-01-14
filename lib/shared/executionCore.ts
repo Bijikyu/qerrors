@@ -100,6 +100,11 @@ export const deepClone = <T>(obj: T): T => {
 };
 
 /**
+ * Result type for attempt function - discriminated union for success/failure
+ */
+export type AttemptResult<T> = { ok: true; value: T } | { ok: false; error: unknown };
+
+/**
  * Async operation attempt with structured result handling
  * 
  * Purpose: Executes an async function and returns a structured result object
@@ -122,15 +127,9 @@ export const deepClone = <T>(obj: T): T => {
  * 
  * @template T - Return type of the async function
  * @param {() => T | Promise<T>} fn - Async function to attempt execution
- * @returns {Promise<{ok: true, value: T} | {ok: false, error: any}>} Structured result with success status
+ * @returns {Promise<AttemptResult<T>>} Structured result with success status
  */
-export const attempt = async <T>(fn: () => T | Promise<T>): Promise<{
-  ok: true;
-  value: T;
-} | {
-  ok: false;
-  error: unknown;
-}> => {
+export const attempt = async <T>(fn: () => T | Promise<T>): Promise<AttemptResult<T>> => {
   try {
     const value = await Promise.resolve().then(fn);
     return { ok: true, value };

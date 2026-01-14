@@ -38,7 +38,8 @@ import {
   type QerrorsModule,
   type BatchOperationResult,
   type ExecuteWithQerrorsCoreOptions,
-  type ExecuteWithQerrorsHooks
+  type ExecuteWithQerrorsHooks,
+  type AttemptResult
 } from './shared/executionCore.js';
 import qerrors from '../lib/qerrors.js';
 
@@ -197,5 +198,6 @@ export type {
   QerrorsModule, 
   BatchOperationResult,
   ExecuteWithQerrorsCoreOptions,
-  ExecuteWithQerrorsHooks
+  ExecuteWithQerrorsHooks,
+  AttemptResult
 };
