@@ -1,0 +1,533 @@
+/**
+ * Enhanced Error Handling Utilities
+ * Integrates qreactutils error handling with qerrors AI features and performance timers
+ * Eliminates duplication by leveraging standardized error patterns
+ */
+
+const {
+  handleApiError,
+  executeWithErrorHandling,
+  formatAxiosError
+} = require('@bijikyu/qreactutils');
+
+const {
+  qerrors,
+  logError,
+  logInfo,
+  logWarn,
+  logDebug,
+  logFatal,
+  createPerformanceTimer,
+  logErrorWithSeverity,
+  ErrorTypes,
+  ErrorSeverity,
+  ErrorFactory,
+  createTypedError
+} = require('qerrors');
+
+const { extractUserId } = require('../../middleware/authHelpers');
+
+/**
+ * Creates an enhanced error handler with performance monitoring using qreactutils
+ * @param {string} operation - Operation name for tracking
+ * @param {Object} options - Error handling options
+ * @returns {Function} Enhanced error handler function
+ */
+const createEnhancedErrorHandler = (operation, options = {}) => {
+  const {
+    enableAi = true,
+    enablePerformance = true,
+    severity = ErrorSeverity.MEDIUM,
+    context = {},
+    fallbackValue = null,
+    useQreactutils = true
+  } = options;
+  
+  return async (error, req = null, res = null, next = null) => {
+    // Start performance timer if enabled
+    let timer = null;
+    if (enablePerformance) {
+      timer = createPerformanceTimer(`error-handler-${operation}`);
+    }
+    
+    try {
+      // Use qreactutils handleApiError for standardized handling when available
+      if (useQreactutils && error.response) {
+        const handledError = handleApiError(error);
+        
+        // Send appropriate response if express objects provided
+        if (res && !res.headersSent) {
+          const errorResponse = createErrorResponse(handledError, operation, context);
+          res.status(errorResponse.error?.statusCode || 500).json(errorResponse);
+        }
+        
+        if (timer) timer.end();
+        return fallbackValue;
+      }
+      
+      // Log with enhanced context
+      const enhancedContext = {
+        operation,
+        timestamp: new Date().toISOString(),
+        userAgent: req?.get('User-Agent'),
+        ip: req?.ip,
+        method: req?.method,
+        url: req?.originalUrl,
+        ...context
+      };
+      
+      // Use qerrors for AI-powered analysis
+      if (enableAi) {
+        await qerrors(error, operation, req, res, next);
+      } else {
+        // Fallback to standard logging
+        await logErrorWithSeverity(error, operation, enhancedContext, severity);
+      }
+      
+      // Send appropriate response if express objects provided
+      if (res && !res.headersSent) {
+        const statusCode = getErrorStatusCode(error);
+        const errorResponse = createErrorResponse(error, operation, enhancedContext);
+        
+        res.status(statusCode).json(errorResponse);
+      }
+      
+      // End performance timer
+      if (timer) {
+        timer.end();
+      }
+      
+      return fallbackValue;
+    } catch (handlerError) {
+      // Fallback error handling
+      console.error('Error in enhanced error handler:', handlerError);
+      
+      if (res && !res.headersSent) {
+        res.status(500).json({
+          error: 'Internal server error',
+          operation,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      return fallbackValue;
+    }
+  };
+};
+
+/**
+ * Creates a performance monitored function wrapper using qreactutils when possible
+ * @param {Function} fn - Function to wrap
+ * @param {string} operation - Operation name for tracking
+ * @param {Object} options - Performance options
+ * @returns {Function} Wrapped function with performance monitoring
+ */
+const withPerformanceMonitoring = (fn, operation, options = {}) => {
+  const {
+    logSlowOperations = true,
+    slowThreshold = 1000, // milliseconds
+    enableTracing = false,
+    context = {},
+    useQreactutils = true
+  } = options;
+  
+  // Use qreactutils executeWithErrorHandling for standardized error handling
+  if (useQreactutils) {
+    return executeWithErrorHandling(
+      async (...args) => {
+        const timer = createPerformanceTimer(operation);
+        const startTime = Date.now();
+        
+        try {
+          // Log operation start if tracing enabled
+          if (enableTracing) {
+            await logDebug(`Starting operation: ${operation}`, {
+              argsCount: args.length,
+              startTime: new Date(startTime).toISOString(),
+              ...context
+            });
+          }
+          
+          // Execute function
+          const result = await fn(...args);
+          
+          // Calculate duration
+          const duration = Date.now() - startTime;
+          
+          // Log slow operations
+          if (logSlowOperations && duration > slowThreshold) {
+            await logWarn(`Slow operation detected: ${operation}`, {
+              duration: `${duration}ms`,
+              threshold: `${slowThreshold}ms`,
+              ...context
+            });
+          }
+          
+          // Log completion if tracing enabled
+          if (enableTracing) {
+            await logDebug(`Completed operation: ${operation}`, {
+              duration: `${duration}ms`,
+              success: true,
+              ...context
+            });
+          }
+          
+          timer.end();
+          return result;
+        } catch (error) {
+          const duration = Date.now() - startTime;
+          
+          // Log failed operation
+          await logError(`Operation failed: ${operation}`, {
+            error: error.message,
+            duration: `${duration}ms`,
+            stack: error.stack,
+            ...context
+          });
+          
+          timer.end();
+          throw error;
+        }
+      },
+      operation,
+      (error) => formatAxiosError(error) || error
+    );
+  }
+  
+  // Fallback to custom implementation
+  return async (...args) => {
+    const timer = createPerformanceTimer(operation);
+    const startTime = Date.now();
+    
+    try {
+      // Log operation start if tracing enabled
+      if (enableTracing) {
+        await logDebug(`Starting operation: ${operation}`, {
+          argsCount: args.length,
+          startTime: new Date(startTime).toISOString(),
+          ...context
+        });
+      }
+      
+      // Execute function
+      const result = await fn(...args);
+      
+      // Calculate duration
+      const duration = Date.now() - startTime;
+      
+      // Log slow operations
+      if (logSlowOperations && duration > slowThreshold) {
+        await logWarn(`Slow operation detected: ${operation}`, {
+          duration: `${duration}ms`,
+          threshold: `${slowThreshold}ms`,
+          ...context
+        });
+      }
+      
+      // Log completion if tracing enabled
+      if (enableTracing) {
+        await logDebug(`Completed operation: ${operation}`, {
+          duration: `${duration}ms`,
+          success: true,
+          ...context
+        });
+      }
+      
+      timer.end();
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      
+      // Log failed operation
+      await logError(`Operation failed: ${operation}`, {
+        error: error.message,
+        duration: `${duration}ms`,
+        stack: error.stack,
+        ...context
+      });
+      
+      timer.end();
+      throw error;
+    }
+  };
+};
+
+/**
+ * Determines appropriate HTTP status code for error
+ * @param {Error} error - Error object
+ * @returns {number} HTTP status code
+ */
+const getErrorStatusCode = (error) => {
+  // Check if error has explicit status code
+  if (error.statusCode || error.status) {
+    return error.statusCode || error.status;
+  }
+  
+  // Map error types to status codes
+  if (error.name === 'ValidationError') {
+    return 400;
+  } else if (error.name === 'UnauthorizedError') {
+    return 401;
+  } else if (error.name === 'ForbiddenError') {
+    return 403;
+  } else if (error.name === 'NotFoundError') {
+    return 404;
+  } else if (error.name === 'ConflictError') {
+    return 409;
+  } else if (error.name === 'RateLimitError') {
+    return 429;
+  } else if (error.name === 'DatabaseError') {
+    return 500;
+  }
+  
+  // Default to 500 for unknown errors
+  return 500;
+};
+
+/**
+ * Creates standardized error response
+ * @param {Error} error - Error object
+ * @param {string} operation - Operation name
+ * @param {Object} context - Additional context
+ * @returns {Object} Standardized error response
+ */
+const createErrorResponse = (error, operation, context = {}) => {
+  const statusCode = getErrorStatusCode(error);
+  
+  return {
+    error: {
+      message: error.message || 'An error occurred',
+      type: error.name || 'Error',
+      operation,
+      statusCode,
+      timestamp: new Date().toISOString(),
+      context: {
+        ...context,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      }
+    }
+  };
+};
+
+/**
+ * Creates an async controller wrapper with comprehensive error handling
+ * @param {Function} controller - Controller function to wrap
+ * @param {string} operation - Operation name
+ * @param {Object} options - Wrapper options
+ * @returns {Function} Wrapped controller function
+ */
+const createAsyncController = (controller, operation, options = {}) => {
+  const {
+    validateInput = null,
+    sanitizeInput = false,
+    enablePerformance = true,
+    enableAi = true,
+    rateLimit = null
+  } = options;
+  
+  return async (req, res, next) => {
+    const timer = createPerformanceTimer(`controller-${operation}`);
+    
+    try {
+      // Rate limiting check
+      if (rateLimit) {
+        const userId = extractUserId(req);
+        const identifier = req.ip || userId;
+        const { validateRateLimit } = require('./securityUtils');
+        const rateCheck = validateRateLimit(identifier, rateLimit.limit, rateLimit.window);
+        
+        if (!rateCheck.allowed) {
+          return res.status(429).json({
+            error: {
+              message: 'Rate limit exceeded',
+              retryAfter: rateCheck.retryAfter,
+              limit: rateLimit.limit
+            }
+          });
+        }
+      }
+      
+      // Input validation
+      if (validateInput) {
+        const validationResult = await validateInput(req.body, req);
+        if (!validationResult.isValid) {
+          return res.status(400).json({
+            error: {
+              message: 'Validation failed',
+              details: validationResult.errors,
+              operation
+            }
+          });
+        }
+      }
+      
+      // Input sanitization
+      if (sanitizeInput && req.body) {
+        // Import security utilities
+        const { sanitizeApiRequest } = require('./securityUtils');
+        req.body = sanitizeApiRequest(req.body, {
+          sanitizeNested: true,
+          removeNulls: true
+        });
+      }
+      
+      // Execute controller with performance monitoring
+      const monitoredController = enablePerformance 
+        ? withPerformanceMonitoring(controller, operation, {
+            enableTracing: true,
+            context: { controller: operation }
+          })
+        : controller;
+      
+      const result = await monitoredController(req, res, next);
+      
+      timer.end();
+      return result;
+    } catch (error) {
+      timer.end();
+      
+      // Use enhanced error handling
+      const errorHandler = createEnhancedErrorHandler(operation, {
+        enableAi,
+        enablePerformance: false, // Already timed
+        severity: ErrorSeverity.MEDIUM,
+        context: { controller: operation }
+      });
+      
+      return errorHandler(error, req, res, next);
+    }
+  };
+};
+
+/**
+ * Logs operation with context and performance metrics
+ * @param {string} operation - Operation name
+ * @param {Object} context - Operation context
+ * @param {Object} metrics - Performance metrics
+ * @returns {Promise<void>}
+ */
+const logOperation = async (operation, context = {}, metrics = {}) => {
+  await logInfo(`Operation: ${operation}`, {
+    operation,
+    timestamp: new Date().toISOString(),
+    ...context,
+    ...metrics
+  });
+};
+
+/**
+ * Creates a batch operation handler with error aggregation
+ * @param {Array} operations - Array of operations to execute
+ * @param {string} batchName - Batch operation name
+ * @param {Object} options - Batch options
+ * @returns {Promise<Object>} Batch operation result
+ */
+const createBatchOperation = async (operations, batchName, options = {}) => {
+  const {
+    concurrency = 5,
+    enableRollback = false,
+    timeout = 30000
+  } = options;
+  
+  const timer = createPerformanceTimer(`batch-${batchName}`);
+  const results = [];
+  const errors = [];
+  
+  try {
+    await logInfo(`Starting batch operation: ${batchName}`, {
+      operationCount: operations.length,
+      concurrency,
+      timeout
+    });
+    
+    // Execute operations with concurrency control
+    const chunks = [];
+    for (let i = 0; i < operations.length; i += concurrency) {
+      chunks.push(operations.slice(i, i + concurrency));
+    }
+    
+    for (const chunk of chunks) {
+      const chunkPromises = chunk.map(async (operation, index) => {
+        try {
+          const result = await Promise.race([
+            operation(),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Operation timeout')), timeout)
+            )
+          ]);
+          
+          results.push({ index: results.length, result, success: true });
+          return result;
+        } catch (error) {
+          errors.push({ 
+            index: errors.length, 
+            error, 
+            success: false,
+            operationIndex: index
+          });
+          return null;
+        }
+      });
+      
+      await Promise.allSettled(chunkPromises);
+    }
+    
+    await logInfo(`Batch operation completed: ${batchName}`, {
+      total: operations.length,
+      successful: results.length,
+      failed: errors.length,
+      duration: timer.getDuration()
+    });
+    
+    timer.end();
+    
+    return {
+      batchName,
+      success: errors.length === 0,
+      total: operations.length,
+      successful: results.length,
+      failed: errors.length,
+      results,
+      errors,
+      duration: timer.getDuration()
+    };
+  } catch (error) {
+    await logError(`Batch operation failed: ${batchName}`, {
+      error: error.message,
+      stack: error.stack
+    });
+    
+    timer.end();
+    throw error;
+  }
+};
+
+module.exports = {
+  // Re-export qreactutils functions for standardization
+  handleApiError,
+  executeWithErrorHandling,
+  formatAxiosError,
+  
+  // Re-export qerrors functions
+  qerrors,
+  logError,
+  logInfo,
+  logWarn,
+  logDebug,
+  logFatal,
+  createPerformanceTimer,
+  logErrorWithSeverity,
+  ErrorTypes,
+  ErrorSeverity,
+  ErrorFactory,
+  createTypedError,
+  
+  // Enhanced error handling utilities
+  createEnhancedErrorHandler,
+  withPerformanceMonitoring,
+  createAsyncController,
+  createBatchOperation,
+  logOperation,
+  getErrorStatusCode,
+  createErrorResponse
+};
