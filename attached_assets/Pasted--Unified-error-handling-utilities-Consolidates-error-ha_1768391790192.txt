@@ -1,0 +1,215 @@
+/**
+ * Unified error handling utilities
+ * Consolidates error handling patterns from errorHandling.ts, enhancedErrorHandling.ts, and standardizedErrorHandling.ts
+ */
+
+import qerrors from 'qerrors';
+import logger from '../logger';
+import{randomBytes}from 'crypto';
+
+const{
+  ErrorFactory,
+  ErrorSeverity,
+  sanitizeMessage,
+  sanitizeContext,
+  generateUniqueId
+}=qerrors;
+
+export interface OperationResult<T = any> {
+  success: true;
+  data: T;
+  operationId: string;
+}
+
+export interface OperationError {
+  success: false;
+  error: Error;
+  operationId: string;
+}
+
+export type SafeOperation<T = any> = OperationResult<T> | OperationError;
+
+export interface ErrorContext {
+  context: string;
+  severity: string;
+  [key: string]: any;
+}
+
+export interface EnhancedErrorContext extends ErrorContext {
+  filePath?: string;
+  operationId?: string;
+  errorMessage?: string;
+}
+
+/**
+ * Executes a function with standardized error handling and operation tracking
+ */
+export const withSafeOperation = async <T>(
+  operation:()=>Promise<T>,
+  context:ErrorContext,
+  operationId?:string
+):Promise<SafeOperation<T>>=>{
+  const opId=operationId||generateUniqueId();
+  try{
+    const data=await operation();
+    return{success:true,data,operationId:opId};
+  }catch(error){
+    const enhancedError=ErrorFactory.system(`Failed to ${context.context.toLowerCase()}`);
+    enhancedError.cause=error;
+    const sanitizedContext=sanitizeContext({...context,operationId:opId});
+    logger.error(sanitizeMessage(`Failed to ${context.context.toLowerCase()}`),{
+      error:enhancedError,
+      originalError:error,
+      ...sanitizedContext
+    });
+    return{success:false,error:enhancedError,operationId:opId};
+  }
+};
+
+/**
+ * Synchronous version of withSafeOperation
+ */
+export const withSafeOperationSync = <T>(
+  operation:()=>T,
+  context:ErrorContext,
+  operationId?:string
+):SafeOperation<T>=>{
+  const opId=operationId||generateUniqueId();
+  try{
+    const data=operation();
+    return{success:true,data,operationId:opId};
+  }catch(error){
+    const enhancedError=ErrorFactory.system(`Failed to ${context.context.toLowerCase()}`);
+    enhancedError.cause=error;
+    const sanitizedContext=sanitizeContext({...context,operationId:opId});
+    logger.error(sanitizeMessage(`Failed to ${context.context.toLowerCase()}`),{
+      error:enhancedError,
+      originalError:error,
+      ...sanitizedContext
+    });
+    return{success:false,error:enhancedError,operationId:opId};
+  }
+};
+
+/**
+ * Creates a standardized error context object
+ */
+export const createErrorContext = (
+  context:string,
+  severity=ErrorSeverity.MEDIUM,
+  additionalData?:Record<string,any>
+):ErrorContext=>({context,severity,...additionalData});
+
+/**
+ * Generate unique operation ID
+ */
+export const generateOperationId = ():string=>generateUniqueId();
+
+/**
+ * Standard enhanced error handling with logging pattern
+ * Consolidated from enhancedErrorHandling.ts
+ * 
+ * This utility consolidates common error handling pattern of creating enhanced errors
+ * with standardized logging that was duplicated across multiple files.
+ */
+export const createEnhancedError = (
+  baseMessage:string,
+  context:string,
+  filePath?:string,
+  operationId?:string,
+  additionalData?:Record<string,any>
+):Error=>{
+  const enhancedError=ErrorFactory.system(baseMessage);
+  const opId=operationId||generateOperationId();
+  const logContext={
+    error:enhancedError,
+    context,
+    filePath,
+    operationId:opId,
+    severity:ErrorSeverity.MEDIUM,
+    ...additionalData
+  };
+  logger.error(sanitizeMessage(baseMessage),logContext);
+  return enhancedError;
+};
+
+/**
+ * Handles file processing errors with consistent logging and recovery
+ * Consolidated from standardizedErrorHandling.ts
+ */
+export const handleFileProcessingError = (
+  error:Error,
+  filePath:string,
+  operationId:string,
+  additionalContext?:Record<string,any>
+):void=>{
+  const enhancedError=ErrorFactory.system(`File processing error: ${error.message}`);
+  enhancedError.cause=error;
+  logger.error(sanitizeMessage('File processing failed'),{
+    error:enhancedError,
+    context:'FILE_PROCESSING_ERROR',
+    errorMessage:error.message,
+    filePath,
+    operationId,
+    severity:ErrorSeverity.MEDIUM,
+    ...additionalContext
+  });
+};
+
+/**
+ * Handles critical system errors that should terminate process
+ */
+export const handleCriticalError = (
+  error:Error,
+  operationId:string,
+  additionalContext?:Record<string,any>
+):never=>{
+  const enhancedError=ErrorFactory.system(`Critical system error: ${error.message}`);
+  enhancedError.cause=error;
+  logger.error(sanitizeMessage('Critical system error'),{
+    error:enhancedError,
+    context:'CRITICAL_SYSTEM_ERROR',
+    errorMessage:error.message,
+    operationId,
+    severity:ErrorSeverity.CRITICAL,
+    ...additionalContext
+  });
+  process.exit(1);
+};
+
+/**
+ * Fallback operation ID generation with secure fallbacks
+ * Replaces Math.random() usage throughout codebase
+ */
+export const generateFallbackOperationId = ():string=>{
+  try{return`fallback-${Date.now()}-${randomBytes(6).toString('hex')}`;}
+  catch{return`fallback-${Date.now()}-${process.pid}-${Date.now()%1000000}`;}
+};
+
+/**
+ * Error codes standardization
+ */
+export const ERROR_CODES = {
+  // File system errors
+  FILE_NOT_FOUND: 'FILE_NOT_FOUND',
+  FILE_TOO_LARGE: 'FILE_TOO_LARGE',
+  FILE_READ_ERROR: 'FILE_READ_ERROR',
+  FILE_WRITE_ERROR: 'FILE_WRITE_ERROR',
+  
+  // Parsing errors
+  PARSE_ERROR: 'PARSE_ERROR',
+  SYNTAX_ERROR: 'SYNTAX_ERROR',
+  
+  // Processing errors
+  FILE_PROCESSING_ERROR: 'FILE_PROCESSING_ERROR',
+  DEPENDENCY_EXTRACTION_ERROR: 'DEPENDENCY_EXTRACTION_ERROR',
+  DATA_FLOW_GROUPING_ERROR: 'DATA_FLOW_GROUPING_ERROR',
+  
+  // System errors
+  CRITICAL_SYSTEM_ERROR: 'CRITICAL_SYSTEM_ERROR',
+  MEMORY_ERROR: 'MEMORY_ERROR',
+  
+  // Validation errors
+  INVALID_INPUT: 'INVALID_INPUT',
+  INVALID_CONFIGURATION: 'INVALID_CONFIGURATION'
+} as const;

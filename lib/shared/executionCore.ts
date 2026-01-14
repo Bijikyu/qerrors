@@ -25,6 +25,7 @@ import { createUnifiedTimer as createTimerInternal } from './timers.js';
 // @ts-ignore - lodash doesn't have ESM exports
 import _ from 'lodash/index.js';
 import qerrors from '../../lib/qerrors.js';
+import { randomBytes } from 'crypto';
 
 // Re-export for backward compatibility
 export { createUnifiedTimer, createPerformanceTimer } from './timers.js';
@@ -505,4 +506,114 @@ export const createBatchServiceExecutor = (serviceName: string) => {
       error: result.status === 'rejected' ? result.reason : null
     }));
   };
+};
+
+/**
+ * Standardized error codes for consistent error identification
+ */
+export const ERROR_CODES = {
+  FILE_NOT_FOUND: 'FILE_NOT_FOUND',
+  FILE_TOO_LARGE: 'FILE_TOO_LARGE',
+  FILE_READ_ERROR: 'FILE_READ_ERROR',
+  FILE_WRITE_ERROR: 'FILE_WRITE_ERROR',
+  PARSE_ERROR: 'PARSE_ERROR',
+  SYNTAX_ERROR: 'SYNTAX_ERROR',
+  FILE_PROCESSING_ERROR: 'FILE_PROCESSING_ERROR',
+  DEPENDENCY_EXTRACTION_ERROR: 'DEPENDENCY_EXTRACTION_ERROR',
+  DATA_FLOW_GROUPING_ERROR: 'DATA_FLOW_GROUPING_ERROR',
+  CRITICAL_SYSTEM_ERROR: 'CRITICAL_SYSTEM_ERROR',
+  MEMORY_ERROR: 'MEMORY_ERROR',
+  INVALID_INPUT: 'INVALID_INPUT',
+  INVALID_CONFIGURATION: 'INVALID_CONFIGURATION',
+  NETWORK_ERROR: 'NETWORK_ERROR',
+  TIMEOUT_ERROR: 'TIMEOUT_ERROR',
+  AUTHENTICATION_ERROR: 'AUTHENTICATION_ERROR',
+  AUTHORIZATION_ERROR: 'AUTHORIZATION_ERROR',
+  RATE_LIMIT_ERROR: 'RATE_LIMIT_ERROR',
+  DATABASE_ERROR: 'DATABASE_ERROR',
+  EXTERNAL_API_ERROR: 'EXTERNAL_API_ERROR'
+} as const;
+
+export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
+
+/**
+ * Generates a secure fallback operation ID using crypto
+ * Uses randomBytes for cryptographic security, with fallback to timestamp-based ID
+ * 
+ * @returns A unique operation identifier string
+ */
+export const generateFallbackOperationId = (): string => {
+  try {
+    return `fallback-${Date.now()}-${randomBytes(6).toString('hex')}`;
+  } catch {
+    return `fallback-${Date.now()}-${process.pid}-${Date.now() % 1000000}`;
+  }
+};
+
+/**
+ * Handles file processing errors with consistent logging and context
+ * 
+ * @param error - The error that occurred
+ * @param filePath - Path to the file being processed
+ * @param operationId - Unique operation identifier
+ * @param additionalContext - Additional context for logging
+ */
+export const handleFileProcessingError = (
+  error: Error,
+  filePath: string,
+  operationId: string,
+  additionalContext?: Record<string, unknown>
+): void => {
+  const errorMessage = `File processing error: ${error.message}`;
+  console.error(`[${ERROR_CODES.FILE_PROCESSING_ERROR}] ${errorMessage}`, {
+    filePath,
+    operationId,
+    stack: error.stack,
+    ...additionalContext
+  });
+  
+  try {
+    qerrors(error, 'handleFileProcessingError', {
+      errorCode: ERROR_CODES.FILE_PROCESSING_ERROR,
+      filePath,
+      operationId,
+      ...additionalContext
+    });
+  } catch (qerrorError) {
+    console.error('qerrors logging failed in handleFileProcessingError', qerrorError);
+  }
+};
+
+/**
+ * Handles critical system errors that should terminate the process
+ * Logs the error with full context before exiting
+ * 
+ * @param error - The critical error that occurred
+ * @param operationId - Unique operation identifier
+ * @param additionalContext - Additional context for logging
+ */
+export const handleCriticalError = (
+  error: Error,
+  operationId: string,
+  additionalContext?: Record<string, unknown>
+): never => {
+  const errorMessage = `Critical system error: ${error.message}`;
+  console.error(`[${ERROR_CODES.CRITICAL_SYSTEM_ERROR}] ${errorMessage}`, {
+    operationId,
+    stack: error.stack,
+    ...additionalContext
+  });
+  
+  try {
+    qerrors(error, 'handleCriticalError', {
+      errorCode: ERROR_CODES.CRITICAL_SYSTEM_ERROR,
+      operationId,
+      severity: 'critical',
+      ...additionalContext
+    });
+  } catch (qerrorError) {
+    console.error('qerrors logging failed in handleCriticalError', qerrorError);
+  }
+  
+  process.exit(1);
 };
