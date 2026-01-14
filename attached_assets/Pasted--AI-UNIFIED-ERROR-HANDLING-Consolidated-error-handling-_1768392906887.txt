@@ -1,0 +1,277 @@
+/**
+ * 🚩AI: UNIFIED_ERROR_HANDLING
+ * Consolidated error handling utilities - eliminates duplication across error handling patterns
+ * Combines and extends functionality from qerrorsHelper and various error handling modules
+ */
+
+import qerrorsModule from "qerrors";
+import { Request, Response, NextFunction } from "express";
+import type { QerrorsHelper, ErrorLogger, InfoLogger } from "../types/index.js";
+
+// Extract core qerrors functionality
+const { qerrors, logInfo, logError } = qerrorsModule;
+
+// Core exports from qerrors module
+export { qerrors, logError, logInfo };
+
+/**
+ * Standard error handler for Express routes
+ */
+export const qerrorHandler: QerrorsHelper = (
+  error: Error,
+  context: string,
+  req?: any,
+  res?: any,
+  next?: any,
+): void => {
+  qerrors(error, context, req, res, next);
+};
+
+/**
+ * Client-side error logger for non-Express contexts
+ */
+export const logClientError: ErrorLogger = (
+  error: Error,
+  context: string,
+  details?: any,
+): void => {
+  console.error(`[${context}]:`, error, details);
+};
+
+/**
+ * Map errors to appropriate HTTP status codes and responses
+ */
+export interface ErrorMapping {
+  [key: string]: {
+    status: number;
+    message: string;
+    category: string;
+  };
+}
+
+const defaultErrorMappings: ErrorMapping = {
+  ValidationError: {
+    status: 400,
+    message: "Validation failed",
+    category: "validation",
+  },
+  AuthenticationError: {
+    status: 401,
+    message: "Authentication failed",
+    category: "authentication",
+  },
+  AuthorizationError: {
+    status: 403,
+    message: "Access forbidden",
+    category: "authorization",
+  },
+  NotFoundError: {
+    status: 404,
+    message: "Resource not found",
+    category: "not_found",
+  },
+  ConflictError: {
+    status: 409,
+    message: "Resource conflict",
+    category: "conflict",
+  },
+  RateLimitError: {
+    status: 429,
+    message: "Too many requests",
+    category: "rate_limit",
+  },
+  InternalError: {
+    status: 500,
+    message: "Internal server error",
+    category: "internal",
+  },
+};
+
+/**
+ * Unified error handler with HTTP response mapping
+ */
+export const handleHttpError = (
+  error: Error,
+  req: Request,
+  res: Response,
+  next?: NextFunction,
+  customMappings?: ErrorMapping,
+): void => {
+  const mappings = { ...defaultErrorMappings, ...customMappings };
+  const errorName = error.constructor.name;
+  const mapping = mappings[errorName] || mappings["InternalError"];
+
+  // Log the error
+  qerrors(error, `${req.method} ${req.path}`, {
+    userAgent: req.get("User-Agent"),
+    ip: req.ip,
+  });
+
+  // Send appropriate response
+  if (!res.headersSent) {
+    res.status(mapping.status).json({
+      success: false,
+      error: {
+        message: error.message || mapping.message,
+        type: errorName,
+        category: mapping.category,
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method,
+      },
+    });
+  }
+
+  // Call next if available
+  next?.();
+};
+
+/**
+ * Create timed operation with error handling
+ */
+export const createTimedOperation = async <T>(
+  context: string,
+  operation: () => Promise<T>,
+): Promise<T> => {
+  const startTime = Date.now();
+  try {
+    const result = await operation();
+    const duration = Date.now() - startTime;
+    logInfo(`${context} completed successfully`, { duration: `${duration}ms` });
+    return result;
+  } catch (error: unknown) {
+    const duration = Date.now() - startTime;
+    logError(`${context} failed`, error as Error, {
+      duration: `${duration}ms`,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Safe operation wrapper that returns structured result
+ */
+export interface SafeOperationResult<T> {
+  success: boolean;
+  data?: T;
+  error?: Error;
+  metadata?: {
+    duration?: number;
+    context: string;
+  };
+}
+
+export const createSafeOperation = async <T>(
+  context: string,
+  operation: () => Promise<T>,
+): Promise<SafeOperationResult<T>> => {
+  const startTime = Date.now();
+  try {
+    const data = await operation();
+    const duration = Date.now() - startTime;
+    return {
+      success: true,
+      data,
+      metadata: { duration, context },
+    };
+  } catch (error: unknown) {
+    const duration = Date.now() - startTime;
+    const err = error as Error;
+    logError(`${context} failed: ${duration}ms`, err, {
+      duration: `${duration}ms`,
+    });
+    return {
+      success: false,
+      error: err,
+      metadata: { duration, context },
+    };
+  }
+};
+
+/**
+ * Authentication-specific error handling
+ */
+export const handleAuthError = (
+  error: Error,
+  context: string,
+  req?: Request,
+  res?: Response,
+  next?: NextFunction,
+): void => {
+  const authMappings: ErrorMapping = {
+    InvalidTokenError: {
+      status: 401,
+      message: "Invalid authentication token",
+      category: "authentication",
+    },
+    ExpiredTokenError: {
+      status: 401,
+      message: "Authentication token expired",
+      category: "authentication",
+    },
+    InvalidCredentialsError: {
+      status: 401,
+      message: "Invalid credentials",
+      category: "authentication",
+    },
+    AccountLockedError: {
+      status: 423,
+      message: "Account is locked",
+      category: "authentication",
+    },
+    EmailNotVerifiedError: {
+      status: 403,
+      message: "Email address not verified",
+      category: "authentication",
+    },
+  };
+
+  if (res) {
+    handleHttpError(error, req!, res, next, authMappings);
+  } else {
+    qerrorHandler(error, context, req, res, next);
+  }
+};
+
+/**
+ * Validation-specific error handling
+ */
+export const handleValidationError = (
+  error: Error,
+  context: string,
+  req?: Request,
+  res?: Response,
+  next?: NextFunction,
+): void => {
+  if (res && !res.headersSent) {
+    res.status(400).json({
+      success: false,
+      error: {
+        message: "Validation failed",
+        type: "ValidationError",
+        details: error.message,
+        timestamp: new Date().toISOString(),
+        path: req?.path,
+        method: req?.method,
+      },
+    });
+  } else {
+    qerrorHandler(error, context, req, res, next);
+  }
+};
+
+/**
+ * Unified error handling class for centralized error management
+ */
+export class UnifiedErrorHandler {
+  static handle = qerrorHandler;
+  static handleHttp = handleHttpError;
+  static handleAuth = handleAuthError;
+  static handleValidation = handleValidationError;
+  static logClient = logClientError;
+  static timedOperation = createTimedOperation;
+  static safeOperation = createSafeOperation;
+}
+
+// Legacy compatibility exports
+export { UnifiedErrorHandler as ErrorHandler };

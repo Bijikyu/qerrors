@@ -680,3 +680,108 @@ export function createSyncErrorHandler<T extends unknown[], R>(
     }
   };
 }
+
+/**
+ * Error mapping interface for HTTP status code mapping
+ */
+export interface ErrorMapping {
+  [key: string]: {
+    status: number;
+    message: string;
+    category: string;
+  };
+}
+
+/**
+ * Default error mappings for common error types
+ */
+export const defaultErrorMappings: ErrorMapping = {
+  ValidationError: { status: 400, message: 'Validation failed', category: 'validation' },
+  AuthenticationError: { status: 401, message: 'Authentication failed', category: 'authentication' },
+  UnauthorizedError: { status: 401, message: 'Unauthorized', category: 'authentication' },
+  AuthorizationError: { status: 403, message: 'Access forbidden', category: 'authorization' },
+  ForbiddenError: { status: 403, message: 'Forbidden', category: 'authorization' },
+  NotFoundError: { status: 404, message: 'Resource not found', category: 'not_found' },
+  ConflictError: { status: 409, message: 'Resource conflict', category: 'conflict' },
+  RateLimitError: { status: 429, message: 'Too many requests', category: 'rate_limit' },
+  InternalError: { status: 500, message: 'Internal server error', category: 'internal' },
+  DatabaseError: { status: 500, message: 'Database error', category: 'database' },
+  ServiceUnavailableError: { status: 503, message: 'Service unavailable', category: 'service' }
+};
+
+/**
+ * Authentication-specific error mappings
+ */
+export const authErrorMappings: ErrorMapping = {
+  InvalidTokenError: { status: 401, message: 'Invalid authentication token', category: 'authentication' },
+  ExpiredTokenError: { status: 401, message: 'Authentication token expired', category: 'authentication' },
+  InvalidCredentialsError: { status: 401, message: 'Invalid credentials', category: 'authentication' },
+  AccountLockedError: { status: 423, message: 'Account is locked', category: 'authentication' },
+  EmailNotVerifiedError: { status: 403, message: 'Email address not verified', category: 'authentication' }
+};
+
+/**
+ * Unified HTTP error handler with configurable mappings
+ * 
+ * @param error - The error to handle
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param customMappings - Optional custom error mappings
+ */
+export async function handleHttpError(
+  error: Error,
+  req: ExpressRequest,
+  res: ExpressResponse,
+  customMappings?: ErrorMapping
+): Promise<void> {
+  const mappings = { ...defaultErrorMappings, ...customMappings };
+  const errorName = error.constructor?.name || 'Error';
+  const mapping = mappings[errorName] || mappings['InternalError'];
+
+  const qerrors = await loadQerrorsAsync();
+  await logErrorMaybe(qerrors, `${req.method || 'UNKNOWN'} ${req.path || '/'}`, error.message, {
+    userAgent: req.get?.('User-Agent'),
+    ip: req.ip
+  });
+
+  if (!res.headersSent) {
+    res.status(mapping.status).json({
+      success: false,
+      error: {
+        message: error.message || mapping.message,
+        type: errorName,
+        category: mapping.category,
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      }
+    });
+  }
+}
+
+/**
+ * Authentication-specific error handler
+ * 
+ * @param error - The authentication error
+ * @param req - Express request object
+ * @param res - Express response object
+ */
+export async function handleAuthError(
+  error: Error,
+  req: ExpressRequest,
+  res: ExpressResponse
+): Promise<void> {
+  await handleHttpError(error, req, res, authErrorMappings);
+}
+
+/**
+ * Unified Error Handler class providing static methods for common error handling patterns
+ */
+export class UnifiedErrorHandler {
+  static getStatusCode = getErrorStatusCode;
+  static createResponse = createErrorResponse;
+  static handleHttp = handleHttpError;
+  static handleAuth = handleAuthError;
+  static createEnhanced = createEnhancedErrorHandler;
+  static createAsyncController = createAsyncController;
+}
