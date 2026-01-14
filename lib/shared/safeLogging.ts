@@ -2,7 +2,34 @@
  * Safe logging utilities for qerrors module
  */
 
+import qerrors from '../qerrors.js';
+
+/**
+ * Type for the unified structured error logger
+ */
+export type LogError = (error: unknown, context: string, metadata?: Record<string, unknown>) => void;
+
+/**
+ * Unified structured error logger used across the library.
+ * Centralizes qerrors invocation and prevents accidental throws
+ * from the error reporter from breaking flows.
+ */
+export const logError: LogError = (error, context, metadata = {}) => {
+  try {
+    if (typeof (qerrors as any)?.qerrors === 'function') {
+      (qerrors as any).qerrors(error as Error, context, metadata);
+      return;
+    }
+    if (typeof (qerrors as any) === 'function') {
+      (qerrors as any)(error as Error, context, metadata);
+    }
+  } catch {
+    // Never throw from logging path - fall through to console
+  }
+};
+
 export const safeLogError = (error: unknown, context: string, metadata?: Record<string, unknown>): void => {
+  logError(error, context, metadata);
   console.error(`[${context}] Error:`, error, metadata);
 };
 
