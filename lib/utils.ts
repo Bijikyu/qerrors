@@ -30,7 +30,11 @@ import {
   formatErrorMessage,
   loadQerrorsAsync,
   logErrorMaybe,
-  type QerrorsModule
+  createServiceExecutor,
+  createServiceCall,
+  createBatchServiceExecutor,
+  type QerrorsModule,
+  type BatchOperationResult
 } from './shared/executionCore.js';
 import qerrors from '../lib/qerrors.js';
 
@@ -171,6 +175,11 @@ export {
   loadQerrorsAsync,
   logErrorMaybe,
   
+  // Service executor utilities
+  createServiceExecutor,
+  createServiceCall,
+  createBatchServiceExecutor,
+  
   // Legacy exports
   logError,
   logInfo,
@@ -178,4 +187,4 @@ export {
 };
 
 // Type exports
-export type { QerrorsModule };
+export type { QerrorsModule, BatchOperationResult };

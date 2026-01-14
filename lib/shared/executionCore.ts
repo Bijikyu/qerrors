@@ -322,3 +322,124 @@ export const logErrorMaybe = async (
     console.error(`[${operation}] ${context.errorMessage || message}`, context);
   }
 };
+
+/**
+ * Creates a service-specific executor with standardized naming and error handling
+ * Reduces boilerplate in service functions by binding a service name prefix
+ * 
+ * @param serviceName - The name of the service (used as prefix for operation names)
+ * @returns An executor function bound to the service name
+ * 
+ * @example
+ * const userServiceExecutor = createServiceExecutor('UserService');
+ * const user = await userServiceExecutor({
+ *   operationName: 'getById',
+ *   operation: () => db.users.findById(id),
+ *   failureMessage: 'Failed to fetch user'
+ * });
+ */
+export const createServiceExecutor = (serviceName: string) => {
+  return async <T>({
+    operationName,
+    operation,
+    context = {},
+    failureMessage,
+    errorCode,
+    logMessage
+  }: {
+    operationName: string;
+    operation: () => Promise<T>;
+    context?: Record<string, unknown>;
+    failureMessage: string;
+    errorCode?: string;
+    logMessage?: string;
+  }): Promise<T> => {
+    return executeWithQerrors<T>({
+      opName: `${serviceName}.${operationName}`,
+      operation,
+      context,
+      failureMessage,
+      errorCode: errorCode || `${serviceName.toUpperCase()}_${operationName.toUpperCase()}`,
+      logMessage: logMessage || `${serviceName} error in ${operationName}`
+    });
+  };
+};
+
+/**
+ * Creates a standardized service call pattern for common operations
+ * One-shot utility for simple service calls without creating an executor
+ * 
+ * @param serviceName - The name of the service
+ * @param operationName - The name of the operation
+ * @param operation - The async operation to execute
+ * @param options - Optional configuration
+ * @returns Promise resolving to the operation result
+ */
+export const createServiceCall = <T>(
+  serviceName: string,
+  operationName: string,
+  operation: () => Promise<T>,
+  options: {
+    context?: Record<string, unknown>;
+    failureMessage?: string;
+    errorCode?: string;
+  } = {}
+): Promise<T> => {
+  return executeWithQerrors<T>({
+    opName: `${serviceName}.${operationName}`,
+    operation,
+    context: options.context || {},
+    failureMessage: options.failureMessage || `${serviceName} ${operationName} failed`,
+    errorCode: options.errorCode || `${serviceName.toUpperCase()}_${operationName.toUpperCase()}`,
+    logMessage: `${serviceName} error in ${operationName}`
+  });
+};
+
+/**
+ * Batch operation result type
+ */
+export interface BatchOperationResult<T> {
+  name: string;
+  success: boolean;
+  result: T | null;
+  error: unknown | null;
+}
+
+/**
+ * Creates a batch service executor for multiple related operations
+ * Executes all operations in parallel using Promise.allSettled
+ * 
+ * @param serviceName - The name of the service
+ * @returns A batch executor function
+ * 
+ * @example
+ * const batchExecutor = createBatchServiceExecutor('DataService');
+ * const results = await batchExecutor([
+ *   { name: 'fetchUsers', operation: () => fetchUsers() },
+ *   { name: 'fetchPosts', operation: () => fetchPosts() }
+ * ]);
+ */
+export const createBatchServiceExecutor = (serviceName: string) => {
+  return async <T>(
+    operations: Array<{
+      name: string;
+      operation: () => Promise<T>;
+      failureMessage?: string;
+    }>
+  ): Promise<BatchOperationResult<T>[]> => {
+    const results = await Promise.allSettled(
+      operations.map(({ name, operation, failureMessage }) =>
+        createServiceCall(serviceName, name, operation, { 
+          failureMessage: failureMessage || `${serviceName} ${name} failed` 
+        })
+      )
+    );
+
+    return results.map((result, index) => ({
+      name: operations[index].name,
+      success: result.status === 'fulfilled',
+      result: result.status === 'fulfilled' ? result.value : null,
+      error: result.status === 'rejected' ? result.reason : null
+    }));
+  };
+};
