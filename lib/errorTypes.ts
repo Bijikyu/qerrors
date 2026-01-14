@@ -42,6 +42,102 @@ export const ErrorFactory = {
   configuration: (message: string) => createTypedError(message, ErrorTypes.CONFIGURATION, 'CONFIG_ERROR'),
 };
 
+/**
+ * Enhanced error with type and timestamp
+ */
+interface EnhancedError extends Error {
+  type: string;
+  timestamp: string;
+  code?: string;
+}
+
+/**
+ * Creates an enhanced error with type, timestamp, and optional code
+ * @param message - Error message
+ * @param type - Error type identifier
+ * @param code - Optional error code
+ * @returns Enhanced error object
+ */
+export const createEnhancedError = (message: string, type: string, code?: string): EnhancedError => {
+  const error = new Error(message) as EnhancedError;
+  error.type = type;
+  error.timestamp = new Date().toISOString();
+  if (code) error.code = code;
+  return error;
+};
+
+/**
+ * Factory function to create typed error creators
+ * Enables dynamic creation of error factory methods for custom error types
+ * 
+ * @param errorType - The type of error to create
+ * @param defaultMessage - Default message if none provided
+ * @returns Error creation function
+ * 
+ * @example
+ * const createPaymentError = createTypedErrorCreator('payment', 'Payment failed');
+ * throw createPaymentError('Insufficient funds');
+ */
+export const createTypedErrorCreator = (errorType: string, defaultMessage: string) => {
+  return (message?: string): EnhancedError => {
+    return createEnhancedError(message || defaultMessage, errorType, `${errorType.toUpperCase()}_ERROR`);
+  };
+};
+
+/**
+ * Creates a custom error type dynamically
+ * Use this for one-off custom error types not covered by ErrorFactory
+ * 
+ * @param errorType - Custom error type identifier
+ * @param defaultMessage - Default message for this error type
+ * @returns Custom error creator function
+ * 
+ * @example
+ * const createWebhookError = createCustomErrorType('webhook', 'Webhook delivery failed');
+ * throw createWebhookError('Endpoint unreachable');
+ */
+export const createCustomErrorType = (errorType: string, defaultMessage?: string) => {
+  if (!errorType || typeof errorType !== 'string') {
+    throw new Error('Error type must be a non-empty string');
+  }
+  return createTypedErrorCreator(errorType, defaultMessage || `${errorType} error`);
+};
+
+/**
+ * Error specification for batch creation
+ */
+interface ErrorSpec {
+  type: string;
+  message: string;
+  code?: string;
+}
+
+/**
+ * Creates multiple errors of different types in batch
+ * Useful for scenarios requiring multiple related errors
+ * 
+ * @param errors - Array of error specifications
+ * @returns Array of enhanced error objects
+ * 
+ * @example
+ * const errors = createMultipleErrors([
+ *   { type: 'validation', message: 'Invalid email' },
+ *   { type: 'validation', message: 'Invalid password' }
+ * ]);
+ */
+export const createMultipleErrors = (errors: ErrorSpec[]): EnhancedError[] => {
+  if (!Array.isArray(errors)) {
+    throw new Error('Errors must be provided as an array');
+  }
+  
+  return errors.map(({ type, message, code }) => {
+    if (!type || !message) {
+      throw new Error('Each error must have both type and message');
+    }
+    return createEnhancedError(message, type, code);
+  });
+};
+
 export const errorMiddleware = (err: Error, _req: any, res: any, _next: Function) => {
   console.error('Error middleware:', err);
   res.status(500).json({ error: 'Internal server error' });

@@ -1,0 +1,126 @@
+// Exact current implementation copied from the codebase
+/**
+ * Simplified Error Factory
+ * 
+ * SINGLE RESPONSIBILITY: Provide a generic error creation factory that eliminates code duplication
+ * 
+ * CONSOLIDATION RATIONALE:
+ * This module replaces duplicate error creation patterns in enhanced-error-factory.js with a generic
+ * factory that can handle any error type with consistent error handling.
+ * 
+ * DESIGN PRINCIPLES:
+ * - Generic error creation function that works with any error type
+ * - Consistent error handling and fallback mechanisms
+ * - Reduced code duplication
+ * - Maintains compatibility with existing error types
+ */
+
+const { qerrors } = require('../utility/safe-qerrors.ts');
+
+/**
+ * Creates a generic enhanced error with type and timestamp
+ * @param {string} message - Error message
+ * @param {string} type - Error type
+ * @returns {Error} Enhanced error object with type and timestamp
+ */
+const createEnhancedError = (message, type) => {
+  try {
+    if (!message || typeof message !== 'string') {
+      throw new Error('Error message must be a non-empty string');
+    }
+    if (!type || typeof type !== 'string') {
+      throw new Error('Error type must be a non-empty string');
+    }
+    
+    const error = new Error(message);
+    error.type = type;
+    error.timestamp = new Date().toISOString();
+    return error;
+  } catch (validationError) {
+    qerrors(validationError, 'simplified-error-factory: error creation failed', {
+      message,
+      type,
+      operation: 'create_enhanced_error'
+    });
+    
+    const fallbackError = new Error(message || 'Enhanced error creation failed');
+    fallbackError.type = type || 'unknown';
+    fallbackError.timestamp = new Date().toISOString();
+    return fallbackError;
+  }
+};
+
+/**
+ * Generic factory function to create typed error creators
+ * @param {string} errorType - The type of error to create
+ * @param {string} defaultMessage - Default message if none provided
+ * @returns {Function} Error creation function
+ */
+const createTypedErrorCreator = (errorType, defaultMessage) => {
+  return (message) => {
+    return createEnhancedError(message || defaultMessage, errorType);
+  };
+};
+
+/**
+ * Pre-configured error creators for common error types
+ */
+const createValidationError = createTypedErrorCreator('validation', 'Validation error');
+const createAuthenticationError = createTypedErrorCreator('authentication', 'Authentication error');
+const createDatabaseError = createTypedErrorCreator('database', 'Database error');
+const createNetworkError = createTypedErrorCreator('network', 'Network error');
+const createAuthorizationError = createTypedErrorCreator('authorization', 'Authorization error');
+const createConfigurationError = createTypedErrorCreator('configuration', 'Configuration error');
+const createRateLimitError = createTypedErrorCreator('rate_limit', 'Rate limit exceeded');
+const createTimeoutError = createTypedErrorCreator('timeout', 'Operation timed out');
+
+/**
+ * Factory to create custom error types on demand
+ * @param {string} errorType - Custom error type
+ * @param {string} defaultMessage - Default message for this error type
+ * @returns {Function} Custom error creator function
+ */
+const createCustomError = (errorType, defaultMessage) => {
+  if (!errorType || typeof errorType !== 'string') {
+    throw new Error('Error type must be a non-empty string');
+  }
+  return createTypedErrorCreator(errorType, defaultMessage || `${errorType} error`);
+};
+
+/**
+ * Batch error creator - creates multiple errors of different types
+ * @param {Array} errors - Array of { type, message } objects
+ * @returns {Array} Array of enhanced error objects
+ */
+const createMultipleErrors = (errors) => {
+  if (!Array.isArray(errors)) {
+    throw new Error('Errors must be provided as an array');
+  }
+  
+  return errors.map(({ type, message }) => {
+    if (!type || !message) {
+      throw new Error('Each error must have both type and message');
+    }
+    return createEnhancedError(message, type);
+  });
+};
+
+module.exports = {
+  // Core function
+  createEnhancedError,
+  
+  // Factory functions
+  createTypedErrorCreator,
+  createCustomError,
+  createMultipleErrors,
+  
+  // Pre-configured error creators
+  createValidationError,
+  createAuthenticationError,
+  createDatabaseError,
+  createNetworkError,
+  createAuthorizationError,
+  createConfigurationError,
+  createRateLimitError,
+  createTimeoutError
+};
