@@ -3,6 +3,7 @@
  */
 
 import qerrors from '../qerrors.js';
+import { safeErrorMessage } from '../errorTypes.js';
 
 /**
  * Type for the unified structured error logger
@@ -47,4 +48,19 @@ export const safeLogDebug = (message: string, metadata?: Record<string, unknown>
 
 export const safeLogAudit = (message: string, metadata?: Record<string, unknown>): void => {
   console.info(`[AUDIT] ${message}`, metadata);
+};
+
+/**
+ * Logs an error with context and returns a uniform error object containing a safe message.
+ * Use for small catch-blocks that need to surface an { error } without duplicating boilerplate.
+ */
+export const logAndWrapError = (
+  error: unknown,
+  fallback: string,
+  context: string,
+  metadata: Record<string, unknown> = {},
+): { error: string } => {
+  const message = safeErrorMessage(error, fallback);
+  logError(error, context, metadata);
+  return { error: message };
 };
