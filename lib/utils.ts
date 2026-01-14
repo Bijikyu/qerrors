@@ -27,7 +27,10 @@ import {
   deepClone,
   attempt,
   executeWithQerrors,
-  formatErrorMessage
+  formatErrorMessage,
+  loadQerrorsAsync,
+  logErrorMaybe,
+  type QerrorsModule
 } from './shared/executionCore.js';
 import qerrors from '../lib/qerrors.js';
 
@@ -164,8 +167,15 @@ export {
   executeWithQerrors,
   formatErrorMessage,
   
+  // Async qerrors loading utilities
+  loadQerrorsAsync,
+  logErrorMaybe,
+  
   // Legacy exports
   logError,
   logInfo,
   logWarn
 };
+
+// Type exports
+export type { QerrorsModule };

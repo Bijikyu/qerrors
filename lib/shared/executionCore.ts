@@ -242,12 +242,83 @@ export const executeWithQerrors = async <T>(options: {
 /**
  * Format error message safely
  * @param error - Error to format
- * @param context - Additional context
+ * @param context - Optional additional context
  * @returns Formatted error message
  */
-export const formatErrorMessage = (error: unknown, context: string): string => {
+export const formatErrorMessage = (error: unknown, context?: string): string => {
+  let message: string;
+  
   if (error instanceof Error) {
-    return `${context}: ${error.message}`;
+    message = error.message;
+  } else if (typeof error === 'string') {
+    message = error;
+  } else {
+    try {
+      message = JSON.stringify(error);
+    } catch {
+      message = 'Unknown error';
+    }
   }
-  return `${context}: ${String(error)}`;
+  
+  return context ? `${context}: ${message}` : message;
+};
+
+/**
+ * QerrorsModule type for lazy loading - represents the loaded qerrors module
+ */
+export interface QerrorsModule {
+  default?: (error: Error, location: string, context?: Record<string, unknown>) => Promise<unknown>;
+  logError?: (message: string, context?: Record<string, unknown>) => Promise<void>;
+  [key: string]: unknown;
+}
+
+let qerrorsModulePromise: Promise<QerrorsModule | null> | null = null;
+
+/**
+ * Lazy load qerrors module with promise caching
+ * 
+ * Purpose: Provides async lazy loading of qerrors module with single-promise
+ * caching pattern to prevent multiple concurrent loads and provide consistent
+ * access to the module throughout the application.
+ * 
+ * @returns Promise resolving to qerrors module or null if unavailable
+ */
+export const loadQerrorsAsync = async (): Promise<QerrorsModule | null> => {
+  if (!qerrorsModulePromise) {
+    qerrorsModulePromise = import('../qerrors.js')
+      .then(mod => mod as QerrorsModule)
+      .catch(() => null);
+  }
+  return qerrorsModulePromise;
+};
+
+/**
+ * Log error with optional qerrors module and fallback to console
+ * 
+ * Purpose: Provides a flexible error logging function that works whether
+ * qerrors is loaded or not, with graceful fallback to console logging.
+ * 
+ * @param q - QerrorsModule or null
+ * @param operation - Operation name for context
+ * @param message - Error message to log
+ * @param context - Additional context information
+ */
+export const logErrorMaybe = async (
+  q: QerrorsModule | null,
+  operation: string,
+  message: string,
+  context: Record<string, unknown>
+): Promise<void> => {
+  if (q?.default) {
+    try {
+      const error = new Error(message);
+      await q.default(error, operation, context);
+    } catch {
+      console.error(`[${operation}] ${message}`, context);
+    }
+  } else if (q?.logError) {
+    await q.logError(message, context);
+  } else {
+    console.error(`[${operation}] ${context.errorMessage || message}`, context);
+  }
 };
