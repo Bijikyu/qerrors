@@ -1,0 +1,172 @@
+// 🔗 Common Patterns: Shared error handling utilities
+// 🚩AI: MUST_UPDATE_IF_ERROR_HANDLING_PATTERNS_CHANGE
+
+/**
+ * Standard error types used across services
+ */
+export enum ErrorType {
+  VALIDATION = 'VALIDATION_ERROR',
+  AUTHENTICATION = 'AUTHENTICATION_ERROR',
+  AUTHORIZATION = 'AUTHORIZATION_ERROR',
+  NOT_FOUND = 'NOT_FOUND',
+  INTERNAL = 'INTERNAL_ERROR',
+  EXTERNAL_API = 'EXTERNAL_API_ERROR',
+}
+
+/**
+ * Enhanced error class with context
+ */
+export class ServiceError extends Error {
+  constructor(
+    message: string,
+    public type: ErrorType,
+    public context?: any,
+    public cause?: Error
+  ) {
+    super(message);
+    this.name = 'ServiceError';
+  }
+}
+
+/**
+ * Common error handling utilities
+ */
+export const errorUtils = {
+  /**
+   * Creates a validation error
+   */
+  validation: (field: string, value?: any): ServiceError => {
+    const normalizedField = typeof field === 'string' ? field.toLowerCase() : '';
+    const isPromptField = normalizedField.includes('prompt');
+    const isEmptySentinel = value === 'empty string';
+    const isMissing = value === undefined || value === null || value === '' || isEmptySentinel;
+    const isBlankString = typeof value === 'string' && value.trim().length === 0;
+
+    if (isPromptField && (isMissing || isBlankString)) {
+      return new ServiceError('Prompt is required', ErrorType.VALIDATION, { field, value });
+    }
+
+    const message = isMissing || isBlankString ? `${field} is required` : `Invalid ${field}: ${typeof value} ${value}`;
+    return new ServiceError(message, ErrorType.VALIDATION, { field, value });
+  },
+
+  /**
+   * Creates an authentication error
+   */
+  authentication: (serviceName: string): ServiceError => {
+    return new ServiceError(
+      `${serviceName} authentication failed`,
+      ErrorType.AUTHENTICATION,
+      { serviceName }
+    );
+  },
+
+  /**
+   * Creates an authorization error
+   */
+  authorization: (action: string): ServiceError => {
+    return new ServiceError(
+      `Insufficient permissions to ${action}`,
+      ErrorType.AUTHORIZATION,
+      { action }
+    );
+  },
+
+  /**
+   * Creates an external API error
+   */
+  externalApi: (serviceName: string, originalError: Error): ServiceError => {
+    return new ServiceError(
+      `${serviceName} API error: ${originalError.message}`,
+      ErrorType.EXTERNAL_API,
+      { serviceName },
+      originalError
+    );
+  },
+
+  /**
+   * Creates an internal service error
+   */
+  internal: (message: string, context?: any): ServiceError => {
+    return new ServiceError(message, ErrorType.INTERNAL, context);
+  },
+
+  /**
+   * Wraps an unknown error in a ServiceError
+   */
+  wrap: (error: unknown, defaultMessage: string): ServiceError => {
+    if (error instanceof ServiceError) {
+      return error;
+    }
+    
+    if (error instanceof Error) {
+      return new ServiceError(error.message, ErrorType.INTERNAL, undefined, error);
+    }
+    
+    return new ServiceError(defaultMessage, ErrorType.INTERNAL, { originalError: error });
+  },
+
+  /**
+   * Handles async errors consistently
+   */
+  asyncHandler: async <T>(
+    operation: () => Promise<T>,
+    errorMessage: string
+  ): Promise<T> => {
+    try {
+      return await operation();
+    } catch (error) {
+      throw errorUtils.wrap(error, errorMessage);
+    }
+  },
+};
+
+/**
+ * Result type for error-safe operations
+ */
+export type Result<T, E = ServiceError> = {
+  success: true;
+  data: T;
+} | {
+  success: false;
+  error: E;
+};
+
+/**
+ * Safe execution utilities
+ */
+export const safeUtils = {
+  /**
+   * Safely execute an operation and return Result
+   */
+  execute: async <T>(
+    operation: () => Promise<T>
+  ): Promise<Result<T>> => {
+    try {
+      const data = await operation();
+      return { success: true, data };
+    } catch (error) {
+      const serviceError = error instanceof ServiceError 
+        ? error 
+        : errorUtils.wrap(error, 'Operation failed');
+      return { success: false, error: serviceError };
+    }
+  },
+
+  /**
+   * Safely validate input
+   */
+  validate: <T>(
+    value: unknown,
+    validator: (v: unknown) => T,
+    field: string
+  ): Result<T> => {
+    try {
+      const data = validator(value);
+      return { success: true, data };
+    } catch (error) {
+      const serviceError = errorUtils.wrap(error, `Validation failed for ${field}`);
+      return { success: false, error: serviceError };
+    }
+  },
+};
