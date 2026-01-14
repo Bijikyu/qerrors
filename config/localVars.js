@@ -160,8 +160,8 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 const DEFAULT_ERROR_MESSAGE = process.env.QERRORS_DEFAULT_MESSAGE || 'An error occurred';
 
 // AI Model Environment Variables
-const QERRORS_AI_PROVIDER = process.env.QERRORS_AI_PROVIDER || 'openai';
-const QERRORS_AI_MODEL = process.env.QERRORS_AI_MODEL || 'gpt-4o';
+const QERRORS_AI_PROVIDER = process.env.QERRORS_AI_PROVIDER || 'google';
+const QERRORS_AI_MODEL = process.env.QERRORS_AI_MODEL || 'gemini-3-flash-preview';
 const QERRORS_MAX_TOKENS = process.env.QERRORS_MAX_TOKENS || '4096';
 const QERRORS_VERBOSE = process.env.QERRORS_VERBOSE === 'true';
 
@@ -205,13 +205,14 @@ const CONFIG_DEFAULTS = {
   },
   [MODEL_PROVIDERS.GOOGLE]: {
     models: {
+      'gemini-3-flash-preview': { maxTokens: 8192, temperature: 0.1, topP: 1 },
       'gemini-2.5-flash-lite': { maxTokens: 8192, temperature: 0.1, topP: 1 },
       'gemini-2.0-flash-exp': { maxTokens: 8192, temperature: 0.1, topP: 1 },
       'gemini-pro': { maxTokens: 8192, temperature: 0.1, topP: 1 },
       'gemini-1.5-pro': { maxTokens: 8192, temperature: 0.1, topP: 1 },
       'gemini-1.5-flash': { maxTokens: 8192, temperature: 0.1, topP: 1 }
     },
-    defaultModel: 'gemini-2.5-flash-lite',
+    defaultModel: 'gemini-3-flash-preview',
     requiredEnvVars: ['GEMINI_API_KEY']
   }
 };
