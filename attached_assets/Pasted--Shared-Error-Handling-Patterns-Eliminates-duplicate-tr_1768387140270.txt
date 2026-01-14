@@ -1,0 +1,362 @@
+/**
+ * Shared Error Handling Patterns
+ * 
+ * Eliminates duplicate try-catch-qerrors patterns across codebase.
+ * Provides standardized wrappers for common error handling scenarios.
+ */
+
+// Load qerrors dynamically with fallback
+let qerrorsCache = null;
+
+async function loadQerrorsSafe() {
+  if (qerrorsCache) return qerrorsCache;
+  
+  try {
+    // Try to import qerrors
+    const qerrorsModule = await import('qerrors');
+    qerrorsCache = qerrorsModule.default || qerrorsModule;
+    return qerrorsCache;
+  } catch (error) {
+    // qerrors not available, return null
+    return null;
+  }
+}
+
+/**
+ * Safe qerrors function with fallback logging
+ * Eliminates duplicate try-catch-qerrors patterns
+ */
+async function safeQerrors(error, operation, context = {}) {
+  try {
+    const qerrors = await loadQerrorsSafe();
+    if (qerrors && typeof qerrors === 'function') {
+      await qerrors(error, operation, context);
+    } else {
+      // Fallback to console
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`qerrors unavailable: ${operation}:`, message, context);
+    }
+  } catch (qerror) {
+    console.warn(`qerrors logging failed for ${operation}:`, qerror);
+  }
+}
+
+// ============================================================================
+// STANDARDIZED ERROR HANDLING WRAPPERS
+// ============================================================================
+
+/**
+ * Standardized error handler for initialization failures
+ * Eliminates duplicate try-catch-qerrors patterns in server bootstrap
+ */
+export async function handleInitializationError(
+  error,
+  operation,
+  errorType,
+  context,
+  fallback
+) {
+  await safeQerrors(error, operation, {
+    operation,
+    errorType,
+    context,
+    fallback
+  });
+}
+
+/**
+ * Standardized error handler for middleware failures
+ * Eliminates duplicate try-catch-qerrors patterns in middleware
+ */
+export async function handleMiddlewareError(
+  error,
+  operation,
+  context
+) {
+  await safeQerrors(error, operation, {
+    operation,
+    errorType: 'middleware-failure',
+    context,
+    ...context
+  });
+}
+
+/**
+ * Standardized error handler for service failures
+ * Eliminates duplicate try-catch-qerrors patterns in services
+ */
+export async function handleServiceError(
+  error,
+  serviceName,
+  operation,
+  context
+) {
+  await safeQerrors(error, `${serviceName}-${operation}`, {
+    operation,
+    errorType: 'service-failure',
+    context: `${serviceName} ${operation} failed`,
+    serviceName,
+    ...context
+  });
+}
+
+/**
+ * Safe async function wrapper with standardized error handling
+ * Eliminates duplicate try-catch-qerrors patterns for async operations
+ */
+export async function withErrorHandling(
+  operation,
+  errorContext
+) {
+  try {
+    return await operation();
+  } catch (error) {
+    await handleInitializationError(
+      error,
+      errorContext.operation,
+      errorContext.errorType,
+      errorContext.context,
+      errorContext.fallback || 'Operation failed'
+    );
+    return null;
+  }
+}
+
+/**
+ * Safe function wrapper for async operations with fallback value
+ */
+export async function withErrorHandlingFallback(
+  operation,
+  fallbackValue,
+  errorContext
+) {
+  try {
+    return await operation();
+  } catch (error) {
+    await handleInitializationError(
+      error,
+      errorContext.operation,
+      errorContext.errorType,
+      errorContext.context,
+      'Using fallback value'
+    );
+    return fallbackValue;
+  }
+}
+
+// ============================================================================
+// SPECIALIZED HANDLERS FOR COMMON PATTERNS
+// ============================================================================
+
+/**
+ * Handler for qapi loading failures
+ * Most common duplicate pattern across middleware and services
+ */
+export async function handleQapiLoadError(
+  error,
+  context
+) {
+  await handleInitializationError(
+    error,
+    'qapi-load-failure',
+    'qapi-load-failure',
+    `Failed to load qapinterface: ${context.context || 'unknown operation'}`,
+    'Proceeding without qapinterface'
+  );
+}
+
+/**
+ * Handler for database operation failures
+ */
+export async function handleDatabaseError(
+  error,
+  operation,
+  context
+) {
+  await handleServiceError(
+    error,
+    'database',
+    operation,
+    context
+  );
+}
+
+/**
+ * Handler for external service failures
+ */
+export async function handleExternalServiceError(
+  error,
+  serviceName,
+  operation,
+  context
+) {
+  await handleServiceError(
+    error,
+    serviceName,
+    operation,
+    context
+  );
+}
+
+// ============================================================================
+// MIDDLEWARE ERROR HANDLING UTILITIES
+// ============================================================================
+
+/**
+ * Creates a standardized middleware error handler
+ */
+export function createMiddlewareErrorHandler(middlewareName) {
+  return async function handleError(
+    error,
+    context
+  ) {
+    await handleMiddlewareError(
+      error,
+      `${middlewareName}-error`,
+      {
+        middleware: middlewareName,
+        ...context
+      }
+    );
+  };
+}
+
+/**
+ * Wrapper for middleware functions with standardized error handling
+ */
+export function withMiddlewareErrorHandling(
+  middlewareName,
+  middlewareFn
+) {
+  const errorHandler = createMiddlewareErrorHandler(middlewareName);
+  
+  return async function wrappedMiddleware(req, res, next) {
+    try {
+      await middlewareFn(req, res, next);
+    } catch (error) {
+      await errorHandler(error, {
+        path: req.path,
+        method: req.method,
+        userAgent: req.get ? req.get('User-Agent') : 'unknown'
+      });
+      next(error);
+    }
+  };
+}
+
+// ============================================================================
+// CONSOLE FALLBACK UTILITIES
+// ============================================================================
+
+/**
+ * Console logging with consistent format when qerrors is unavailable
+ */
+export function consoleErrorFallback(
+  operation,
+  message,
+  context
+) {
+  console.error(`[FALLBACK] ${operation}:`, message, context || {});
+}
+
+export function consoleWarnFallback(
+  operation,
+  message,
+  context
+) {
+  console.warn(`[FALLBACK] ${operation}:`, message, context || {});
+}
+
+export function consoleInfoFallback(
+  operation,
+  message,
+  context
+) {
+  console.info(`[FALLBACK] ${operation}:`, message, context || {});
+}
+
+// ============================================================================
+// JSON PARSING UTILITIES (from errorHandlers.js)
+// ============================================================================
+
+/**
+ * Safe JSON parsing with fallback value
+ * @param {string} text - JSON string to parse
+ * @param {*} fallback - Fallback value if parsing fails
+ * @returns {*} Parsed object or fallback
+ */
+export function safeJsonParse(text, fallback = null) {
+  if (typeof text !== 'string') return fallback;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Safe JSON parsing with explicit fallback value
+ * @param {string} text - JSON string to parse
+ * @param {*} fallbackValue - Fallback value if parsing fails
+ * @returns {*} Parsed object or fallback value
+ */
+export function safeJsonParseWithFallback(text, fallbackValue = null) {
+  return safeJsonParse(text, fallbackValue);
+}
+
+/**
+ * Parse JSON body from request, handling string bodies
+ * @param {*} body - Request body
+ * @returns {*} Parsed body or original body
+ */
+export function parseJsonBody(body) {
+  return typeof body === 'string' ? safeJsonParse(body, body) : body;
+}
+
+/**
+ * Check if content type is JSON
+ * @param {string} contentType - Content type string
+ * @returns {boolean} True if JSON content type
+ */
+export function isJsonContentType(contentType) {
+  return typeof contentType === 'string' && contentType.includes('application/json');
+}
+
+// ============================================================================
+// ASYNC ERROR HANDLER WRAPPERS (from errorHandlers.js)
+// ============================================================================
+
+/**
+ * Create async error handler with qerrors fallback
+ * @param {Function} errorHandler - Error handler function
+ * @returns {Function} Wrapped error handler
+ */
+export function createAsyncErrorHandler(errorHandler) {
+  return async (...args) => {
+    try {
+      return await errorHandler(...args);
+    } catch (error) {
+      await safeQerrors(error, 'async-error-handler-fallback', { args });
+      return { error: error.message || 'Unknown error' };
+    }
+  };
+}
+
+/**
+ * Create sync error handler with qerrors fallback
+ * @param {Function} errorHandler - Error handler function
+ * @returns {Function} Wrapped error handler
+ */
+export function createSyncErrorHandler(errorHandler) {
+  return async (...args) => {
+    try {
+      return errorHandler(...args);
+    } catch (error) {
+      await safeQerrors(error, 'sync-error-handler-fallback', { args });
+      return { error: error.message || 'Unknown error' };
+    }
+  };
+}
+
+// Export safeQerrors for external use
+export { safeQerrors };

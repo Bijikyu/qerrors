@@ -42,6 +42,24 @@ import {
   type AttemptResult
 } from './shared/executionCore.js';
 import { HttpInputError } from './shared/httpInputError.js';
+import {
+  handleInitializationError,
+  handleMiddlewareError,
+  handleServiceError,
+  handleDatabaseError,
+  handleExternalServiceError,
+  withErrorHandling,
+  withErrorHandlingFallback,
+  createMiddlewareErrorHandler,
+  withMiddlewareErrorHandling,
+  consoleErrorFallback,
+  consoleWarnFallback,
+  consoleInfoFallback,
+  parseJsonBody,
+  isJsonContentType,
+  createAsyncErrorHandler,
+  createSyncErrorHandler
+} from './shared/errorHandlers.js';
 import qerrors from '../lib/qerrors.js';
 
 /**
@@ -190,6 +208,24 @@ export {
   
   // Error classes
   HttpInputError,
+  
+  // Specialized error handlers
+  handleInitializationError,
+  handleMiddlewareError,
+  handleServiceError,
+  handleDatabaseError,
+  handleExternalServiceError,
+  withErrorHandling,
+  withErrorHandlingFallback,
+  createMiddlewareErrorHandler,
+  withMiddlewareErrorHandling,
+  consoleErrorFallback,
+  consoleWarnFallback,
+  consoleInfoFallback,
+  parseJsonBody,
+  isJsonContentType,
+  createAsyncErrorHandler,
+  createSyncErrorHandler,
   
   // Legacy exports
   logError,
