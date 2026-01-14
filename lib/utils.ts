@@ -28,6 +28,7 @@ import {
   attempt,
   executeWithQerrors,
   formatErrorMessage,
+  rethrowWithMessage,
   loadQerrorsAsync,
   logErrorMaybe,
   createServiceExecutor,
@@ -170,6 +171,7 @@ export {
   attempt,
   executeWithQerrors,
   formatErrorMessage,
+  rethrowWithMessage,
   
   // Async qerrors loading utilities
   loadQerrorsAsync,

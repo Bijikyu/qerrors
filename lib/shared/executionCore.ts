@@ -264,6 +264,19 @@ export const formatErrorMessage = (error: unknown, context?: string): string => 
 };
 
 /**
+ * Rethrow an error with a prefixed message
+ * Useful for adding context when propagating errors up the call stack
+ * 
+ * @param prefix - Context prefix to add to the error message
+ * @param error - The original error to rethrow
+ * @throws Error with formatted message: "{prefix}: {original message}"
+ */
+export function rethrowWithMessage(prefix: string, error: unknown): never {
+  const message = formatErrorMessage(error);
+  throw new Error(`${prefix}: ${message}`);
+}
+
+/**
  * QerrorsModule type for lazy loading - represents the loaded qerrors module
  */
 export interface QerrorsModule {
