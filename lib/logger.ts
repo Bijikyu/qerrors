@@ -2,8 +2,18 @@
  * Logger module for qerrors
  */
 
+/**
+ * Standardized application logger interface
+ */
+export type AppLogger = {
+  info: (m: string, meta?: Record<string, unknown>) => void;
+  warn: (m: string, meta?: Record<string, unknown>) => void;
+  error: (m: string, meta?: Record<string, unknown>) => void;
+  debug: (m: string, meta?: Record<string, unknown>) => void;
+};
+
 // Simple logger implementation for now
-class Logger {
+class Logger implements AppLogger {
   info(message: string, ...args: any[]): void {
     console.info(`[INFO] ${message}`, ...args);
   }
@@ -35,5 +45,11 @@ class Logger {
 }
 
 const logger = new Logger();
+
+/**
+ * Get the application logger instance
+ * Returns a standardized AppLogger interface
+ */
+export const getAppLogger = (): AppLogger => logger;
 
 export default logger;
