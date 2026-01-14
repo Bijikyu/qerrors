@@ -41,6 +41,7 @@ import {
   type ExecuteWithQerrorsHooks,
   type AttemptResult
 } from './shared/executionCore.js';
+import { HttpInputError } from './shared/httpInputError.js';
 import qerrors from '../lib/qerrors.js';
 
 /**
@@ -186,6 +187,9 @@ export {
   createServiceExecutor,
   createServiceCall,
   createBatchServiceExecutor,
+  
+  // Error classes
+  HttpInputError,
   
   // Legacy exports
   logError,
