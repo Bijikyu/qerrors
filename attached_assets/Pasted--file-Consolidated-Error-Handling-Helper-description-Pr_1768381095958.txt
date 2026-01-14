@@ -1,0 +1,382 @@
+/**
+ * @file Consolidated Error Handling Helper
+ * @description Provides standardized error handling patterns for single-file use
+ * Eliminates duplication in error wrapper patterns within individual files
+ */
+
+import { errorUtils } from './service-error-handler.js';
+
+/**
+ * Configuration interface for error handling
+ */
+export interface ErrorHandlingConfig {
+  /** Error message context */
+  errorMessage?: string;
+  /** Whether to wrap errors in ServiceError */
+  wrapErrors?: boolean;
+  /** Custom error transformation function */
+  errorTransformer?: (error: any) => any;
+  /** Whether to log errors */
+  logErrors?: boolean;
+}
+
+/**
+ * Configuration interface for retry handling
+ */
+export interface RetryConfig {
+  /** Number of retry attempts */
+  retryCount: number;
+  /** Delay between retries in milliseconds */
+  retryDelayMs: number;
+  /** Whether to use exponential backoff */
+  exponentialBackoff?: boolean;
+  /** Maximum backoff multiplier */
+  maxBackoffMultiplier?: number;
+}
+
+/**
+ * Consolidated error handling utilities
+ * Eliminates duplicate error handling patterns within single files
+ */
+export const errorHandlingHelpers = {
+  /**
+   * Wraps async operations with consistent error handling
+   * Consolidates the most common error wrapper pattern used across services
+   * 
+   * @param operation - Async operation to execute
+   * @param config - Error handling configuration
+   * @returns Result of the operation or throws transformed error
+   */
+  wrapAsyncOperation: async <T>(
+    operation: () => Promise<T>,
+    config: ErrorHandlingConfig = {}
+  ): Promise<T> => {
+    const { errorMessage = 'Operation failed', wrapErrors = true, errorTransformer } = config;
+    
+    try {
+      return await operation();
+    } catch (error) {
+      if (errorTransformer) {
+        throw errorTransformer(error);
+      }
+      
+      if (wrapErrors) {
+        const serviceError = error instanceof Error ? error : errorUtils.wrap(error, errorMessage);
+        throw serviceError;
+      }
+      
+      throw error;
+    }
+  },
+
+  /**
+   * Wraps operations with retry logic
+   * Consolidates retry pattern used across multiple services
+   * 
+   * @param operation - Async operation to execute
+   * @param retryConfig - Retry configuration
+   * @param errorConfig - Error handling configuration
+   * @returns Result of the operation or throws last error
+   */
+  wrapWithRetry: async <T>(
+    operation: () => Promise<T>,
+    retryConfig: RetryConfig,
+    errorConfig: ErrorHandlingConfig = {}
+  ): Promise<T> => {
+    const { retryCount, retryDelayMs, exponentialBackoff = false, maxBackoffMultiplier = 4 } = retryConfig;
+    let lastError: any;
+    
+    for (let attempt = 0; attempt <= retryCount; attempt++) {
+      try {
+        return await errorHandlingHelpers.wrapAsyncOperation(operation, errorConfig);
+      } catch (error) {
+        lastError = error;
+        
+        // Don't retry on the last attempt
+        if (attempt === retryCount) {
+          throw lastError;
+        }
+        
+        // Calculate delay for next attempt
+        let delay = retryDelayMs;
+        if (exponentialBackoff) {
+          const multiplier = Math.min(maxBackoffMultiplier, Math.pow(2, attempt));
+          delay = retryDelayMs * multiplier;
+        }
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    throw lastError;
+  },
+
+  /**
+   * Creates a standardized error handler function
+   * Eliminates duplicate error handler creation patterns
+   * 
+   * @param config - Default error handling configuration
+   * @returns Error handler function
+   */
+  createErrorHandler: (config: ErrorHandlingConfig = {}) => {
+    return <T>(operation: () => Promise<T>, overrideConfig?: ErrorHandlingConfig): Promise<T> => {
+      const finalConfig = { ...config, ...overrideConfig };
+      return errorHandlingHelpers.wrapAsyncOperation(operation, finalConfig);
+    };
+  },
+
+  /**
+   * Creates a standardized retry handler function
+   * Eliminates duplicate retry handler creation patterns
+   * 
+   * @param retryConfig - Default retry configuration
+   * @param errorConfig - Default error handling configuration
+   * @returns Retry handler function
+   */
+  createRetryHandler: (
+    retryConfig: RetryConfig,
+    errorConfig: ErrorHandlingConfig = {}
+  ) => {
+    return <T>(operation: () => Promise<T>, overrideRetryConfig?: Partial<RetryConfig>): Promise<T> => {
+      const finalRetryConfig = { ...retryConfig, ...overrideRetryConfig };
+      return errorHandlingHelpers.wrapWithRetry(operation, finalRetryConfig, errorConfig);
+    };
+  },
+
+  /**
+   * Handles errors with fallback logic
+   * Consolidates error handling with fallback pattern
+   * 
+   * @param operation - Primary operation to execute
+   * @param fallbackOperation - Fallback operation to execute on error
+   * @param config - Error handling configuration
+   * @returns Result of primary or fallback operation
+   */
+  handleWithFallback: async <T>(
+    operation: () => Promise<T>,
+    fallbackOperation: () => Promise<T>,
+    config: ErrorHandlingConfig = {}
+  ): Promise<T> => {
+    try {
+      return await errorHandlingHelpers.wrapAsyncOperation(operation, config);
+    } catch (error) {
+      if (config.logErrors) {
+        console.warn(`Primary operation failed, using fallback: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      return await errorHandlingHelpers.wrapAsyncOperation(fallbackOperation, config);
+    }
+  }
+};
+
+/**
+ * Preset error handling configurations for common scenarios
+ * Provides ready-to-use configurations for standard error handling patterns
+ */
+export const errorHandlingPresets = {
+  /**
+   * Preset for API operations with standard error wrapping
+   */
+  get apiOperation(): ErrorHandlingConfig {
+    return {
+      errorMessage: 'API operation failed',
+      wrapErrors: true,
+      logErrors: true
+    };
+  },
+
+  /**
+   * Preset for database operations with retry logic
+   */
+  get databaseOperation(): ErrorHandlingConfig {
+    return {
+      errorMessage: 'Database operation failed',
+      wrapErrors: true,
+      logErrors: true
+    };
+  },
+
+  /**
+   * Preset for external service calls with comprehensive error handling
+   */
+  get externalService(): ErrorHandlingConfig {
+    return {
+      errorMessage: 'External service call failed',
+      wrapErrors: true,
+      logErrors: true
+    };
+  },
+
+  /**
+   * Preset for validation operations that don't wrap errors
+   */
+  get validation(): ErrorHandlingConfig {
+    return {
+      errorMessage: 'Validation failed',
+      wrapErrors: false,
+      logErrors: false
+    };
+  }
+};
+
+/**
+ * Preset retry configurations for common scenarios
+ */
+export const retryPresets = {
+  /**
+   * Preset for network operations with moderate retry
+   */
+  get networkOperation(): RetryConfig {
+    return {
+      retryCount: 3,
+      retryDelayMs: 1000,
+      exponentialBackoff: true,
+      maxBackoffMultiplier: 4
+    };
+  },
+
+  /**
+   * Preset for database operations with aggressive retry
+   */
+  get databaseOperation(): RetryConfig {
+    return {
+      retryCount: 5,
+      retryDelayMs: 500,
+      exponentialBackoff: true,
+      maxBackoffMultiplier: 8
+    };
+  },
+
+  /**
+   * Preset for external API calls with conservative retry
+   */
+  get externalApi(): RetryConfig {
+    return {
+      retryCount: 2,
+      retryDelayMs: 2000,
+      exponentialBackoff: false
+    };
+  },
+
+  /**
+   * Preset for file operations with minimal retry
+   */
+  get fileOperation(): RetryConfig {
+    return {
+      retryCount: 1,
+      retryDelayMs: 100,
+      exponentialBackoff: false
+    };
+  }
+};
+
+/**
+ * Helper functions for common error handling patterns
+ * Eliminates duplicate helper function patterns
+ */
+export const errorHandlingHelpersExtended = {
+  /**
+   * Creates a timeout wrapper for operations
+   */
+  withTimeout: async <T>(
+    operation: () => Promise<T>,
+    timeoutMs: number,
+    timeoutMessage: string = 'Operation timed out'
+  ): Promise<T> => {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+    });
+
+    return Promise.race([operation(), timeoutPromise]);
+  },
+
+  /**
+   * Creates a circuit breaker pattern
+   */
+  withCircuitBreaker: <T>(
+    operation: () => Promise<T>,
+    failureThreshold: number = 5,
+    resetTimeoutMs: number = 60000
+  ) => {
+    let failures = 0;
+    let lastFailureTime = 0;
+    let state: 'closed' | 'open' | 'half-open' = 'closed';
+
+    return async (): Promise<T> => {
+      const now = Date.now();
+      
+      // Reset circuit breaker if timeout has passed
+      if (state === 'open' && now - lastFailureTime > resetTimeoutMs) {
+        state = 'half-open';
+        failures = 0;
+      }
+      
+      // Fail fast if circuit is open
+      if (state === 'open') {
+        throw new Error('Circuit breaker is open');
+      }
+      
+      try {
+        const result = await operation();
+        
+        // Reset on success
+        if (state === 'half-open') {
+          state = 'closed';
+        }
+        failures = 0;
+        
+        return result;
+      } catch (error) {
+        failures++;
+        lastFailureTime = now;
+        
+        // Open circuit if threshold reached
+        if (failures >= failureThreshold) {
+          state = 'open';
+        }
+        
+        throw error;
+      }
+    };
+  },
+
+  /**
+   * Creates a debounced operation wrapper
+   */
+  debounce: <T>(
+    operation: () => Promise<T>,
+    delayMs: number
+  ) => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    let lastPromise: Promise<T> | null = null;
+
+    return (): Promise<T> => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      const promise = new Promise<T>((resolve, reject) => {
+        timeoutId = setTimeout(async () => {
+          try {
+            const result = await operation();
+            resolve(result);
+          } catch (error) {
+            reject(error);
+          }
+        }, delayMs);
+      });
+
+      lastPromise = promise;
+      return promise;
+    };
+  }
+};
+
+/**
+ * Export commonly used functions for backward compatibility
+ */
+export const wrapAsyncOperation = errorHandlingHelpers.wrapAsyncOperation;
+export const wrapWithRetry = errorHandlingHelpers.wrapWithRetry;
+export const createErrorHandler = errorHandlingHelpers.createErrorHandler;
+export const createRetryHandler = errorHandlingHelpers.createRetryHandler;
+export const handleWithFallback = errorHandlingHelpers.handleWithFallback;
