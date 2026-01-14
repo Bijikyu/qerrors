@@ -33,3 +33,17 @@ export const clearCustomSanitizationPatterns = (): void => {
 export const sanitizeWithCustomPatterns = (text: string): string => {
   return sanitizeMessage(text);
 };
+
+/**
+ * Partially hides sensitive keys for logging, exposing only the first four characters.
+ * This prevents leaked credentials in logs while still allowing traceability.
+ */
+export const maskKey = (key: unknown): string | unknown => {
+  if (typeof key === 'string') {
+    if (key.length <= 4) {
+      return '***';
+    }
+    return `${key.slice(0, 4)}***`;
+  }
+  return key;
+};
