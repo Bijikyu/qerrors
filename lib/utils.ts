@@ -27,6 +27,7 @@ import {
   deepClone,
   attempt,
   executeWithQerrors,
+  executeWithErrorHandling,
   formatErrorMessage,
   rethrowWithMessage,
   loadQerrorsAsync,
@@ -35,7 +36,9 @@ import {
   createServiceCall,
   createBatchServiceExecutor,
   type QerrorsModule,
-  type BatchOperationResult
+  type BatchOperationResult,
+  type ExecuteWithQerrorsCoreOptions,
+  type ExecuteWithQerrorsHooks
 } from './shared/executionCore.js';
 import qerrors from '../lib/qerrors.js';
 
@@ -170,6 +173,7 @@ export {
   createTimer,
   attempt,
   executeWithQerrors,
+  executeWithErrorHandling,
   formatErrorMessage,
   rethrowWithMessage,
   
@@ -189,4 +193,9 @@ export {
 };
 
 // Type exports
-export type { QerrorsModule, BatchOperationResult };
+export type { 
+  QerrorsModule, 
+  BatchOperationResult,
+  ExecuteWithQerrorsCoreOptions,
+  ExecuteWithQerrorsHooks
+};

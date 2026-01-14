@@ -151,19 +151,36 @@ export const attempt = async <T>(fn: () => T | Promise<T>): Promise<{
 };
 
 /**
- * Execute operation with integrated error handling and logging
+ * Options for executeWithQerrors core function
  */
-export const executeWithErrorHandling = async <T>(options: {
+export interface ExecuteWithQerrorsCoreOptions<T> {
   opName: string;
   operation: () => T | Promise<T>;
-  context?: Record<string, any>;
-  failureMessage?: string;
+  context?: Record<string, unknown>;
+  failureMessage: string;
   errorCode?: string;
   errorType?: string;
   logMessage?: string;
   rethrow?: boolean;
   fallbackValue?: T;
-}): Promise<T> => {
+}
+
+/**
+ * Hooks for customizing error handling behavior
+ */
+export interface ExecuteWithQerrorsHooks {
+  augmentContext?: (error: unknown, baseContext: Record<string, unknown>) => Record<string, unknown>;
+  formatFailureMessage?: (base: string, error: unknown, context: Record<string, unknown>) => string;
+}
+
+/**
+ * Execute operation with integrated error handling, logging, and performance tracking
+ * Supports hooks for customizing context and error message formatting
+ */
+export const executeWithErrorHandling = async <T>(
+  options: ExecuteWithQerrorsCoreOptions<T>,
+  hooks: ExecuteWithQerrorsHooks = {}
+): Promise<T> => {
   const { 
     opName, 
     operation, 
@@ -171,72 +188,106 @@ export const executeWithErrorHandling = async <T>(options: {
     failureMessage, 
     errorCode, 
     errorType, 
-    logMessage, 
+    logMessage = `${opName} failed`,
     rethrow = true, 
     fallbackValue
   } = options;
   
   const timer = createTimerInternal(opName, true);
-  
-  try {
-    const result = await Promise.resolve().then(operation);
-    await timer.logPerformance(true, context);
-    return result;
-  } catch (error) {
-    const errorContext = {
-      ...context,
-      operation: opName,
-      errorCode,
-      errorType,
-      timestamp: new Date().toISOString()
-    };
-    
-    // Use qerrors for sophisticated error reporting
+  const fallbackToken = Symbol('qerrorsFallback');
+  const qerrorsModule = await loadQerrorsAsync();
+  let capturedError: unknown = null;
+
+  const guardedOperation = async (): Promise<T> => {
     try {
-      const errorObj = error instanceof Error ? error : new Error(String(error));
-      await qerrors(errorObj, `executionCore.${opName}`, errorContext);
-    } catch (qerror) {
-      // Fallback logging if qerrors fails
-      console.error(`qerrors logging failed for ${opName}`, qerror);
-    }
-    
-    if (logMessage || failureMessage) {
-      const message = logMessage || failureMessage || `${opName} failed`;
-      try {
-        const logger = await import('../logger.js');
-        await (logger as any).logError(message, { ...errorContext, error });
-      } catch (logErr) {
-        console.error(message, errorContext, error);
-      }
-    }
-    
-    if (rethrow) {
+      return await Promise.resolve().then(operation);
+    } catch (error) {
+      capturedError = error;
       throw error;
     }
-    
-    if (fallbackValue !== undefined) {
-      return fallbackValue;
+  };
+
+  // Try using qerrors.withErrorHandling if available
+  if (qerrorsModule && typeof (qerrorsModule as any).withErrorHandling === 'function') {
+    const fallbackSentinel = fallbackToken as unknown as T;
+    const result = await (qerrorsModule as any).withErrorHandling(
+      guardedOperation, 
+      opName, 
+      context, 
+      { fallback: fallbackSentinel }
+    );
+    if (result !== fallbackSentinel) {
+      await timer.logPerformance(true, context);
+      return result as T;
     }
-    
-    throw error;
+  } else {
+    const outcome = await attempt(guardedOperation);
+    if (outcome.ok) {
+      await timer.logPerformance(true, context);
+      return outcome.value;
+    }
+    capturedError = outcome.error;
   }
+
+  // Error handling path
+  if (!capturedError) capturedError = new Error('Unknown error');
+  
+  const renderedError = formatErrorMessage(capturedError);
+  const baseContext: Record<string, unknown> = {
+    ...context,
+    operation: opName,
+    errorMessage: renderedError,
+    errorCode,
+    errorType,
+    timestamp: new Date().toISOString()
+  };
+  
+  const enrichedContext = hooks.augmentContext 
+    ? hooks.augmentContext(capturedError, baseContext) 
+    : baseContext;
+  
+  await logErrorMaybe(qerrorsModule, opName, logMessage, enrichedContext);
+  
+  const baseMessage = `${failureMessage}: ${renderedError}`;
+  const finalMessage = hooks.formatFailureMessage 
+    ? hooks.formatFailureMessage(baseMessage, capturedError, enrichedContext)
+    : baseMessage;
+  
+  // Return fallback if provided
+  if (fallbackValue !== undefined) {
+    return fallbackValue;
+  }
+  
+  // Construct typed error
+  let constructedError: Error;
+  if (qerrorsModule && typeof (qerrorsModule as any).createTypedError === 'function') {
+    constructedError = (qerrorsModule as any).createTypedError(
+      finalMessage, 
+      errorType || 'DEPENDENCY', 
+      errorCode || ''
+    );
+  } else {
+    constructedError = new Error(finalMessage);
+    (constructedError as any).code = errorCode;
+    (constructedError as any).type = errorType || 'DEPENDENCY';
+  }
+  
+  if (rethrow) {
+    throw constructedError;
+  }
+  
+  return constructedError as unknown as T;
 };
 
 /**
  * Execute operation with qerrors integration
+ * Convenience wrapper around executeWithErrorHandling
  */
-export const executeWithQerrors = async <T>(options: {
-  opName: string;
-  operation: () => T | Promise<T>;
-  context?: Record<string, any>;
-  failureMessage: string;
-  errorCode?: string;
-  errorType?: string;
-  logMessage?: string;
-  rethrow?: boolean;
-  fallbackValue?: T;
-}): Promise<T> => {
-  return executeWithErrorHandling(options);
+export const executeWithQerrors = async <T>(
+  options: ExecuteWithQerrorsCoreOptions<T>,
+  hooks?: ExecuteWithQerrorsHooks
+): Promise<T> => {
+  return executeWithErrorHandling(options, hooks);
 };
 
 /**
