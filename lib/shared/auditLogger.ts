@@ -1,9 +1,13 @@
 /**
- * Structured Audit Logger
+ * Structured Audit Logger using Pino
  * Provides comprehensive audit logging for security-sensitive operations
  */
 
 import { randomBytes } from 'crypto';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pino = require('pino');
+type Logger = any;
 
 export type AuditSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
@@ -23,50 +27,54 @@ export interface AuditEvent {
   severity: AuditSeverity;
   category: AuditCategory;
   action: string;
-  userId?: string;
-  ipAddress?: string;
-  userAgent?: string;
-  resource?: string;
+  userId?: string | undefined;
+  ipAddress?: string | undefined;
+  userAgent?: string | undefined;
+  resource?: string | undefined;
   outcome: AuditOutcome;
   details: Record<string, unknown>;
   auditId: string;
 }
-
-const SENSITIVE_KEYS = [
-  'key', 'token', 'password', 'secret', 'clientSecret',
-  'authorization', 'bearer', 'creditCard', 'cardNumber',
-  'ssn', 'bankAccount', 'apiKey', 'accessToken', 'refreshToken'
-];
-
-const redactSensitiveData = (obj: Record<string, unknown>): Record<string, unknown> => {
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(obj)) {
-    const lowerKey = key.toLowerCase();
-    if (SENSITIVE_KEYS.some(sensitive => lowerKey.includes(sensitive.toLowerCase()))) {
-      result[key] = '[REDACTED]';
-    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-      result[key] = redactSensitiveData(value as Record<string, unknown>);
-    } else {
-      result[key] = value;
-    }
-  }
-  return result;
-};
 
 const generateAuditId = (): string => {
   const bytes = randomBytes(4);
   return `audit_${Date.now().toString(36)}_${bytes.toString('hex').substring(0, 8)}`;
 };
 
-class AuditLogger {
+class PinoAuditLogger {
+  private logger: Logger;
+
+  constructor() {
+    this.logger = pino({
+      name: 'audit-logger',
+      level: 'info',
+      redact: [
+        '*.key',
+        '*.token',
+        '*.password',
+        '*.secret',
+        '*.clientSecret',
+        '*.authorization',
+        '*.bearer',
+        '*.creditCard',
+        '*.cardNumber',
+        '*.ssn',
+        '*.bankAccount',
+        '*.apiKey',
+        '*.accessToken',
+        '*.refreshToken',
+      ],
+      timestamp: pino.stdTimeFunctions.isoTime,
+    });
+  }
+
   log(event: Omit<AuditEvent, 'timestamp' | 'auditId'>): void {
     const auditEvent: AuditEvent = {
       timestamp: new Date().toISOString(),
       auditId: generateAuditId(),
       ...event,
-      details: redactSensitiveData(event.details),
     };
-    console.info('[AUDIT]', JSON.stringify({ type: 'AUDIT_EVENT', auditEvent }));
+    this.logger.info({ type: 'AUDIT_EVENT', auditEvent });
   }
 
   logAuth(
@@ -185,7 +193,7 @@ class AuditLogger {
   }
 }
 
-export const auditLogger = new AuditLogger();
+export const auditLogger = new PinoAuditLogger();
 
 export const logAuth = auditLogger.logAuth.bind(auditLogger);
 export const logDataAccess = auditLogger.logDataAccess.bind(auditLogger);

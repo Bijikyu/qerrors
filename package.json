@@ -28,6 +28,7 @@
   "license": "ISC",
   "dependencies": {
     "@langchain/openai": "^0.6.17",
+    "@types/pino": "^7.0.4",
     "axios": "^1.9.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
@@ -44,6 +45,7 @@
     "node-cache": "^5.1.2",
     "opossum": "^9.0.0",
     "p-limit": "^7.2.0",
+    "pino": "^10.1.1",
     "quick-lru": "^7.3.0",
     "winston": "^3.13.0",
     "winston-daily-rotate-file": "^5.0.0"
