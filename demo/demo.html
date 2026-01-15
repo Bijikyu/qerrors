@@ -1370,8 +1370,7 @@ async function triggerCustomError() {
                 a.download = 'qerrors-demo-logs.json';
                 a.click();
             }
-            }
-        };
+        }
         
         // Utility functions
         function updateResponse(elementId, content, type = 'info') {
@@ -1532,17 +1531,14 @@ async function triggerCustomError() {
             console.log(`[${type.toUpperCase()}] ${message}`);
         }
 
-        
-
-        
-
-        
-
-        
-
-        
-
-
+        function validateEnvironment() {
+            const requiredElement = document.getElementById('requiredVars');
+            const optionalElement = document.getElementById('optionalVars');
+            
+            if (!requiredElement || !optionalElement) {
+                console.error('Environment form elements not found');
+                return;
+            }
             
             const required = requiredElement.value.split(',').map(v => v.trim()).filter(v => v);
             const optional = optionalElement.value.split(',').map(v => v.trim()).filter(v => v);
@@ -1552,7 +1548,7 @@ async function triggerCustomError() {
                     timestamp: new Date().toISOString(),
                     environment: 'development',
                     hasEnvFile: true,
-                    isHealthy: required.length > 2, // Simulate some missing vars
+                    isHealthy: required.length > 2,
                     required: {
                         total: required.length,
                         configured: required.length - 1,
@@ -1736,7 +1732,14 @@ async function triggerCustomError() {
             });
         }
 
-
+        function testExpressMiddleware() {
+            const routeElement = document.getElementById('testRoute');
+            const methodElement = document.getElementById('testMethod');
+            
+            if (!routeElement || !methodElement) {
+                console.error('Express form elements not found');
+                return;
+            }
             
             const route = routeElement.value || '/api/test';
             const method = methodElement.value || 'GET';
@@ -1923,8 +1926,6 @@ async function triggerCustomError() {
                 
                 updateResponse('externalServiceResponse', 'External Service Test:\n' + JSON.stringify(serviceTest, null, 2), 'error');
             });
-            
-            const startTime = Date.now();
         }
 
         function testServiceFallback() {
@@ -2313,7 +2314,7 @@ async function triggerCustomError() {
                 return;
             }
             
-            const payload = payloadElement.value || '<script>alert("test")</script>';
+            const payload = payloadElement.value || '<script>alert("test")<\/script>';
             
             simulateAsyncOperation(() => {
                 const xssTest = {
