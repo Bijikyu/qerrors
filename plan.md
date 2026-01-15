@@ -116,7 +116,8 @@ Replace all `simulateAsyncOperation()` calls with real API calls:
 #### 3.1 Configure Gemini
 - Gemini API key already configured (`GEMINI_API_KEY`)
 - Provider set to `google` (`QERRORS_AI_PROVIDER`)
-- Model: `gemini-2.5-flash-lite` (`QERRORS_AI_MODEL`)
+- Default model: `gemini-3-flash-preview` (as configured in localVars.js)
+- Note: Environment variable override may be present
 
 #### 3.2 AI Analysis Endpoint
 - Call `getAIModelManager().analyzeError(errorData)`
