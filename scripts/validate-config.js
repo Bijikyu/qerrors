@@ -56,8 +56,8 @@ function validatePackageJson() {
     }
     
     // Check main entry point
-    if (packageJson.main !== 'dist/index.js') {
-      logError(`Main entry point should be 'dist/index.js', found: ${packageJson.main}`);
+    if (packageJson.main !== 'index.js') {
+      logError(`Main entry point should be 'index.js', found: ${packageJson.main}`);
       validationErrors++;
     } else {
       logSuccess('Main entry point is correct');
@@ -142,7 +142,7 @@ function validateTsConfig() {
 function validateProjectStructure() {
   logStep('Validating project structure');
   
-  const requiredDirectories = ['lib', 'test', 'scripts'];
+  const requiredDirectories = ['lib', 'tests', 'scripts', 'config'];
   const requiredFiles = ['README.md', 'LICENSE', '.gitignore'];
   
   for (const dir of requiredDirectories) {
@@ -212,9 +212,9 @@ function validateLibFiles() {
 function validateTestFiles() {
   logStep('Validating test files');
   
-  const testPath = path.join(process.cwd(), 'test');
+  const testPath = path.join(process.cwd(), 'tests');
   if (fs.existsSync(testPath)) {
-    const testFiles = fs.readdirSync(testPath).filter(file => file.endsWith('.test.js'));
+    const testFiles = fs.readdirSync(testPath).filter(file => file.endsWith('.test.js') || file.endsWith('.test.cjs'));
     
     if (testFiles.length === 0) {
       logWarning('No test files found');

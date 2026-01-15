@@ -53,7 +53,13 @@ module.exports = {
   },
   overrides: [
     {
-      files: ['test/**/*.js', '*.test.js'],
+      files: ['**/*.mjs', '**/*.esm.js'],
+      parserOptions: {
+        sourceType: 'module'
+      }
+    },
+    {
+      files: ['tests/**/*.{js,cjs,mjs}', '*.test.{js,cjs,mjs}'],
       env: {
         mocha: true,
         jest: true

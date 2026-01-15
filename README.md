@@ -1,6 +1,6 @@
 # qerrors
 
-[![npm version](https://badge.fury.io/js/qerrors.svg)](https://badge.fury.io/js/qerrors)
+[![npm version](https://badge.fury.io/js/%40bijikyu%2Fqerrors.svg)](https://badge.fury.io/js/%40bijikyu%2Fqerrors)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
 
@@ -24,14 +24,20 @@ qerrors revolutionizes error handling by combining traditional logging with AI-p
 ### Installation
 
 ```bash
-npm install qerrors
+# GitHub Packages (recommended)
+# Create/update your project's .npmrc:
+#   @bijikyu:registry=https://npm.pkg.github.com
+#   //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+#
+# Then install:
+npm install @bijikyu/qerrors
 ```
 
 ### Basic Usage
 
 ```javascript
 const express = require('express');
-const qerrors = require('qerrors');
+const qerrors = require('@bijikyu/qerrors');
 
 const app = express();
 
@@ -49,7 +55,7 @@ app.listen(3000);
 ### Direct Error Handling
 
 ```javascript
-const qerrors = require('qerrors');
+const qerrors = require('@bijikyu/qerrors');
 
 try {
   // Your code that might fail

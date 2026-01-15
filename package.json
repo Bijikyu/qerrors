@@ -1,8 +1,14 @@
 {
-  "name": "qerrors",
+  "name": "@bijikyu/qerrors",
   "version": "1.2.7",
   "description": "Intelligent error handling middleware with AI-powered analysis, environment validation, caching, and production-ready logging. Uses industry-standard libraries (opossum, dotenv, lodash, @langchain/openai) for enhanced reliability and ecosystem integration. Provides OpenAI-based error suggestions, queue management, retry mechanisms, and comprehensive configuration options for Node.js applications.",
-  "main": "dist/index.js",
+  "main": "index.js",
+  "types": "lib/types.d.ts",
+  "files": [
+    "index.js",
+    "lib/",
+    "config/"
+  ],
   "keywords": [
     "error",
     "logger",
@@ -58,6 +64,14 @@
     "type": "git",
     "url": "https://github.com/Bijikyu/qerrors"
   },
+  "bugs": {
+    "url": "https://github.com/Bijikyu/qerrors/issues"
+  },
+  "homepage": "https://github.com/Bijikyu/qerrors#readme",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
   "engines": {
     "node": ">=18"
   },
@@ -72,9 +86,10 @@
     "test:integration": "node tests/integration.test.js",
     "test:ts": "tsc --noEmit && npm run test",
     "clean": "rm -rf dist",
-    "lint": "eslint lib/**/*.js test/**/*.js --fix",
-    "format": "prettier --write lib/**/*.js test/**/*.js *.js",
-    "validate": "node scripts/validate-config.js && npm run lint && npm run test:ts",
+    "lint": "eslint \"lib/**/*.js\" \"scripts/**/*.js\" \"tests/**/*.test.{js,cjs}\" \"*.js\"",
+    "lint:fix": "eslint \"lib/**/*.js\" \"scripts/**/*.js\" \"tests/**/*.test.{js,cjs}\" \"*.js\" --fix",
+    "format": "prettier --write \"lib/**/*.js\" \"scripts/**/*.js\" \"tests/**/*.{js,cjs,mjs}\" \"*.js\"",
+    "validate": "node scripts/validate-config.js && npm run test:ts",
     "validate:config": "node scripts/validate-config.js",
     "deploy": "node scripts/deploy.js",
     "deploy:full": "./scripts/deploy.sh",

@@ -8,7 +8,7 @@
  * including error handling, logging, performance timing, and sanitization utilities.
  */
 
-declare module 'qerrors' {
+declare module '@bijikyu/qerrors' {
   interface QErrorsModule {
     qerrors(error: any, context: string, ...args: any[]): void;
     logger: any;
