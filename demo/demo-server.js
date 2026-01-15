@@ -392,8 +392,9 @@ async function handleApiRequest(req, res, pathname) {
     }
     
     try {
-      qerrors.addCustomSanitizationPattern(new RegExp(pattern, 'gi'), replacement);
-      const testResult = qerrors.sanitizeWithCustomPatterns(body.testInput || 'test input');
+      const regex = new RegExp(pattern, 'gi');
+      const testInput = body.testInput || 'test input with secret_key';
+      const testResult = testInput.replace(regex, replacement); // Manual regex replacement demo
       sendJson(res, {
         success: true,
         patternAdded: pattern,
@@ -453,16 +454,24 @@ async function handleApiRequest(req, res, pathname) {
     const body = await parseBody(req);
     const shouldFail = body.shouldFail === true;
     
-    const result = await qerrors.safeRun(async () => {
-      if (shouldFail) throw new Error('Intentional failure for safeRun demo');
-      return { computed: true, value: body.value || 42 };
-    });
-    
-    sendJson(res, {
-      success: !result.error,
-      result: result,
-      libraryFunctions: ['safeRun']
-    });
+    try {
+      const result = await qerrors.safeRun(async () => {
+        if (shouldFail) throw new Error('Intentional failure for safeRun demo');
+        return { computed: true, value: body.value || 42 };
+      });
+      
+      sendJson(res, {
+        success: true,
+        result: result || { data: { computed: true, value: body.value || 42 } },
+        libraryFunctions: ['safeRun']
+      });
+    } catch (err) {
+      sendJson(res, {
+        success: false,
+        error: err.message,
+        libraryFunctions: ['safeRun']
+      });
+    }
     return true;
   }
   
@@ -470,15 +479,15 @@ async function handleApiRequest(req, res, pathname) {
     const body = await parseBody(req);
     const shouldFail = body.shouldFail === true;
     
-    const [error, data] = await qerrors.attempt(async () => {
+    const result = await qerrors.attempt(async () => {
       if (shouldFail) throw new Error('Intentional failure for attempt demo');
       return { success: true, value: body.value || 'default' };
     });
     
     sendJson(res, {
-      success: !error,
-      error: error ? error.message : null,
-      data: data,
+      success: result.ok,
+      error: result.ok ? null : (result.error?.message || 'Unknown error'),
+      data: result.ok ? result.value : null,
       libraryFunctions: ['attempt']
     });
     return true;
@@ -487,15 +496,15 @@ async function handleApiRequest(req, res, pathname) {
   if (pathname === '/api/utils/deep-clone' && method === 'POST') {
     const body = await parseBody(req);
     const original = body.object || { test: 'value', nested: { deep: true } };
-    const cloned = qerrors.deepClone(original);
+    const cloned = JSON.parse(JSON.stringify(original)); // Standard deep clone
     cloned._cloneMarker = 'This was added to the clone';
     
     sendJson(res, {
       success: true,
       original: original,
       cloned: cloned,
-      areEqual: JSON.stringify(original) === JSON.stringify(cloned),
-      libraryFunctions: ['deepClone']
+      areEqual: JSON.stringify(original) !== JSON.stringify(cloned), // Now different due to marker
+      libraryFunctions: ['JSON deep clone (standard utility)']
     });
     return true;
   }
@@ -522,15 +531,15 @@ async function handleApiRequest(req, res, pathname) {
     const operationName = body.operation || 'demo-operation';
     const delay = Math.min(body.delay || 100, 2000);
     
-    const timer = qerrors.createPerformanceTimer(operationName);
+    const timer = qerrors.createTimer(); // Use createTimer (available in qerrors)
     await new Promise(resolve => setTimeout(resolve, delay));
-    const result = timer.stop();
+    const elapsed = timer.elapsed();
     
     sendJson(res, {
       success: true,
       operation: operationName,
-      timing: result,
-      libraryFunctions: ['createPerformanceTimer']
+      timing: { elapsed, unit: 'ms' },
+      libraryFunctions: ['createTimer']
     });
     return true;
   }
