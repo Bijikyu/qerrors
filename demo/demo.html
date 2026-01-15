@@ -750,6 +750,21 @@
             verbose: false
         };
 
+        // Real API helper - replaces all mock simulateAsyncOperation calls
+        async function callApi(endpoint, options = {}) {
+            const method = options.method || 'GET';
+            const body = options.body ? JSON.stringify(options.body) : undefined;
+            const headers = { 'Content-Type': 'application/json', ...options.headers };
+            
+            try {
+                const response = await fetch(endpoint, { method, headers, body });
+                const data = await response.json();
+                return { success: response.ok, data, status: response.status };
+            } catch (err) {
+                return { success: false, error: err.message, status: 0 };
+            }
+        }
+
 
 
         // Tab switching
@@ -776,268 +791,93 @@
             document.getElementById(tabId).classList.add('active');
         }
 
-        // Advanced testing functions
-        function testCircuitBreaker() {
-            const thresholdElement = document.getElementById('circuitThreshold');
-            const timeoutElement = document.getElementById('circuitTimeout');
+        // Advanced testing functions - using real qerrors library via API
+        async function testCircuitBreaker() {
+            updateResponse('advanced-response', 'Testing circuit breaker with real qerrors library...', 'loading');
             
-            if (!thresholdElement || !timeoutElement) {
-                console.error('Circuit breaker elements not found');
-                return;
+            const result = await callApi('/api/circuit/execute', { method: 'POST', body: { shouldFail: false } });
+            if (result.success) {
+                updateResponse('advanced-response', 'Circuit Breaker Test (REAL):\n' + JSON.stringify(result.data, null, 2), 'success');
+            } else {
+                updateResponse('advanced-response', 'Circuit Breaker Error:\n' + JSON.stringify(result, null, 2), 'error');
             }
-            
-            const threshold = parseInt(thresholdElement.value) || 5;
-            const timeout = parseInt(timeoutElement.value) || 60000;
-            
-            updateResponse('advanced-response', 'Testing circuit breaker...', 'loading');
-            
-            setTimeout(() => {
-                const circuitTest = {
-                    config: { threshold, timeout },
-                    test: {
-                        totalRequests: 20,
-                        failures: 8,
-                        successes: 12,
-                        state: 'OPEN',
-                        reason: 'Failure threshold exceeded'
-                    },
-                    metrics: {
-                        failureRate: '40%',
-                        responseTime: '2.3s',
-                        lastFailure: new Date().toISOString()
-                    },
-                    behavior: {
-                        currentState: 'OPEN',
-                        nextState: 'HALF_OPEN',
-                        recoveryTime: timeout + 'ms'
-                    }
-                };
-                
-                updateResponse('advanced-response', 'Circuit Breaker Test:\n' + JSON.stringify(circuitTest, null, 2), 'error');
-            }, 1500);
         }
 
-        function forceCircuitOpen() {
-            updateResponse('advanced-response', 'Forcing circuit open...', 'loading');
+        async function forceCircuitOpen() {
+            updateResponse('advanced-response', 'Triggering circuit failure with real qerrors library...', 'loading');
             
-            setTimeout(() => {
-                const forcedOpen = {
-                    action: 'force_open',
-                    state: 'OPEN',
-                    reason: 'Manual intervention',
-                    timestamp: new Date().toISOString(),
-                    nextRecoveryAttempt: new Date(Date.now() + 30000).toISOString()
-                };
-                
-                updateResponse('advanced-response', 'Circuit Forced Open:\n' + JSON.stringify(forcedOpen, null, 2), 'warning');
-            }, 500);
+            const result = await callApi('/api/circuit/execute', { method: 'POST', body: { shouldFail: true } });
+            const statusResult = await callApi('/api/circuit/status');
+            const combined = { executeResult: result.data, circuitStatus: statusResult.data };
+            updateResponse('advanced-response', 'Circuit Failure Triggered (REAL):\n' + JSON.stringify(combined, null, 2), 'warning');
         }
 
-        function resetCircuit() {
-            updateResponse('advanced-response', 'Resetting circuit breaker...', 'loading');
+        async function resetCircuit() {
+            updateResponse('advanced-response', 'Getting circuit breaker status with real qerrors library...', 'loading');
             
-            setTimeout(() => {
-                const reset = {
-                    action: 'reset',
-                    previousState: 'OPEN',
-                    newState: 'CLOSED',
-                    timestamp: new Date().toISOString(),
-                    metrics: {
-                        totalResets: 3,
-                        lastResetDuration: '45s',
-                        uptime: '87%'
-                    }
-                };
-                
-                updateResponse('advanced-response', 'Circuit Reset:\n' + JSON.stringify(reset, null, 2), 'success');
-            }, 1000);
+            const result = await callApi('/api/circuit/status');
+            if (result.success) {
+                updateResponse('advanced-response', 'Circuit Status (REAL):\n' + JSON.stringify(result.data, null, 2), 'success');
+            } else {
+                updateResponse('advanced-response', 'Circuit Status Error:\n' + JSON.stringify(result, null, 2), 'error');
+            }
         }
 
-        function startStressTest() {
+        async function startStressTest() {
             const concurrencyElement = document.getElementById('stressConcurrency');
             const durationElement = document.getElementById('stressDuration');
             
-            if (!concurrencyElement || !durationElement) {
-                console.error('Stress test elements not found');
-                return;
-            }
+            const concurrency = concurrencyElement ? parseInt(concurrencyElement.value) || 10 : 10;
+            const iterations = durationElement ? parseInt(durationElement.value) || 5 : 5;
             
-            const concurrency = parseInt(concurrencyElement.value) || 100;
-            const duration = parseInt(durationElement.value) || 30000;
+            updateResponse('advanced-response', `Running queue stress test with ${concurrency} concurrency, ${iterations} iterations...`, 'loading');
             
-            updateResponse('advanced-response', `Starting stress test: ${concurrency} concurrent requests for ${duration}s...`, 'loading');
-            
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += 10;
-                
-                if (progress >= 100) {
-                    clearInterval(interval);
-                    
-                    const stressResults = {
-                        test: 'queue_stress_test',
-                        config: { concurrency, duration },
-                        results: {
-                            totalRequests: concurrency * duration,
-                            successfulRequests: Math.floor(concurrency * duration * 0.85),
-                            failedRequests: Math.floor(concurrency * duration * 0.15),
-                            averageResponseTime: '234ms',
-                            peakQueueLength: Math.floor(concurrency * 0.3),
-                            queueRejections: Math.floor(concurrency * 0.05)
-                        },
-                        performance: {
-                            throughput: `${Math.floor(concurrency * 0.85)} req/sec`,
-                            errorRate: '15%',
-                            memoryUsage: '125MB',
-                            cpuUsage: '45%'
-                        }
-                    };
-                    
-                    updateResponse('advanced-response', 'Stress Test Results:\n' + JSON.stringify(stressResults, null, 2), 'success');
-                } else {
-                    updateResponse('advanced-response', `Stress test in progress: ${progress}% complete...`, 'loading');
-                }
-            }, duration * 100);
+            const result = await callApi('/api/queue/execute', { method: 'POST', body: { iterations, priority: 'high' } });
+            const stats = await callApi('/api/queue/status');
+            const combined = { queueExecution: result.data, queueStats: stats.data };
+            updateResponse('advanced-response', 'Queue Stress Test (REAL):\n' + JSON.stringify(combined, null, 2), result.success ? 'success' : 'error');
         }
 
         function stopStressTest() {
-            updateResponse('advanced-response', 'Stress test stopped by user', 'warning');
+            updateResponse('advanced-response', 'Queue stress test stopped', 'warning');
         }
 
-        function benchmarkCache() {
-            const sizeElement = document.getElementById('cacheSize');
-            const ttlElement = document.getElementById('cacheTTL');
+        async function benchmarkCache() {
+            updateResponse('advanced-response', 'Getting real cache stats from qerrors library...', 'loading');
             
-            if (!sizeElement || !ttlElement) {
-                console.error('Cache configuration elements not found');
-                return;
+            const stats = await callApi('/api/queue/status');
+            const cacheInfo = await callApi('/api/cache/clear', { method: 'POST' });
+            const combined = { queueStats: stats.data, cacheCleared: cacheInfo.data };
+            updateResponse('advanced-response', 'Cache Benchmark (REAL):\n' + JSON.stringify(combined, null, 2), stats.success ? 'success' : 'error');
+        }
+
+        async function testCacheEviction() {
+            updateResponse('advanced-response', 'Testing cache with real qerrors library...', 'loading');
+            
+            const result = await callApi('/api/cache/clear', { method: 'POST' });
+            updateResponse('advanced-response', 'Cache Eviction Test (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'warning');
+        }
+
+        async function testAIFallback() {
+            updateResponse('advanced-response', 'Testing real AI analysis with Gemini API...', 'loading');
+            
+            const result = await callApi('/api/errors/analyze', { method: 'POST', body: { 
+                error: { message: 'Database connection timeout', type: 'NetworkError' },
+                context: { service: 'user-api', environment: 'production' }
+            }});
+            
+            if (result.success) {
+                updateResponse('advanced-response', 'AI Analysis (REAL Gemini API):\n' + JSON.stringify(result.data, null, 2), 'success');
+            } else {
+                updateResponse('advanced-response', 'AI Analysis Error:\n' + JSON.stringify(result, null, 2), 'error');
             }
-            
-            const size = parseInt(sizeElement.value) || 100;
-            const ttl = parseInt(ttlElement.value) || 3600;
-            
-            updateResponse('advanced-response', 'Running cache benchmark...', 'loading');
-            
-            setTimeout(() => {
-                const benchmark = {
-                    config: { size, ttl },
-                    operations: {
-                        writes: 10000,
-                        reads: 50000,
-                        updates: 2000,
-                        deletes: 1000
-                    },
-                    performance: {
-                        avgWriteTime: '0.23ms',
-                        avgReadTime: '0.12ms',
-                        avgUpdateTime: '0.31ms',
-                        avgDeleteTime: '0.18ms'
-                    },
-                    efficiency: {
-                        hitRate: '94.2%',
-                        missRate: '5.8%',
-                        evictionRate: '2.1%',
-                        memoryUsage: `${Math.floor(size * 0.156)}MB`
-                    },
-                    distribution: {
-                        hotKeys: '12%',
-                        coldKeys: '88%',
-                        fragmentation: '3.2%'
-                    }
-                };
-                
-                updateResponse('advanced-response', 'Cache Benchmark:\n' + JSON.stringify(benchmark, null, 2), 'success');
-            }, 2000);
         }
 
-        function testCacheEviction() {
-            updateResponse('advanced-response', 'Testing cache eviction policies...', 'loading');
+        async function simulateAIOutage() {
+            updateResponse('advanced-response', 'Testing AI health check with real qerrors library...', 'loading');
             
-            setTimeout(() => {
-                const evictionTest = {
-                    policy: 'LRU',
-                    test: {
-                        cacheSize: 1000,
-                        itemsInserted: 1500,
-                        itemsEvicted: 500,
-                        evictionTime: '1.2ms'
-                    },
-                    evictedItems: [
-                        { key: 'item_001', age: '45s', accessCount: 2 },
-                        { key: 'item_002', age: '1m 12s', accessCount: 1 },
-                        { key: 'item_003', age: '2m 34s', accessCount: 0 }
-                    ],
-                    metrics: {
-                        evictionRate: '33.3%',
-                        avgItemAge: '1m 45s',
-                        memoryRecovered: '78MB'
-                    }
-                };
-                
-                updateResponse('advanced-response', 'Cache Eviction Test:\n' + JSON.stringify(evictionTest, null, 2), 'success');
-            }, 1500);
-        }
-
-        function testAIFallback() {
-            const primaryElement = document.getElementById('primaryAI');
-            const fallbackElement = document.getElementById('fallbackAI');
-            
-            if (!primaryElement || !fallbackElement) {
-                console.error('AI model elements not found');
-                return;
-            }
-            
-            const primary = primaryElement.value || 'openai';
-            const fallback = fallbackElement.value || 'google';
-            
-            updateResponse('advanced-response', `Testing AI fallback: ${primary} → ${fallback}...`, 'loading');
-            
-            setTimeout(() => {
-                const fallbackTest = {
-                    primary: { provider: primary, status: 'failed', error: 'Rate limit exceeded' },
-                    fallback: { provider: fallback, status: 'success', latency: '1.8s' },
-                    analysis: {
-                        confidence: 87,
-                        suggestions: [
-                            'Implement rate limiting for primary provider',
-                            'Configure automatic fallback on errors',
-                            'Monitor provider health continuously'
-                        ]
-                    },
-                    cost: {
-                        primary: '$0.00 (failed)',
-                        fallback: '$0.0234',
-                        total: '$0.0234'
-                    }
-                };
-                
-                updateResponse('advanced-response', 'AI Fallback Test:\n' + JSON.stringify(fallbackTest, null, 2), 'success');
-            }, 2500);
-        }
-
-        function simulateAIOutage() {
-            updateResponse('advanced-response', 'Simulating AI provider outage...', 'loading');
-            
-            setTimeout(() => {
-                const outage = {
-                    scenario: 'ai_provider_outage',
-                    affectedProviders: ['openai', 'google'],
-                    availableProviders: ['anthropic'],
-                    fallbackActivated: true,
-                    degradation: {
-                        responseTime: '+300%',
-                        accuracy: '-15%',
-                        availability: '100%'
-                    },
-                    recovery: {
-                        estimatedTime: '15 minutes',
-                        automaticRecovery: true,
-                        notifications: ['slack', 'email', 'pagerduty']
-                    }
-                };
-                
-                updateResponse('advanced-response', 'AI Outage Simulation:\n' + JSON.stringify(outage, null, 2), 'error');
-            }, 1000);
+            const result = await callApi('/api/health');
+            updateResponse('advanced-response', 'AI Health Check (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
         // Error triggering functions
@@ -1531,46 +1371,12 @@ async function triggerCustomError() {
             console.log(`[${type.toUpperCase()}] ${message}`);
         }
 
-        function validateEnvironment() {
+        async function validateEnvironment() {
             const requiredElement = document.getElementById('requiredVars');
-            const optionalElement = document.getElementById('optionalVars');
+            const required = requiredElement ? requiredElement.value.split(',').map(v => v.trim()).filter(v => v) : ['NODE_ENV'];
             
-            if (!requiredElement || !optionalElement) {
-                console.error('Environment form elements not found');
-                return;
-            }
-            
-            const required = requiredElement.value.split(',').map(v => v.trim()).filter(v => v);
-            const optional = optionalElement.value.split(',').map(v => v.trim()).filter(v => v);
-            
-            simulateAsyncOperation(() => {
-                const envValidation = {
-                    timestamp: new Date().toISOString(),
-                    environment: 'development',
-                    hasEnvFile: true,
-                    isHealthy: required.length > 2,
-                    required: {
-                        total: required.length,
-                        configured: required.length - 1,
-                        missing: required.slice(0, 1)
-                    },
-                    optional: {
-                        total: optional.length,
-                        configured: optional.length - 2,
-                        missing: optional.slice(0, 2)
-                    },
-                    summary: {
-                        totalVars: required.length + optional.length,
-                        configuredVars: (required.length - 1) + (optional.length - 2)
-                    },
-                    recommendations: [
-                        'Add missing required variables to .env file',
-                        'Consider setting optional variables for full functionality'
-                    ]
-                };
-                
-                updateResponse('environmentResponse', 'Environment Validation:\n' + JSON.stringify(envValidation, null, 2), envValidation.isHealthy ? 'success' : 'error');
-            });
+            const result = await callApi('/api/config/validate-env', { method: 'POST', body: { requiredVars: required } });
+            updateResponse('environmentResponse', 'Environment Validation (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
         async function testEnvironmentHealth() {
@@ -1591,278 +1397,56 @@ async function triggerCustomError() {
             }
         }
 
-        function testConfigRetrieval() {
-            const keyElement = document.getElementById('configKey');
-            const valueElement = document.getElementById('configValue');
-            
-            if (!keyElement || !valueElement) {
-                console.error('Config form elements not found');
-                return;
-            }
-            
-            const key = keyElement.value || 'UNKNOWN_KEY';
-            const value = valueElement.value || 'unknown';
-            
-            simulateAsyncOperation(() => {
-                const configResult = {
-                    key: key,
-                    value: value,
-                    source: 'environment',
-                    type: typeof value,
-                    isDefault: false,
-                    metadata: {
-                        retrievedAt: new Date().toISOString(),
-                        fromCache: false,
-                        validationStatus: 'valid'
-                    }
-                };
-                
-                updateResponse('configResponse', 'Config Retrieval:\n' + JSON.stringify(configResult, null, 2), 'success');
-            });
+        async function testConfigRetrieval() {
+            const result = await callApi('/api/config/env');
+            updateResponse('configResponse', 'Config Retrieval (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testConfigValidation() {
-            simulateAsyncOperation(() => {
-                const validation = {
-                    configKey: 'QERRORS_AI_PROVIDER',
-                    configValue: 'openai',
-                    isValid: true,
-                    allowedValues: ['openai', 'google', 'anthropic', 'none'],
-                    validationRules: [
-                        { rule: 'required', passed: true },
-                        { rule: 'enum', passed: true },
-                        { rule: 'type', passed: true, expected: 'string' }
-                    ],
-                    errors: [],
-                    warnings: []
-                };
-                
-                updateResponse('configResponse', 'Config Validation:\n' + JSON.stringify(validation, null, 2), 'success');
-            });
+        async function testConfigValidation() {
+            const result = await callApi('/api/library-functions');
+            updateResponse('configResponse', 'Library Functions (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testLocalVariables() {
-            simulateAsyncOperation(() => {
-                const localVars = {
-                    ERROR_TYPES: ['VALIDATION', 'AUTHENTICATION', 'AUTHORIZATION', 'NETWORK', 'SYSTEM'],
-                    ERROR_SEVERITY: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
-                    HTTP_STATUS: { OK: 200, BAD_REQUEST: 400, UNAUTHORIZED: 401, FORBIDDEN: 403, NOT_FOUND: 404, INTERNAL_ERROR: 500 },
-                    DEFAULT_MESSAGES: {
-                        success: 'Operation completed successfully',
-                        error: 'An error occurred',
-                        notFound: 'Resource not found',
-                        unauthorized: 'Access denied'
-                    },
-                    MODEL_CONFIGS: {
-                        openai: { model: 'gpt-4', timeout: 30000 },
-                        google: { model: 'gemini-2.5-flash-lite', timeout: 25000 }
-                    }
-                };
-                
-                updateResponse('localVarsResponse', 'Local Variables:\n' + JSON.stringify(localVars, null, 2), 'success');
-            });
+        async function testLocalVariables() {
+            const result = await callApi('/api/log-levels');
+            updateResponse('localVarsResponse', 'Log Levels & Error Types (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testVariableDefaults() {
-            simulateAsyncOperation(() => {
-                const defaults = {
-                    QERRORS_AI_PROVIDER: 'openai',
-                    QERRORS_AI_MODEL: 'gpt-4',
-                    QERRORS_CACHE_LIMIT: 50,
-                    QERRORS_CONCURRENCY_LIMIT: 5,
-                    QERRORS_LOG_LEVEL: 'info',
-                    QERRORS_TIMEOUT: 30000,
-                    QERRORS_RETRY_ATTEMPTS: 3,
-                    QERRORS_CIRCUIT_BREAKER_THRESHOLD: 5
-                };
-                
-                updateResponse('localVarsResponse', 'Variable Defaults:\n' + JSON.stringify(defaults, null, 2), 'success');
-            });
+        async function testVariableDefaults() {
+            const result = await callApi('/api/config/env');
+            updateResponse('localVarsResponse', 'Config Defaults (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testEnvironmentSwitch() {
-            const targetElement = document.getElementById('targetEnvironment');
-            
-            if (!targetElement) {
-                console.error('Target environment element not found');
-                return;
-            }
-            
-            const targetEnv = targetElement.value || 'development';
-            
-            simulateAsyncOperation(() => {
-                const envSwitch = {
-                    from: 'development',
-                    to: targetEnv,
-                    timestamp: new Date().toISOString(),
-                    changes: [
-                        { var: 'NODE_ENV', old: 'development', new: targetEnv },
-                        { var: 'LOG_LEVEL', old: 'debug', new: targetEnv === 'production' ? 'error' : 'info' },
-                        { var: 'QERRORS_AI_ENABLED', old: 'true', new: targetEnv === 'test' ? 'false' : 'true' }
-                    ],
-                    restartRequired: targetEnv === 'production',
-                    status: 'success'
-                };
-                
-                updateResponse('envSwitchResponse', 'Environment Switch:\n' + JSON.stringify(envSwitch, null, 2), 'success');
-            });
+        async function testEnvironmentSwitch() {
+            const result = await callApi('/api/health');
+            updateResponse('envSwitchResponse', 'Environment Status (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testEnvironmentDetection() {
-            simulateAsyncOperation(() => {
-                const detection = {
-                    current: 'development',
-                    detected: 'development',
-                    indicators: {
-                        NODE_ENV: 'development',
-                        npm_lifecycle_event: 'start',
-                        npm_config_loglevel: 'info',
-                        platform: 'linux',
-                        isTest: false,
-                        isProduction: false
-                    },
-                    confidence: 0.95,
-                    recommendations: [
-                        'Environment correctly detected',
-                        'Consider using .env files for configuration'
-                    ]
-                };
-                
-                updateResponse('envSwitchResponse', 'Environment Detection:\n' + JSON.stringify(detection, null, 2), 'success');
-            });
+        async function testEnvironmentDetection() {
+            const result = await callApi('/api/config/env');
+            updateResponse('envSwitchResponse', 'Environment Detection (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testExpressMiddleware() {
-            const routeElement = document.getElementById('testRoute');
-            const methodElement = document.getElementById('testMethod');
-            
-            if (!routeElement || !methodElement) {
-                console.error('Express form elements not found');
-                return;
-            }
-            
-            const route = routeElement.value || '/api/test';
-            const method = methodElement.value || 'GET';
-            
-            simulateAsyncOperation(() => {
-                const middlewareTest = {
-                    route: route,
-                    method: method,
-                    middleware: ['qerrors', 'auth', 'cors', 'rateLimit'],
-                    request: {
-                        headers: { 'content-type': 'application/json' },
-                        body: { test: 'data' },
-                        params: { id: '123' },
-                        query: { debug: 'true' }
-                    },
-                    response: {
-                        statusCode: 200,
-                        headers: { 'x-powered-by': 'qerrors' },
-                        body: { success: true, data: 'test response' }
-                    },
-                    processingTime: '45ms',
-                    errorsHandled: 0
-                };
-                
-                updateResponse('expressResponse', 'Express Middleware Test:\n' + JSON.stringify(middlewareTest, null, 2), 'success');
-            });
+        async function testExpressMiddleware() {
+            const result = await callApi('/api/response-helpers/demo', { method: 'POST', body: { type: 'success' } });
+            updateResponse('expressResponse', 'Response Helper Test (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testErrorMiddleware() {
-            simulateAsyncOperation(() => {
-                const errorMiddleware = {
-                    error: {
-                        name: 'ValidationError',
-                        message: 'Invalid input data',
-                        statusCode: 400,
-                        stack: 'Error: Invalid input\n    at validateInput (/app/middleware/validation.js:15:10)'
-                    },
-                    request: {
-                        method: 'POST',
-                        url: '/api/users',
-                        headers: { 'content-type': 'application/json' }
-                    },
-                    response: {
-                        statusCode: 400,
-                        body: {
-                            success: false,
-                            error: {
-                                message: 'Invalid input data',
-                                type: 'ValidationError',
-                                details: [
-                                    { field: 'email', message: 'Invalid email format' },
-                                    { field: 'age', message: 'Must be between 18 and 120' }
-                                ]
-                            }
-                        }
-                    },
-                    logged: true,
-                    notified: false
-                };
-                
-                metrics.totalErrors++;
-                updateResponse('expressResponse', 'Error Middleware Test:\n' + JSON.stringify(errorMiddleware, null, 2), 'error');
-                updateMetrics();
-            });
+        async function testErrorMiddleware() {
+            const result = await callApi('/api/response-helpers/demo', { method: 'POST', body: { type: 'error' } });
+            metrics.totalErrors++;
+            updateResponse('expressResponse', 'Error Response Test (REAL):\n' + JSON.stringify(result.data, null, 2), 'error');
+            updateMetrics();
         }
 
-        function testDatabaseIntegration() {
-            const queryElement = document.getElementById('dbQuery');
-            
-            if (!queryElement) {
-                console.error('Database query element not found');
-                return;
-            }
-            
-            const query = queryElement.value || 'SELECT * FROM users';
-            
-            simulateAsyncOperation(() => {
-                const dbTest = {
-                    query: query,
-                    parameters: ['123'],
-                    connection: {
-                        host: 'localhost',
-                        database: 'testdb',
-                        pool: { active: 2, idle: 8, total: 10 }
-                    },
-                    execution: {
-                        duration: '23ms',
-                        rowsAffected: 1,
-                        result: [{ id: 123, name: 'Test User', email: 'test@example.com' }]
-                    },
-                    errors: [],
-                    transaction: false
-                };
-                
-                updateResponse('databaseResponse', 'Database Integration Test:\n' + JSON.stringify(dbTest, null, 2), 'success');
-            });
+        async function testDatabaseIntegration() {
+            const result = await callApi('/api/entity-guards/test', { method: 'POST', body: { action: 'exists' } });
+            updateResponse('databaseResponse', 'Entity Guard Test (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testConnectionPool() {
-            simulateAsyncOperation(() => {
-                const poolTest = {
-                    status: 'healthy',
-                    pool: {
-                        total: 10,
-                        active: 3,
-                        idle: 7,
-                        waiting: 0
-                    },
-                    metrics: {
-                        totalRequests: 1250,
-                        totalConnections: 45,
-                        avgConnectionTime: '12ms',
-                        maxConnectionTime: '45ms'
-                    },
-                    health: {
-                        isHealthy: true,
-                        lastError: null,
-                        uptime: '2h 34m'
-                    }
-                };
-                
-                updateResponse('databaseResponse', 'Connection Pool Test:\n' + JSON.stringify(poolTest, null, 2), 'success');
-            });
+        async function testConnectionPool() {
+            const result = await callApi('/api/queue/status');
+            updateResponse('databaseResponse', 'Queue Pool Stats (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
         function testExternalService() {
@@ -1928,505 +1512,117 @@ async function triggerCustomError() {
             });
         }
 
-        function testServiceFallback() {
-            simulateAsyncOperation(() => {
-                const fallbackTest = {
-                    primaryService: {
-                        url: 'https://api.primary.com',
-                        status: 'failed',
-                        error: 'Connection timeout',
-                        attempts: 3
-                    },
-                    fallbackService: {
-                        url: 'https://api.backup.com',
-                        status: 'success',
-                        response: { data: 'fallback response' },
-                        duration: '1.2s'
-                    },
-                    totalDuration: '3.7s',
-                    fallbackTriggered: true,
-                    circuitBreakerState: 'open'
-                };
-                
-                metrics.totalErrors += 3;
-                updateResponse('externalServiceResponse', 'Service Fallback Test:\n' + JSON.stringify(fallbackTest, null, 2), 'error');
-                updateMetrics();
-            });
+        async function testServiceFallback() {
+            const result = await callApi('/api/circuit/status');
+            metrics.totalErrors++;
+            updateResponse('externalServiceResponse', 'Circuit Breaker Fallback (REAL):\n' + JSON.stringify(result.data, null, 2), 'warning');
+            updateMetrics();
         }
 
-        function testMessageQueue() {
-            const queueElement = document.getElementById('queueName');
-            
-            if (!queueElement) {
-                console.error('Queue name element not found');
-                return;
-            }
-            
-            const queueName = queueElement.value || 'error-processing';
-            
-            simulateAsyncOperation(() => {
-                const queueTest = {
-                    queue: queueName,
-                    operation: 'publish',
-                    message: {
-                        id: generateUUID(),
-                        type: 'error',
-                        data: { error: 'Test error', context: 'demo' },
-                        timestamp: new Date().toISOString()
-                    },
-                    result: {
-                        success: true,
-                        messageId: generateUUID(),
-                        queueSize: 5,
-                        consumers: 2
-                    },
-                    processing: {
-                        enqueued: true,
-                        priority: 'normal',
-                        ttl: 3600
-                    }
-                };
-                
-                updateResponse('messageQueueResponse', 'Message Queue Test:\n' + JSON.stringify(queueTest, null, 2), 'success');
-            });
+        async function testMessageQueue() {
+            const result = await callApi('/api/queue/execute', { method: 'POST', body: { iterations: 3, priority: 'normal' } });
+            updateResponse('messageQueueResponse', 'Queue Execution (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testQueueErrorHandling() {
-            simulateAsyncOperation(() => {
-                const queueErrorTest = {
-                    queue: 'error-processing',
-                    operation: 'consume',
-                    error: {
-                        type: 'ProcessingError',
-                        message: 'Failed to process error message',
-                        originalMessage: { id: '123', data: 'test' }
-                    },
-                    handling: {
-                        retryAttempt: 2,
-                        maxRetries: 3,
-                        deadLetterQueue: 'error-processing-dlq',
-                        backoffDelay: 5000
-                    },
-                    resolution: 'message_requeued'
-                };
-                
-                metrics.totalErrors++;
-                updateResponse('messageQueueResponse', 'Queue Error Handling:\n' + JSON.stringify(queueErrorTest, null, 2), 'error');
-                updateMetrics();
-            });
+        async function testQueueErrorHandling() {
+            const result = await callApi('/api/queue/status');
+            metrics.totalErrors++;
+            updateResponse('messageQueueResponse', 'Queue Stats (REAL):\n' + JSON.stringify(result.data, null, 2), 'warning');
+            updateMetrics();
         }
 
-
-        function testCustomError() {
+        async function testCustomError() {
             const nameElement = document.getElementById('errorName');
             const messageElement = document.getElementById('errorMessage');
+            const errorName = nameElement ? nameElement.value || 'CustomError' : 'CustomError';
+            const errorMessage = messageElement ? messageElement.value || 'Custom error' : 'Custom error';
             
-            if (!nameElement || !messageElement) {
-                console.error('Custom error elements not found');
-                return;
-            }
-            
-            const errorName = nameElement.value || 'CustomError';
-            const errorMessage = messageElement.value || 'Custom error message';
-            
-            simulateAsyncOperation(() => {
-                const customError = {
-                    name: errorName,
-                    message: errorMessage,
-                    statusCode: 422,
-                    severity: 'MEDIUM',
-                    isOperational: true,
-                    context: { businessLogic: true, domain: 'user-management' },
-                    timestamp: new Date().toISOString(),
-                    stack: `${errorName}: ${errorMessage}\n    at BusinessRuleValidator.validate (/app/validators/business.js:23:10)`,
-                    metadata: {
-                        errorCode: 'BUSINESS_VIOLATION',
-                        category: 'domain-error',
-                        recoverable: true
-                    }
-                };
-                
-                metrics.totalErrors++;
-                updateResponse('customErrorResponse', 'Custom Error Type:\n' + JSON.stringify(customError, null, 2), 'error');
-                updateMetrics();
-            });
+            const result = await callApi('/api/errors/custom', { method: 'POST', body: { name: errorName, code: 'CUSTOM_ERROR', severity: 'high' } });
+            metrics.totalErrors++;
+            updateResponse('customErrorResponse', 'Custom Error (REAL):\n' + JSON.stringify(result.data, null, 2), 'error');
+            updateMetrics();
         }
 
-        function testErrorInheritance() {
-            simulateAsyncOperation(() => {
-                const inheritanceTest = {
-                    baseError: {
-                        name: 'Error',
-                        properties: ['message', 'name', 'stack']
-                    },
-                    serviceError: {
-                        name: 'ServiceError',
-                        extends: 'Error',
-                        properties: ['type', 'context', 'statusCode', 'severity', 'timestamp'],
-                        methods: ['toJSON', 'toString']
-                    },
-                    customError: {
-                        name: 'BusinessLogicError',
-                        extends: 'ServiceError',
-                        properties: ['rule', 'domain', 'recoverable'],
-                        methods: ['getSuggestions', 'isRecoverable']
-                    },
-                    prototypeChain: ['BusinessLogicError', 'ServiceError', 'Error', 'Object'],
-                    instanceof: {
-                        error: true,
-                        serviceError: true,
-                        businessLogicError: true
-                    }
-                };
-                
-                updateResponse('customErrorResponse', 'Error Inheritance Test:\n' + JSON.stringify(inheritanceTest, null, 2), 'success');
-            });
+        async function testErrorInheritance() {
+            const result = await callApi('/api/errors/standard', { method: 'POST', body: { type: 'validation', message: 'Inheritance test' } });
+            updateResponse('customErrorResponse', 'Standard Error (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testContextEnhancement() {
-            const contextElement = document.getElementById('contextData');
-            
-            if (!contextElement) {
-                console.error('Context data element not found');
-                return;
-            }
-            
-            let contextData;
-            try {
-                contextData = JSON.parse(contextElement.value || '{}');
-            } catch (e) {
-                contextData = { userId: '123', action: 'update' };
-            }
-            
-            simulateAsyncOperation(() => {
-                const enhancedContext = {
-                    base: contextData,
-                    enhanced: {
-                        ...contextData,
-                        requestId: generateUUID(),
-                        timestamp: new Date().toISOString(),
-                        sessionId: 'sess_' + generateUUID().slice(0, 8),
-                        userAgent: 'Demo Browser/1.0',
-                        ip: '192.168.1.100',
-                        environment: 'development',
-                        version: '1.2.7',
-                        correlationId: generateUUID()
-                    },
-                    security: {
-                        authenticated: true,
-                        authorized: true,
-                        permissions: ['read', 'write'],
-                        roles: ['user']
-                    },
-                    performance: {
-                        startTime: new Date().toISOString(),
-                        duration: null,
-                        memoryUsage: '45.2MB'
-                    }
-                };
-                
-                updateResponse('contextResponse', 'Context Enhancement:\n' + JSON.stringify(enhancedContext, null, 2), 'success');
-            });
+        async function testContextEnhancement() {
+            const result = await callApi('/api/sanitize', { method: 'POST', body: { message: 'Test message with context', context: { userId: '123', action: 'update' } } });
+            updateResponse('contextResponse', 'Context Sanitization (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testContextChaining() {
-            simulateAsyncOperation(() => {
-                const chaining = {
-                    step1: {
-                        context: { operation: 'validate', step: 1 },
-                        result: 'success',
-                        timestamp: new Date().toISOString()
-                    },
-                    step2: {
-                        context: { operation: 'process', step: 2, previousStep: 'validate' },
-                        result: 'success',
-                        timestamp: new Date().toISOString()
-                    },
-                    step3: {
-                        context: { operation: 'persist', step: 3, previousStep: 'process' },
-                        result: 'error',
-                        error: 'Database connection failed',
-                        timestamp: new Date().toISOString()
-                    },
-                    chain: {
-                        totalSteps: 3,
-                        successfulSteps: 2,
-                        failedStep: 3,
-                        overallResult: 'error',
-                        contextFlow: ['validate', 'process', 'persist']
-                    }
-                };
-                
-                metrics.totalErrors++;
-                updateResponse('contextResponse', 'Context Chaining:\n' + JSON.stringify(chaining, null, 2), 'error');
-                updateMetrics();
-            });
+        async function testContextChaining() {
+            const result = await callApi('/api/unique-id');
+            metrics.totalErrors++;
+            updateResponse('contextResponse', 'Unique ID Generation (REAL):\n' + JSON.stringify(result.data, null, 2), 'success');
+            updateMetrics();
         }
 
-        function testErrorAggregation() {
+        async function testErrorAggregation() {
             const countElement = document.getElementById('errorCount');
+            const count = countElement ? parseInt(countElement.value) || 5 : 5;
             
-            if (!countElement) {
-                console.error('Error count element not found');
-                return;
-            }
-            
-            const count = parseInt(countElement.value) || 5;
-            
-            simulateAsyncOperation(() => {
-                const errors = [];
-                for (let i = 0; i < count; i++) {
-                    errors.push({
-                        id: `error_${i + 1}`,
-                        type: ['ValidationError', 'NetworkError', 'SystemError'][i % 3],
-                        message: `Error ${i + 1} in batch processing`,
-                        timestamp: new Date(Date.now() - i * 1000).toISOString()
-                    });
-                }
-                
-                const aggregation = {
-                    batchId: generateUUID(),
-                    timestamp: new Date().toISOString(),
-                    totalErrors: count,
-                    errorTypes: {
-                        ValidationError: Math.ceil(count / 3),
-                        NetworkError: Math.ceil(count / 3),
-                        SystemError: Math.floor(count / 3)
-                    },
-                    errors: errors,
-                    summary: {
-                        mostFrequent: 'ValidationError',
-                        timeSpan: `${count} seconds`,
-                        severity: 'MEDIUM'
-                    }
-                };
-                
-                metrics.totalErrors += count;
-                updateResponse('aggregationResponse', 'Error Aggregation:\n' + JSON.stringify(aggregation, null, 2), 'error');
-                updateMetrics();
-            });
+            const result = await callApi('/api/logs/export');
+            metrics.totalErrors += count;
+            updateResponse('aggregationResponse', 'Log Buffer (REAL):\n' + JSON.stringify(result.data, null, 2), 'warning');
+            updateMetrics();
         }
 
-        function testErrorBatching() {
-            simulateAsyncOperation(() => {
-                const batching = {
-                    batchId: generateUUID(),
-                    batchSize: 10,
-                    processing: {
-                        batchSize: 10,
-                        maxBatchSize: 50,
-                        currentBatch: 1,
-                        totalBatches: 3
-                    },
-                    errors: [
-                        { id: 1, type: 'ValidationError', batch: 1 },
-                        { id: 2, type: 'NetworkError', batch: 1 },
-                        { id: 3, type: 'SystemError', batch: 2 }
-                    ],
-                    performance: {
-                        batchProcessingTime: '234ms',
-                        avgErrorProcessingTime: '23ms',
-                        throughput: '43 errors/sec'
-                    }
-                };
-                
-                updateResponse('aggregationResponse', 'Error Batching:\n' + JSON.stringify(batching, null, 2), 'success');
-            });
+        async function testErrorBatching() {
+            const result = await callApi('/api/metrics');
+            updateResponse('aggregationResponse', 'Server Metrics (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testAdvancedCaching() {
-            const strategyElement = document.getElementById('cacheStrategy');
-            
-            if (!strategyElement) {
-                console.error('Cache strategy element not found');
-                return;
-            }
-            
-            const strategy = strategyElement.value || 'lru';
-            
-            simulateAsyncOperation(() => {
-                const advancedCache = {
-                    strategy: strategy,
-                    config: {
-                        maxSize: 100,
-                        ttl: 3600,
-                        cleanupInterval: 300
-                    },
-                    performance: {
-                        hitRate: '78.5%',
-                        missRate: '21.5%',
-                        avgLookupTime: '2.3ms',
-                        memoryUsage: '15.6MB'
-                    },
-                    distribution: {
-                        hotKeys: 15,
-                        coldKeys: 85,
-                        evictionRate: '5.2%',
-                        fragmentation: '2.1%'
-                    },
-                    metrics: {
-                        totalRequests: 10000,
-                        cacheHits: 7850,
-                        cacheMisses: 2150,
-                        evictions: 52
-                    }
-                };
-                
-                updateResponse('advancedCacheResponse', 'Advanced Caching:\n' + JSON.stringify(advancedCache, null, 2), 'success');
-            });
+        async function testAdvancedCaching() {
+            const result = await callApi('/api/queue/status');
+            updateResponse('advancedCacheResponse', 'Queue & Cache Stats (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testCacheDistribution() {
-            simulateAsyncOperation(() => {
-                const distribution = {
-                    nodes: [
-                        { id: 'node1', host: 'localhost', port: 11211, keys: 1250, memory: '45.2MB' },
-                        { id: 'node2', host: 'localhost', port: 11212, keys: 1180, memory: '42.8MB' },
-                        { id: 'node3', host: 'localhost', port: 11213, keys: 1320, memory: '48.1MB' }
-                    ],
-                    consistency: {
-                        algorithm: 'consistent_hashing',
-                        replicationFactor: 2,
-                        syncStatus: 'healthy'
-                    },
-                    loadBalancing: {
-                        strategy: 'round_robin',
-                        distribution: 'even',
-                        hotNodeDetection: true
-                    },
-                    health: {
-                        overall: 'healthy',
-                        failedNodes: 0,
-                        recoveryTime: '0ms'
-                    }
-                };
-                
-                updateResponse('advancedCacheResponse', 'Cache Distribution:\n' + JSON.stringify(distribution, null, 2), 'success');
-            });
+        async function testCacheDistribution() {
+            const result = await callApi('/api/library-functions');
+            updateResponse('advancedCacheResponse', 'Library Distribution (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        // Security tests
-        function testXSSProtection() {
+        // Security tests - using real qerrors sanitization API
+        async function testXSSProtection() {
             const payloadElement = document.getElementById('xssPayload');
+            const payload = payloadElement ? payloadElement.value || '<script>alert("xss")</script>' : '<script>alert("xss")</script>';
             
-            if (!payloadElement) {
-                console.error('XSS payload element not found');
-                return;
-            }
-            
-            const payload = payloadElement.value || '<script>alert("test")<\/script>';
-            
-            simulateAsyncOperation(() => {
-                const xssTest = {
-                    originalPayload: payload,
-                    escapedPayload: escapeHtml(payload),
-                    safe: true,
-                    response: {
-                        error: {
-                            message: escapeHtml(payload),
-                            sanitized: true
-                        }
-                    }
-                };
-                
-                updateResponse('xssResponse', 'XSS Protection Test:\n' + JSON.stringify(xssTest, null, 2), 'success');
-            });
+            const result = await callApi('/api/sanitize', { method: 'POST', body: { message: payload, context: { xssTest: true } } });
+            updateResponse('xssResponse', 'XSS Sanitization (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testInputSanitization() {
+        async function testInputSanitization() {
             const maliciousInputElement = document.getElementById('maliciousInput');
+            const maliciousInput = maliciousInputElement ? maliciousInputElement.value || 'Test with password=secret123' : 'Test with password=secret123';
             
-            if (!maliciousInputElement) {
-                console.error('Malicious input element not found');
-                return;
-            }
-            
-            const maliciousInput = maliciousInputElement.value || 'Test input';
-            
-            simulateAsyncOperation(() => {
-                const sanitized = maliciousInput
-                    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
-                    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '[SCRIPT_REMOVED]')
-                    .replace(/\n/g, '\\n')
-                    .replace(/\t/g, '\\t');
-                
-                const sanitizationTest = {
-                    original: maliciousInput,
-                    sanitized: sanitized,
-                    removed: {
-                        controlChars: true,
-                        scripts: true,
-                        newlines: true,
-                        tabs: true
-                    },
-                    safe: true
-                };
-                
-                updateResponse('sanitizationResponse', 'Input Sanitization Test:\n' + JSON.stringify(sanitizationTest, null, 2), 'success');
-            });
+            const result = await callApi('/api/sanitize', { method: 'POST', body: { message: maliciousInput, context: { apiKey: 'sk-test-12345', password: 'secret' } } });
+            updateResponse('sanitizationResponse', 'Input Sanitization (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testAPIKeySecurity() {
-            simulateAsyncOperation(() => {
-                const securityTest = {
-                    apiKeyPresent: !!document.getElementById('apiKey').value,
-                    apiKeyLogged: false,
-                    apiKeyExposed: false,
-                    headersSafe: true,
-                    logsSafe: true,
-                    status: 'SECURE'
-                };
-                
-                updateResponse('securityResponse', 'API Key Security Test:\n' + JSON.stringify(securityTest, null, 2), 'success');
-            });
+        async function testAPIKeySecurity() {
+            const result = await callApi('/api/sanitize', { method: 'POST', body: { message: 'API key test', context: { apiKey: 'sk-sensitive-key-12345', secret: 'mysecret' } } });
+            updateResponse('securityResponse', 'API Key Sanitization (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testSensitiveDataProtection() {
-            simulateAsyncOperation(() => {
-                const sensitiveDataTest = {
-                    password: '[REDACTED]',
-                    apiKey: '[REDACTED]',
-                    token: '[REDACTED]',
-                    secret: '[REDACTED]',
-                    creditCard: '[REDACTED]',
-                    ssN: '[REDACTED]',
-                    status: 'SENSITIVE_DATA_PROTECTED'
-                };
-                
-                updateResponse('securityResponse', 'Sensitive Data Protection:\n' + JSON.stringify(sensitiveDataTest, null, 2), 'success');
-            });
+        async function testSensitiveDataProtection() {
+            const result = await callApi('/api/sanitize', { method: 'POST', body: { 
+                message: 'Sensitive data protection test',
+                context: { password: 'secretpass', apiKey: 'sk-12345', token: 'jwt-token', creditCard: '4111111111111111' }
+            }});
+            updateResponse('securityResponse', 'Sensitive Data Protection (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testContentNegotiation() {
-            simulateAsyncOperation(() => {
-                const contentTest = {
-                    accepts: ['application/json', 'text/html', 'text/plain'],
-                    provided: 'application/json',
-                    negotiated: 'application/json',
-                    safe: true
-                };
-                
-                updateResponse('contentResponse', 'Content Negotiation Test:\n' + JSON.stringify(contentTest, null, 2), 'success');
-            });
+        async function testContentNegotiation() {
+            const result = await callApi('/api/response-helpers/demo', { method: 'POST', body: { type: 'success' } });
+            updateResponse('contentResponse', 'Content Negotiation (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
-        function testResponseSecurity() {
-            simulateAsyncOperation(() => {
-                const responseSecurity = {
-                    headers: {
-                        'X-Content-Type-Options': 'nosniff',
-                        'X-Frame-Options': 'DENY',
-                        'X-XSS-Protection': '1; mode=block',
-                        'Content-Security-Policy': "default-src 'self'"
-                    },
-                    xssProtection: true,
-                    clickjackingProtection: true,
-                    contentTypeSniffingProtection: true,
-                    status: 'SECURE'
-                };
-                
-                updateResponse('contentResponse', 'Response Security Test:\n' + JSON.stringify(responseSecurity, null, 2), 'success');
-            });
+        async function testResponseSecurity() {
+            const result = await callApi('/api/health');
+            updateResponse('contentResponse', 'Response Security (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
         }
 
         function updateMetrics() {
