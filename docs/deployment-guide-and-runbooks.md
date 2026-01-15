@@ -84,9 +84,9 @@ npm test
 export NODE_ENV=production
 
 # Performance optimization
-export QERRORS_QUEUE_LIMIT=2000
-export QERRORS_CACHE_LIMIT=500
-export QERRORS_CONCURRENCY=5
+export QERRORS_QUEUE_LIMIT=100           # Default queue limit
+export QERRORS_CACHE_LIMIT=1000          # Default cache size
+export QERRORS_CONCURRENCY=3             # Default concurrency
 
 # Logging configuration
 export QERRORS_LOG_MAX_DAYS=30
@@ -97,6 +97,8 @@ export QERRORS_LOG_LEVEL=info
 export OPENAI_API_KEY=your_production_key
 # export GEMINI_API_KEY=your_production_key
 ```
+
+> Maintainers: sync these default exports with `config/localVars.js` when they change.
 
 ### Phase 3: Application Deployment
 
@@ -139,13 +141,15 @@ console.log('Deployment validation complete');
 | Variable | Recommended Value | Description |
 |----------|-------------------|-------------|
 | `NODE_ENV` | `production` | Environment mode |
-| `QERRORS_QUEUE_LIMIT` | `2000` | Max concurrent error processing |
-| `QERRORS_CACHE_LIMIT` | `500` | AI advice cache size |
-| `QERRORS_CONCURRENCY` | `5` | Parallel AI analysis limit |
+| `QERRORS_QUEUE_LIMIT` | `100` | Max concurrent error processing (default) |
+| `QERRORS_CACHE_LIMIT` | `1000` | AI advice cache size (default) |
+| `QERRORS_CONCURRENCY` | `3` | Parallel AI analysis limit (default) |
 | `QERRORS_LOG_MAX_DAYS` | `30` | Log retention period |
 | `QERRORS_VERBOSE` | `false` | Reduce logging overhead |
 | `QERRORS_LOG_LEVEL` | `info` | Minimum log level |
 | `QERRORS_DISABLE_FILE_LOGS` | `false` | Enable file logging |
+
+> Maintainers: Sync these values with `config/localVars.js` whenever defaults change.
 
 ### AI Configuration (Optional)
 
@@ -153,7 +157,7 @@ console.log('Deployment validation complete');
 |----------|----------------|-------------|
 | `OPENAI_API_KEY` | `sk-...` | OpenAI API key |
 | `GEMINI_API_KEY` | `AIza...` | Google AI API key |
-| `QERRORS_AI_PROVIDER` | `openai` | Preferred AI provider |
+| `QERRORS_AI_PROVIDER` | `google` | Preferred AI provider (default: google/Gemini) |
 
 ### Express Integration Examples
 

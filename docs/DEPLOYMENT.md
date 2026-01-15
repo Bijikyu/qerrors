@@ -18,22 +18,24 @@ OPENAI_API_KEY=sk-your-openai-key-here              # For OpenAI provider
 GEMINI_API_KEY=your-gemini-key-here                  # For Gemini provider
 
 # Required - Provider Selection  
-QERRORS_AI_PROVIDER=openai                           # Options: openai, gemini
+QERRORS_AI_PROVIDER=google                           # Options: openai, google (default: google/Gemini)
 
 # Optional - Performance Tuning
-QERRORS_CONCURRENCY=5                                 # Concurrent AI requests (default: 5)
-QERRORS_CACHE_LIMIT=50                                 # Error advice cache size (default: 50)
+QERRORS_CONCURRENCY=3                                 # Concurrent AI requests (default: 3)
+QERRORS_CACHE_LIMIT=1000                              # Error advice cache size (default: 1000)
 QERRORS_QUEUE_LIMIT=100                                # Queue processing limit (default: 100)
 
 # Optional - Logging Configuration
 QERRORS_LOG_MAX_DAYS=30                                # Log retention days (default: 0=infinite)
 QERRORS_LOG_LEVEL=info                                 # Log level (default: info)
-QERRORS_VERBOSE=false                                   # Verbose logging (default: true)
+QERRORS_VERBOSE=false                                  # Verbose logging (default: false)
 
 # Optional - Production Settings
 NODE_ENV=production                                    # Environment mode
 PORT=3000                                            # Server port (default: 3000)
 ```
+
+> Maintainers: these defaults mirror `config/localVars.js`—sync both whenever defaults change.
 
 ### **Quick Start Commands**
 ```bash

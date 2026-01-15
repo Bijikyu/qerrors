@@ -65,16 +65,20 @@ try {
 # Required
 NODE_ENV=production
 
-# Optional (for AI analysis)
-OPENAI_API_KEY=your_openai_api_key
+# Optional AI provider configuration
+OPENAI_API_KEY=your_openai_api_key       # or
+GEMINI_API_KEY=your_gemini_api_key
+QERRORS_AI_PROVIDER=google               # Options: openai, google (default: google)
 
 # Logging
-LOG_LEVEL=info
+QERRORS_LOG_LEVEL=info
+QERRORS_VERBOSE=false
 
 # Performance tuning
-MAX_QUEUE_SIZE=500
-MAX_CONCURRENCY=5
-CACHE_TTL=600000
+QERRORS_QUEUE_LIMIT=100
+QERRORS_CONCURRENCY=3
+QERRORS_CACHE_LIMIT=1000
+QERRORS_CACHE_TTL=300000
 ```
 
 ## 🏗️ Architecture

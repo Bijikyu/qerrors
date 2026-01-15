@@ -38,6 +38,7 @@
     "express-rate-limit": "^8.2.1",
     "express-slow-down": "^3.0.1",
     "fast-safe-stringify": "^2.1.1",
+    "fileflows": "^1.0.5",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "lodash": "^4.17.21",
@@ -92,7 +93,7 @@
     "eslint-plugin-n": "^16.6.2",
     "eslint-plugin-promise": "^6.6.0",
     "madge": "^8.0.0",
-    "ts-node": "^10.9.0",
+    "ts-node": "^1.7.1",
     "typescript": "^5.9.2"
   }
 }
