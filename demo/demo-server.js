@@ -19,7 +19,7 @@ import fs from 'fs';      // File system operations
 import path from 'path';  // Path utilities
 
 // Server configuration
-const PORT = process.env.DEMO_PORT ? Number(process.env.DEMO_PORT) : 8080;  // Configurable port
+const PORT = process.env.DEMO_PORT ? Number(process.env.DEMO_PORT) : 5000;  // Configurable port
 const ROOT = path.join(process.cwd(), 'demo');  // Serve files from demo directory
 
 /**
@@ -133,6 +133,6 @@ const server = http.createServer((req, res) => {
  * This makes it easy for developers to know where to point their
  * browser for testing the qerrors frontend integration.
  */
-server.listen(PORT, () => {
-  console.log(`Demo frontend server listening on http://localhost:${PORT}/demo.html`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Demo frontend server listening on http://0.0.0.0:${PORT}/demo.html`);
 });
