@@ -1588,7 +1588,7 @@ async function triggerCustomError() {
         // Security tests - using real qerrors sanitization API
         async function testXSSProtection() {
             const payloadElement = document.getElementById('xssPayload');
-            const payload = payloadElement ? payloadElement.value || '<script>alert("xss")</script>' : '<script>alert("xss")</script>';
+            const payload = payloadElement ? payloadElement.value || '<script>alert("xss")<\/script>' : '<script>alert("xss")<\/script>';
             
             const result = await callApi('/api/sanitize', { method: 'POST', body: { message: payload, context: { xssTest: true } } });
             updateResponse('xssResponse', 'XSS Sanitization (REAL):\n' + JSON.stringify(result.data, null, 2), result.success ? 'success' : 'error');
