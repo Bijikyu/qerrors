@@ -563,5 +563,45 @@ void _qmEnforced;
 // @ts-expect-error - string is not assignable to number for currentLength parameter
 queueManager.enforceQueueLimit('ten', 100);
 
+// ---- Call-site type checks: moduleInitializer namespace ----
+// initializeModule returns Promise<null>
+const _miInit: Promise<null> = moduleInitializer.initializeModule();
+void _miInit;
+// initializeModule accepts a ModuleInitOptions object
+const _miInitWithOpts: Promise<null> = moduleInitializer.initializeModule({ module: 'test', version: '1.0.0', environment: 'test' });
+void _miInitWithOpts;
+// initializeModuleESM returns Promise<null>
+const _miInitESM: Promise<null> = moduleInitializer.initializeModuleESM();
+void _miInitESM;
+// initializeModuleESM accepts a ModuleInitOptions object
+const _miInitESMWithOpts: Promise<null> = moduleInitializer.initializeModuleESM({ module: 'esm-test', version: '2.0.0' });
+void _miInitESMWithOpts;
+// shouldInitialize returns boolean
+const _miShouldInit: boolean = moduleInitializer.shouldInitialize();
+void _miShouldInit;
+// logModuleInit returns void
+const _miLogInit: void = moduleInitializer.logModuleInit('my-module', { key: 'value' });
+void _miLogInit;
+// logModuleInit accepts a module name with no metadata
+const _miLogInitNoMeta: void = moduleInitializer.logModuleInit('my-module');
+void _miLogInitNoMeta;
+
+// ---- @ts-expect-error: initializeModule rejects a non-object argument ----
+// @ts-expect-error - string is not assignable to ModuleInitOptions for options parameter
+moduleInitializer.initializeModule('bad-argument');
+
+// ---- @ts-expect-error: initializeModuleESM rejects a non-object argument ----
+// @ts-expect-error - string is not assignable to ModuleInitOptions for options parameter
+moduleInitializer.initializeModuleESM('bad-esm-argument');
+
+// ---- @ts-expect-error: shouldInitialize result is not assignable to string ----
+// @ts-expect-error - boolean is not assignable to string
+const _miShouldInitStr: string = moduleInitializer.shouldInitialize();
+void _miShouldInitStr;
+
+// ---- @ts-expect-error: logModuleInit rejects a non-string moduleName ----
+// @ts-expect-error - number is not assignable to string for moduleName parameter
+moduleInitializer.logModuleInit(42);
+
 export {};
 
