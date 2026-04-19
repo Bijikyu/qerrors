@@ -97,7 +97,7 @@
     "test": "node tests/run-all.cjs",
     "test:unit": "node tests/basic.test.cjs",
     "test:integration": "node tests/integration.test.js",
-    "test:ts": "tsc --noEmit && npm run test",
+    "test:ts": "tsc --noEmit && tsc --noEmit -p smoke-test/tsconfig.json && tsc --noEmit -p smoke-test/tsconfig.node16.json && npm run test",
     "clean": "rm -rf dist",
     "lint": "eslint \"lib/**/*.js\" \"scripts/**/*.js\" \"tests/**/*.test.{js,cjs}\" \"*.js\"",
     "lint:fix": "eslint \"lib/**/*.js\" \"scripts/**/*.js\" \"tests/**/*.test.{js,cjs}\" \"*.js\" --fix",
