@@ -463,11 +463,11 @@ export interface ModelConfig {
 export declare class AIModelManager {
   constructor();
   initializeModel(): void;
-  switchModel(provider: string, modelName?: string | null): void;
+  switchModel(provider: string, modelName?: string | null): boolean;
   getCurrentModelInfo(): ModelInfo;
   getAvailableModels(provider?: string): string[];
   analyzeError(errorPrompt: string): Promise<Record<string, unknown> | null>;
-  createAnalysisModel(): object;
+  createAnalysisModel(): object | null;
   initializeCacheTracking(): void;
   getCacheStats(): Record<string, unknown>;
   cleanup(): Promise<void>;
@@ -475,7 +475,7 @@ export declare class AIModelManager {
 
 export interface AIModelManagerModule {
   getAIModelManager(): AIModelManager;
-  resetAIModelManager(): void;
+  resetAIModelManager(): Promise<void> | undefined;
   AIModelManager: typeof AIModelManager;
   MODEL_PROVIDERS: Record<string, string>;
   MODEL_CONFIGS: Record<string, ModelConfig>;
@@ -542,9 +542,10 @@ export declare class ResponseBuilder {
   setStatus(status: number): this;
   setSuccess(success: boolean): this;
   setData(data: any): this;
-  setError(status: number, message?: string | null): this;
+  setError(error: any, message?: string | null): this;
   setMessage(message: string): this;
   addMetadata(key: string, value: unknown): this;
+  addMetadata(obj: Record<string, unknown>): this;
   addHeader(key: string, value: string): this;
   addHeaders(headers: Record<string, string>): this;
   setRequestId(requestId: string): this;

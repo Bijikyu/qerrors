@@ -194,9 +194,21 @@ void _cacheStats;
 type _AIMgrCleanup = ReturnType<typeof _aiMgr.cleanup>;
 const _cleanupRes: Promise<void> = null as unknown as _AIMgrCleanup;
 void _cleanupRes;
+// switchModel returns boolean
+type _AIMgrSwitchModel = ReturnType<typeof _aiMgr.switchModel>;
+const _switchModelRes: boolean = null as unknown as _AIMgrSwitchModel;
+void _switchModelRes;
+// resetAIModelManager returns Promise<void> | undefined
+type _ResetRes = ReturnType<typeof aiModelManager.resetAIModelManager>;
+const _resetRes: Promise<void> | undefined = null as unknown as _ResetRes;
+void _resetRes;
 
-// ResponseBuilder class method coverage
+// ResponseBuilder class method coverage — including addMetadata object-merge overload
 import type { ResponseBuilder as RB } from '../lib/types';
+// Verify addMetadata object overload compiles (overload resolution check)
+type _RBAddMetaObj = (obj: Record<string, unknown>) => RB;
+const _checkAddMetaOverload: _RBAddMetaObj = null as unknown as RB['addMetadata'];
+void _checkAddMetaOverload;
 type _RBSetSuccess = ReturnType<RB['setSuccess']>;
 const _setSuccessRes: RB = null as unknown as _RBSetSuccess;
 void _setSuccessRes;
