@@ -464,4 +464,36 @@ void _diQerrPromise;
 const _diSeverityNum: number = dependencyInterfaces.getErrorSeverity();
 void _diSeverityNum;
 
+// ---- Call-site type checks: utils namespace ----
+// deepClone<T> returns T (generic identity clone)
+const _utilsCloned: { a: number } = utils.deepClone({ a: 1 });
+void _utilsCloned;
+// createTimer returns an object with elapsed() and elapsedMs() returning number
+const _utilsTimer = utils.createTimer();
+const _utilsElapsed: number = _utilsTimer.elapsed();
+const _utilsElapsedMs: number = _utilsTimer.elapsedMs();
+void _utilsElapsed; void _utilsElapsedMs;
+// formatErrorMessage returns string
+const _utilsFmtMsg: string = utils.formatErrorMessage(new Error('boom'), 'test-context');
+void _utilsFmtMsg;
+
+// ---- @ts-expect-error: utils.formatErrorMessage rejects a non-string context argument ----
+// @ts-expect-error - number is not assignable to string for context parameter
+utils.formatErrorMessage(new Error('x'), 42);
+
+// ---- Call-site type checks: envUtils namespace ----
+// validateEnvironment returns Promise<EnvHealthReport>
+const _evValidatePromise: Promise<import('../lib/types').EnvHealthReport> = envUtils.validateEnvironment({ required: ['NODE_ENV'] });
+void _evValidatePromise;
+// getEnvHealthSync returns EnvHealthReport (synchronous)
+const _evHealthSync: import('../lib/types').EnvHealthReport = envUtils.getEnvHealthSync(['NODE_ENV'], []);
+const _evIsHealthy: boolean = _evHealthSync.isHealthy;
+const _evEnv: string | undefined = _evHealthSync.environment;
+void _evIsHealthy; void _evEnv;
+
+// ---- @ts-expect-error: envUtils.getEnvHealthSync rejects non-array first argument ----
+// @ts-expect-error - string is not assignable to string[] for requiredVars parameter
+envUtils.getEnvHealthSync('NODE_ENV');
+
 export {};
+
