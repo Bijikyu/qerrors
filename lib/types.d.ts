@@ -307,18 +307,30 @@ export interface MockRequest {
 
 /* ---- errorTypes namespace ---- */
 
+export interface SimpleErrorResult {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    type: string;
+    severity: string;
+    context: Record<string, unknown>;
+    timestamp: string;
+  };
+}
+
 export interface ErrorTypesModule {
   ServiceError: typeof ServiceError;
   errorUtils: ErrorUtils;
   safeUtils: SafeUtils;
-  createTypedError(type: string, message: string, code?: string, context?: object): StandardError;
-  createStandardError(message: string, code?: string, details?: object): StandardError;
+  createTypedError(message: string, type: string, code?: string | null, context?: object): StandardError;
+  createStandardError(code: string, message: string, type: string, context?: object): StandardError;
   ErrorTypes: ErrorTypeConstants;
   ErrorSeverity: ErrorSeverityConstants;
   ERROR_STATUS_MAP: Record<string, number>;
   ERROR_SEVERITY_MAP: Record<string, string>;
   ErrorFactory: ErrorFactoryInterface;
-  handleSimpleError(error: unknown, context: string): void;
+  handleSimpleError(error: unknown, context?: object): SimpleErrorResult;
   errorMiddleware(err: Error, req: any, res: any, next: Function): void;
   attempt<T>(fn: () => T | Promise<T>): Promise<{ ok: true; value: T } | { ok: false; error: unknown }>;
   executeWithQerrors<T>(options: ExecuteWithQerrorsOptions<T>): Promise<T>;
@@ -335,10 +347,12 @@ export interface SanitizationModule {
 /* ---- queueManager namespace ---- */
 
 export interface QueueMetrics {
-  queueLength: number;
   rejectCount: number;
-  concurrency: number;
-  pendingCount: number;
+  activeCount: number;
+  totalProcessed: number;
+  averageProcessingTime: number;
+  queueSize: number;
+  maxQueueSize: number;
 }
 
 export interface QueueManagerModule {
@@ -383,18 +397,30 @@ export interface UtilsModule {
 
 /* ---- envUtils namespace ---- */
 
+export interface EnvVarGroupMetrics {
+  total: number;
+  configured: number;
+  missing: string[];
+}
+
+export interface EnvHealthSummary {
+  totalVars: number;
+  configuredVars: number;
+}
+
 export interface EnvHealthReport {
-  isHealthy: boolean;
+  environment: string | undefined;
   hasEnvFile: boolean;
-  missingRequired: string[];
-  missingOptional: string[];
-  present: string[];
+  isHealthy: boolean;
+  required: EnvVarGroupMetrics;
+  optional: EnvVarGroupMetrics;
+  summary: EnvHealthSummary;
 }
 
 export interface ValidateEnvironmentOptions {
   required?: string[];
   optional?: string[];
-  throwOnMissing?: boolean;
+  throwOnError?: boolean;
 }
 
 export interface EnvUtilsModule {
@@ -422,15 +448,22 @@ export interface ModelInfo {
   available: boolean;
 }
 
+export interface ModelSettings {
+  maxTokens: number;
+  temperature: number;
+  topP: number;
+}
+
 export interface ModelConfig {
   defaultModel: string;
-  models: string[];
+  models: Record<string, ModelSettings>;
+  requiredEnvVars: string[];
 }
 
 export declare class AIModelManager {
   constructor();
   getCurrentModelInfo(): ModelInfo;
-  switchProvider(provider: string, modelName?: string): void;
+  switchModel(provider: string, modelName?: string | null): void;
   analyzeError(errorPrompt: string): Promise<Record<string, unknown> | null>;
 }
 
@@ -529,9 +562,9 @@ export interface ResponseHelpersModule {
   sendForbiddenResponse(res: any, message?: string): any;
   sendServerErrorResponse(res: any, message?: string): any;
   createResponseHelper(res: any, startTime?: number | null): ResponseHelper;
-  createStatusResponseHelper(res: any, startTime?: number | null): ResponseHelper;
+  createStatusResponseHelper(status: number, defaultMessage: string): (res: any, message?: string, options?: ResponseOptions) => any;
   globalErrorHandler(err: Error, req: any, res: any, next: Function): void;
-  handleError(res: any, error: unknown, context?: string): any;
+  handleError(error: unknown, context: string, res: any, next?: Function): Promise<any>;
   HTTP_STATUS: HttpStatusMap;
   DEFAULT_MESSAGES: DefaultMessages;
 }
