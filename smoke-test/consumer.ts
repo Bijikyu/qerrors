@@ -374,4 +374,94 @@ type _MCModelVal = _MCModels[string];
 const _maxTok: number = (null as unknown as _MCModelVal).maxTokens;
 void _maxTok;
 
+// ---- Call-site type checks: errorTypes ----
+// createTypedError returns StandardError (has .type, .code, .statusCode, .severity)
+const _etError = errorTypes.createTypedError('Something failed', 'system');
+const _etErrorType: string = _etError.type;
+const _etErrorCode: string = _etError.code;
+const _etStatusCode: number = _etError.statusCode;
+void _etErrorType; void _etErrorCode; void _etStatusCode;
+// createStandardError returns StandardError
+const _etStdError = errorTypes.createStandardError('ERR_001', 'Not found', 'not_found');
+const _etStdSeverity: string = _etStdError.severity;
+void _etStdSeverity;
+// handleSimpleError returns SimpleErrorResult (success is always false, error.code is string)
+const _etSimple = errorTypes.handleSimpleError(new Error('oops'));
+const _etSimpleCode: string = _etSimple.error.code;
+const _etSimpleMsg: string = _etSimple.error.message;
+void _etSimpleCode; void _etSimpleMsg;
+// attempt<T> wraps in Result (ok: true => value is T)
+type _ETAttemptRes = Awaited<ReturnType<typeof errorTypes.attempt<string>>>;
+type _ETAttemptOk = Extract<_ETAttemptRes, { ok: true }>['value'];
+const _etAttemptStr: string = null as unknown as _ETAttemptOk;
+void _etAttemptStr;
+
+// ---- @ts-expect-error: errorTypes.createTypedError rejects non-string message ----
+// @ts-expect-error - number is not assignable to string for message parameter
+errorTypes.createTypedError(42, 'system');
+
+// ---- Call-site type checks: entityGuards ----
+// entityExists returns boolean
+const _egExists: boolean = entityGuards.entityExists(maybeUser);
+void _egExists;
+// throwIfNotFoundWithMessage<T> narrows T | null | undefined → T
+const _egUser: User = entityGuards.throwIfNotFoundWithMessage(maybeUser, 'User not found');
+void _egUser;
+// throwIfNotFoundObj returns ThrowIfNotFoundOutput (has .entity and .found)
+type _ThrowIfNotFoundOutput<T> = import('../lib/types').ThrowIfNotFoundOutput<T>;
+const _egObjResult: _ThrowIfNotFoundOutput<User> = entityGuards.throwIfNotFoundObj({ entity: maybeUser, entityName: 'user' });
+const _egFound: boolean = _egObjResult.found;
+void _egFound;
+
+// ---- @ts-expect-error: entityGuards.throwIfNotFound rejects non-string entityName ----
+// @ts-expect-error - number is not assignable to string for entityName parameter
+entityGuards.throwIfNotFound(maybeUser, 42);
+
+// ---- Call-site type checks: responseHelpers ----
+// HTTP_STATUS.OK is typed as the literal 200
+const _rhStatusOk: 200 = responseHelpers.HTTP_STATUS.OK;
+void _rhStatusOk;
+// HTTP_STATUS.NOT_FOUND is typed as the literal 404
+const _rhStatusNotFound: 404 = responseHelpers.HTTP_STATUS.NOT_FOUND;
+void _rhStatusNotFound;
+// DEFAULT_MESSAGES.NOT_FOUND is a string
+const _rhDefaultMsg: string = responseHelpers.DEFAULT_MESSAGES.NOT_FOUND;
+void _rhDefaultMsg;
+// createResponseBuilder returns a ResponseBuilder instance with typed methods
+declare const _mockRes: import('../lib/types').MockResponse;
+const _rhBuilder = responseHelpers.createResponseBuilder(_mockRes);
+// setStatus returns ResponseBuilder (fluent)
+const _rhBuilderChained: typeof _rhBuilder = _rhBuilder.setStatus(200);
+void _rhBuilderChained;
+// build() returns object
+const _rhBuilt: object = _rhBuilder.build();
+void _rhBuilt;
+
+// ---- @ts-expect-error: HTTP_STATUS.OK (200) is not assignable to string ----
+// @ts-expect-error - 200 is not assignable to string
+const _rhStatusStr: string = responseHelpers.HTTP_STATUS.OK;
+void _rhStatusStr;
+
+// ---- Call-site type checks: dependencyInterfaces ----
+// createDefaultErrorHandlingDeps returns QerrorsCoreDeps
+const _diDeps = dependencyInterfaces.createDefaultErrorHandlingDeps();
+const _diQerrFn: Function = _diDeps.qerrors;
+const _diErrSevFn: Function = _diDeps.logErrorWithSeverity;
+void _diQerrFn; void _diErrSevFn;
+// getDefaultQerrorsCoreDeps returns QerrorsCoreDeps
+const _diDefaultDeps = dependencyInterfaces.getDefaultQerrorsCoreDeps();
+const _diDefaultSev: Record<string, string> = _diDefaultDeps.ErrorSeverity;
+void _diDefaultSev;
+// getErrorSeverity returns Record<string, string>
+const _diSeverity: Record<string, string> = dependencyInterfaces.getErrorSeverity();
+void _diSeverity;
+// qerr returns Promise<void>
+const _diQerrPromise: Promise<void> = dependencyInterfaces.qerr(new Error('test'), 'ctx');
+void _diQerrPromise;
+
+// ---- @ts-expect-error: dependencyInterfaces.getErrorSeverity result is not a number ----
+// @ts-expect-error - Record<string, string> is not assignable to number
+const _diSeverityNum: number = dependencyInterfaces.getErrorSeverity();
+void _diSeverityNum;
+
 export {};
