@@ -65,6 +65,33 @@ try {
 }
 ```
 
+### ESM Usage
+
+```javascript
+// Default import — the callable qerrors function
+import qerrors from '@bijikyu/qerrors';
+
+try {
+  throw new Error('Something went wrong');
+} catch (error) {
+  qerrors(error, 'my.controller', { userId: 123 });
+}
+```
+
+```javascript
+// Named imports
+import { sanitizeMessage, createTypedError, middleware } from '@bijikyu/qerrors';
+
+// Use named exports directly
+const safe = sanitizeMessage('password=secret123');
+```
+
+```javascript
+// ESM dynamic import
+const { default: qerrors, sanitizeMessage } = await import('@bijikyu/qerrors');
+qerrors(error, 'my.controller');
+```
+
 ## 📋 Environment Configuration
 
 ```bash

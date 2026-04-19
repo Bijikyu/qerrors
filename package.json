@@ -3,9 +3,16 @@
   "version": "3.0.1",
   "description": "Intelligent error handling middleware with AI-powered analysis, queue-based processing, observability endpoints, configurable sanitization, and production-ready monitoring plus logging. Uses industry-standard libraries (opossum, dotenv, lodash, @langchain/openai) for reliability and ecosystem integration, while providing OpenAI-based error suggestions, queue management, retry safeguards, and extensible configuration for Node.js applications.",
   "main": "index.js",
+  "exports": {
+    ".": {
+      "import": "./index.mjs",
+      "require": "./index.js"
+    }
+  },
   "types": "lib/types.d.ts",
   "files": [
     "index.js",
+    "index.mjs",
     "lib/",
     "config/"
   ],
