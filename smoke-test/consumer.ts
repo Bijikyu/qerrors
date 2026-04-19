@@ -495,5 +495,36 @@ void _evIsHealthy; void _evEnv;
 // @ts-expect-error - string is not assignable to string[] for requiredVars parameter
 envUtils.getEnvHealthSync('NODE_ENV');
 
+// ---- Call-site type checks: sanitization namespace ----
+// sanitizeMessage returns string
+const _sanMsg: string = sanitization.sanitizeMessage('hello secret-key-abc123');
+void _sanMsg;
+// sanitizeContext returns Record<string, unknown>
+const _sanCtx: Record<string, unknown> = sanitization.sanitizeContext({ password: 'hunter2', user: 'alice' });
+void _sanCtx;
+// maskKey returns string
+const _sanMasked: string = sanitization.maskKey('api_key');
+void _sanMasked;
+
+// ---- @ts-expect-error: sanitization.sanitizeMessage rejects a non-string argument ----
+// @ts-expect-error - number is not assignable to string for message parameter
+sanitization.sanitizeMessage(42);
+
+// ---- Call-site type checks: queueManager namespace ----
+// getQueueMetrics returns QueueMetrics (rejectCount, activeCount, totalProcessed, queueSize, maxQueueSize, averageProcessingTime)
+const _qmMetrics = queueManager.getQueueMetrics();
+const _qmRejectCount: number = _qmMetrics.rejectCount;
+const _qmActiveCount: number = _qmMetrics.activeCount;
+const _qmTotalProcessed: number = _qmMetrics.totalProcessed;
+const _qmQueueSize: number = _qmMetrics.queueSize;
+void _qmRejectCount; void _qmActiveCount; void _qmTotalProcessed; void _qmQueueSize;
+// enforceQueueLimit returns boolean
+const _qmEnforced: boolean = queueManager.enforceQueueLimit(10, 100);
+void _qmEnforced;
+
+// ---- @ts-expect-error: queueManager.enforceQueueLimit rejects string arguments ----
+// @ts-expect-error - string is not assignable to number for currentLength parameter
+queueManager.enforceQueueLimit('ten', 100);
+
 export {};
 
