@@ -228,4 +228,87 @@ type _RBBuild = ReturnType<RB['build']>;
 const _buildRes: object = null as unknown as _RBBuild;
 void _buildRes;
 
+// -----------------------------------------------------------------------
+// Task #6 — Call-site type checks that CATCH REAL MISTAKES
+// Each block would produce a tsc error if the declaration were wrong.
+// -----------------------------------------------------------------------
+
+// (1) throwIfNotFound<T> must narrow T | null | undefined → T
+interface User { id: number; name: string }
+declare const maybeUser: User | null;
+const _user: User = throwIfNotFound(maybeUser, 'user'); // would error if return type were `unknown`
+void _user;
+
+// (2) assertEntityExists<T> also narrows to T
+const _user2: User = assertEntityExists(maybeUser, 'user');
+void _user2;
+
+// (3) entityGuards namespace: same narrowing via namespace member
+const _user3: User = entityGuards.throwIfNotFound(maybeUser, 'user');
+void _user3;
+
+// (4) executeWithQerrors<T> propagates T through Promise<T>
+type _ExecResult = Awaited<ReturnType<typeof executeWithQerrors<number>>>;
+const _execNum: number = null as unknown as _ExecResult; // errors if T were unknown
+void _execNum;
+
+// (5) ErrorUtils.asyncHandler<T> propagates T
+type _AsyncHandlerResult = Awaited<ReturnType<typeof errorUtils.asyncHandler<string>>>;
+const _asyncStr: string = null as unknown as _AsyncHandlerResult;
+void _asyncStr;
+
+// (6) SafeUtils.execute<T> wraps in Result<T> — value property must be T
+type _SafeResult = Awaited<ReturnType<typeof safeUtils.execute<number>>>;
+type _SafeValue = Extract<_SafeResult, { ok: true }>['value'];
+const _safeNum: number = null as unknown as _SafeValue;
+void _safeNum;
+
+// (7) CircuitBreaker<T> preserves function signature through execute()
+import type { CircuitBreaker as CB, CircuitBreakerOptions } from '../lib/types';
+type _CBFn = (x: number) => Promise<string>;
+declare const _cb: CB<_CBFn>;
+type _CBExecArgs = Parameters<typeof _cb.execute>;   // must be [number]
+type _CBExecRet  = Awaited<ReturnType<typeof _cb.execute>>;  // must be string
+const _cbArg: _CBExecArgs[0] extends number ? true : false = true; // errors if not number
+const _cbRet: string = null as unknown as _CBExecRet;
+void _cbArg; void _cbRet;
+
+// (8) ResponseBuilder fluent chain: setStatus().setData() must return ResponseBuilder
+import type { ResponseBuilder as RBType } from '../lib/types';
+type _RBChain = ReturnType<RBType['setStatus']>;
+const _isRB: RBType = null as unknown as _RBChain; // errors if setStatus() returned void
+void _isRB;
+
+// (9) QueueMetrics shape check — accessing a renamed field errors
+type _QMR = Awaited<ReturnType<typeof queueManager.getQueueMetrics>>;
+const _rejectCnt: number = (null as unknown as _QMR).rejectCount;   // typed, not any
+const _activeC: number   = (null as unknown as _QMR).activeCount;
+const _qSize: number     = (null as unknown as _QMR).queueSize;
+void _rejectCnt; void _activeC; void _qSize;
+
+// (10) AIModelManager.switchModel returns boolean (not void)
+type _SwitchRet = ReturnType<typeof _aiMgr.switchModel>;
+const _switchBool: boolean = null as unknown as _SwitchRet; // errors if void
+void _switchBool;
+
+// (11) EnvHealthReport nested shape — required.missing is string[]
+type _EHR = Awaited<ReturnType<typeof envUtils.getEnvHealth>>;
+type _EHRMissing = _EHR['required']['missing'];
+const _missingArr: string[] = null as unknown as _EHRMissing;
+void _missingArr;
+
+// (12) ErrorFactory.validation signature: (message, field?) — positional args only
+type _EFValidation = typeof ErrorFactory.validation;
+type _EFValP0 = Parameters<_EFValidation>[0]; // must be string
+type _EFValP1 = Parameters<_EFValidation>[1]; // must be string | null | undefined
+const _valP0IsStr: _EFValP0 extends string ? true : false = true;
+void _valP0IsStr;
+
+// (13) ModelConfig.models is a typed Record (not any)
+type _MC = import('../lib/types').ModelConfig;
+type _MCModels = _MC['models'];
+type _MCModelVal = _MCModels[string];
+const _maxTok: number = (null as unknown as _MCModelVal).maxTokens;
+void _maxTok;
+
 export {};
