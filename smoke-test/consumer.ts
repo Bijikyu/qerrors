@@ -195,6 +195,67 @@ void _simpleLoggerResult;
 // @ts-expect-error - number is not assignable to string | Record<string,unknown>
 logger.info(42);
 
+// ---- Call-site type checks: logger.logStart ----
+// logStart(name: string, data?: Record<string, unknown>): Promise<void>
+const _loggerLogStart: Promise<void> = logger.logStart('my-operation', { requestId: '123' });
+void _loggerLogStart;
+
+// ---- @ts-expect-error: logger.logStart rejects a non-string name argument ----
+// @ts-expect-error - number is not assignable to string for name parameter
+logger.logStart(42);
+
+// ---- Call-site type checks: logger.logReturn ----
+// logReturn(name: string, data?: Record<string, unknown>): Promise<void>
+const _loggerLogReturn: Promise<void> = logger.logReturn('my-operation', { result: 'ok' });
+void _loggerLogReturn;
+
+// ---- @ts-expect-error: logger.logReturn rejects a non-string name argument ----
+// @ts-expect-error - number is not assignable to string for name parameter
+logger.logReturn(99);
+
+// ---- Call-site type checks: logger.createEnhancedLogEntry ----
+// createEnhancedLogEntry(level: string, message: string, context?: object): EnhancedLogEntry
+const _loggerEnhancedEntry: import('../lib/types').EnhancedLogEntry = logger.createEnhancedLogEntry('info', 'hello world', { requestId: 'abc' });
+const _loggerEntryTimestamp: string = _loggerEnhancedEntry.timestamp;
+const _loggerEntryLevel: string = _loggerEnhancedEntry.level;
+void _loggerEntryTimestamp; void _loggerEntryLevel;
+
+// ---- @ts-expect-error: logger.createEnhancedLogEntry rejects a non-string level ----
+// @ts-expect-error - number is not assignable to string for level parameter
+logger.createEnhancedLogEntry(1, 'message');
+
+// ---- Call-site type checks: logger.getLogQueueMetrics ----
+// getLogQueueMetrics(): Record<string, unknown>
+const _loggerQueueMetrics: Record<string, unknown> = logger.getLogQueueMetrics();
+void _loggerQueueMetrics;
+
+// ---- @ts-expect-error: logger.getLogQueueMetrics result is not assignable to string ----
+// @ts-expect-error - Record<string, unknown> is not assignable to string
+const _loggerQueueMetricsStr: string = logger.getLogQueueMetrics();
+void _loggerQueueMetricsStr;
+
+// ---- @ts-expect-error: logger.getLogQueueMetrics takes no arguments ----
+// @ts-expect-error - Expected 0 arguments but got 1
+logger.getLogQueueMetrics(42);
+
+// ---- Call-site type checks: logger.sanitizeMessage ----
+// sanitizeMessage(message: string): string
+const _loggerSanitizeMsg: string = logger.sanitizeMessage('hello secret-key-abc123');
+void _loggerSanitizeMsg;
+
+// ---- @ts-expect-error: logger.sanitizeMessage rejects a non-string argument ----
+// @ts-expect-error - number is not assignable to string for message parameter
+logger.sanitizeMessage(42);
+
+// ---- Call-site type checks: logger.sanitizeContext ----
+// sanitizeContext(context: Record<string, unknown>): Record<string, unknown>
+const _loggerSanitizeCtx: Record<string, unknown> = logger.sanitizeContext({ password: 'secret', user: 'alice' });
+void _loggerSanitizeCtx;
+
+// ---- @ts-expect-error: logger.sanitizeContext rejects a non-object argument ----
+// @ts-expect-error - string is not assignable to Record<string, unknown> for context parameter
+logger.sanitizeContext('not-an-object');
+
 // ---- Call-site type checks: config ----
 // config.getEnv returns unknown
 const _configEnvVal: unknown = config.getEnv('PORT');
