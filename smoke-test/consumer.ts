@@ -71,6 +71,7 @@ import qerrors, {
   resetAIModelManager,
   createLangChainModel,
   logModuleInit,
+  simpleLogger,
   // namespace exports
   errorTypes,
   sanitization,
@@ -84,6 +85,7 @@ import qerrors, {
   entityGuards,
   responseHelpers,
   circuitBreaker,
+  logger,
 } from '@bijikyu/qerrors';
 
 void qerrors;
@@ -171,6 +173,67 @@ void dependencyInterfaces;
 void entityGuards;
 void responseHelpers;
 void circuitBreaker;
+void logger;
+void simpleLogger;
+
+// ---- Call-site type checks: logger ----
+// logger.info accepts a string message
+const _loggerInfoResult: void = logger.info('hello from logger');
+void _loggerInfoResult;
+// logger.logInfo returns Promise<void>
+const _loggerLogInfo: Promise<void> = logger.logInfo('test message', { key: 'value' });
+void _loggerLogInfo;
+// logger.createPerformanceTimer returns a PerformanceTimer (has .elapsed and .elapsedMs)
+const _loggerTimer = logger.createPerformanceTimer();
+const _loggerElapsed: number = _loggerTimer.elapsed();
+void _loggerElapsed;
+// simpleLogger.info accepts a string message
+const _simpleLoggerResult: void = simpleLogger.info('hello from simpleLogger');
+void _simpleLoggerResult;
+
+// ---- @ts-expect-error: confirm logger.info rejects non-string first argument ----
+// @ts-expect-error - number is not assignable to string | Record<string,unknown>
+logger.info(42);
+
+// ---- Call-site type checks: config ----
+// config.getEnv returns unknown
+const _configEnvVal: unknown = config.getEnv('PORT');
+void _configEnvVal;
+// config.getInt returns number
+const _configIntVal: number = config.getInt('PORT', 3000);
+void _configIntVal;
+// config.getBool returns boolean
+const _configBoolVal: boolean = config.getBool('DEBUG', false);
+void _configBoolVal;
+// config.validateRequiredVars returns ConfigValidationResult (has isValid, missing, present)
+const _configValidation = config.validateRequiredVars(['NODE_ENV']);
+const _configIsValid: boolean = _configValidation.isValid;
+const _configMissing: string[] = _configValidation.missing;
+void _configIsValid;
+void _configMissing;
+
+// ---- @ts-expect-error: confirm config.getInt rejects a non-numeric default ----
+// @ts-expect-error - string is not assignable to number for defaultValOrMin
+config.getInt('PORT', 'not-a-number');
+
+// ---- Call-site type checks: circuitBreaker ----
+// createCircuitBreaker wraps an async operation and returns a CircuitBreakerInstance
+type _AsyncFn = (x: number) => Promise<string>;
+const _cbInstance = circuitBreaker.createCircuitBreaker(
+  ((_x: number) => Promise.resolve('ok')) as _AsyncFn,
+  'test-service',
+  { failureThreshold: 5, recoveryTimeoutMs: 1000, monitoringPeriodMs: 10000 }
+);
+// getState returns string
+const _cbState: string = _cbInstance.getState();
+void _cbState;
+// getStats returns Record<string, unknown>
+const _cbStats: Record<string, unknown> = _cbInstance.getStats();
+void _cbStats;
+
+// ---- @ts-expect-error: confirm createCircuitBreaker rejects non-async operation ----
+// @ts-expect-error - sync function does not satisfy the constraint (...) => Promise<any>
+circuitBreaker.createCircuitBreaker((_x: number) => _x + 1, 'sync-service');
 
 // Verify members of namespace exports are typed (not any)
 const _sanitized: string = sanitization.sanitizeMessage('test');
