@@ -235,7 +235,10 @@ void _cbStats;
 // @ts-expect-error - sync function does not satisfy the constraint (...) => Promise<any>
 circuitBreaker.createCircuitBreaker((_x: number) => _x + 1, 'sync-service');
 
-// forceState accepts only 'open' | 'close' | 'halfOpen'
+// forceState is the canonical API on CircuitBreakerInstance for trip/reset:
+//   forceState('open')    = trip the breaker (equivalent to "open / trip")
+//   forceState('close')   = reset the breaker (equivalent to "reset")
+//   forceState('halfOpen') = put in probe mode
 _cbInstance.forceState('open');
 _cbInstance.forceState('close');
 _cbInstance.forceState('halfOpen');
@@ -290,7 +293,9 @@ void _aiMgrMaxTok;
 const _switchResult: boolean = _aiMgr.switchModel('openai');
 void _switchResult;
 
-// createLangChainModel is a named export (returns any, so we verify it's callable)
+// createLangChainModel is a named export declared as returning `any` in lib/types.d.ts.
+// We verify it is callable with an options object; return type is not further constrained
+// because the underlying LangChain model type varies by provider at runtime.
 const _langChain = createLangChainModel({});
 void _langChain;
 
