@@ -172,6 +172,83 @@ export interface LogLevels {
   AUDIT: LogLevelConfig;
 }
 
+export interface WinstonLeveledLogMethod {
+  (message: string, ...meta: unknown[]): void;
+  (infoObject: Record<string, unknown>): void;
+}
+
+export interface WinstonLogger {
+  log(level: string, message: string, ...meta: unknown[]): void;
+  log(entry: { level: string; message: string; [key: string]: unknown }): void;
+  error: WinstonLeveledLogMethod;
+  warn: WinstonLeveledLogMethod;
+  info: WinstonLeveledLogMethod;
+  http: WinstonLeveledLogMethod;
+  verbose: WinstonLeveledLogMethod;
+  debug: WinstonLeveledLogMethod;
+  silly: WinstonLeveledLogMethod;
+}
+
+export interface LoggerModule extends WinstonLogger {
+  logStart(name: string, data?: Record<string, unknown>): Promise<void>;
+  logReturn(name: string, data?: Record<string, unknown>): Promise<void>;
+  logDebug(message: string, context?: Record<string, unknown>, requestId?: string): Promise<void>;
+  logInfo(message: string, context?: Record<string, unknown>, requestId?: string): Promise<void>;
+  logWarn(message: string, context?: Record<string, unknown>, requestId?: string): Promise<void>;
+  logError(message: string, context?: Record<string, unknown>, requestId?: string): Promise<void>;
+  logFatal(message: string, context?: Record<string, unknown>, requestId?: string): Promise<void>;
+  logAudit(message: string, context?: Record<string, unknown>, requestId?: string): Promise<void>;
+  createPerformanceTimer(): PerformanceTimer;
+  sanitizeMessage(message: string): string;
+  sanitizeContext(context: Record<string, unknown>): Record<string, unknown>;
+  createEnhancedLogEntry(level: string, message: string, context?: object): EnhancedLogEntry;
+  LOG_LEVELS: LogLevels;
+  simpleLogger: WinstonLogger;
+  createSimpleWinstonLogger(options?: object): WinstonLogger;
+  getLogQueueStats(): Record<string, unknown>;
+  getLogQueueMetrics(): Record<string, unknown>;
+}
+
+export interface ConfigValidationResult {
+  isValid: boolean;
+  missing: string[];
+  present: string[];
+}
+
+export interface ConfigSummary {
+  environment: string;
+  hasEnvFile: boolean;
+  configuredVars: string[];
+  totalVars: number;
+}
+
+export interface ConfigModule {
+  defaults: Record<string, unknown>;
+  getEnv(name: string, defaultVal?: unknown): unknown;
+  getInt(name: string, defaultValOrMin?: number, min?: number): number;
+  getBool(name: string, defaultVal?: unknown): boolean;
+  validateRequiredVars(varNames: string[]): ConfigValidationResult;
+  safeRun<T>(name: string, fn: () => T, fallback: T, info?: string): T;
+  getConfigSummary(): Promise<ConfigSummary>;
+  getConfigSummarySync(): ConfigSummary;
+  loadDotenv(): void;
+}
+
+export interface CircuitBreakerInstance<T extends (...args: any[]) => Promise<any>> {
+  execute(...args: Parameters<T>): ReturnType<T>;
+  getState(): string;
+  getStats(): Record<string, unknown>;
+  forceState(state: 'open' | 'close' | 'halfOpen'): void;
+}
+
+export interface CircuitBreakerModule {
+  createCircuitBreaker<T extends (...args: any[]) => Promise<any>>(
+    operation: T,
+    serviceName: string,
+    options?: Partial<CircuitBreakerOptions>
+  ): CircuitBreakerInstance<T>;
+}
+
 export interface StandardError extends Error {
   type: string;
   code: string;
@@ -232,19 +309,19 @@ export interface MockRequest {
 /*  Named exports (mirror of index.mjs named exports)                  */
 /* ------------------------------------------------------------------ */
 
-export declare const logger: any;
+export declare const logger: LoggerModule;
 export declare const errorTypes: any;
 export declare const sanitization: any;
 export declare const queueManager: any;
 export declare const utils: any;
-export declare const config: any;
+export declare const config: ConfigModule;
 export declare const envUtils: any;
 export declare const aiModelManager: any;
 export declare const moduleInitializer: any;
 export declare const dependencyInterfaces: any;
 export declare const entityGuards: any;
 export declare const responseHelpers: any;
-export declare const circuitBreaker: any;
+export declare const circuitBreaker: CircuitBreakerModule;
 
 export declare function logErrorWithSeverity(options: LogErrorWithSeverityDIOptions): Promise<void>;
 export declare function handleControllerError(res: any, error: Error, context?: string, meta?: object): any;
@@ -274,8 +351,8 @@ export declare function logAudit(message: string, meta?: Record<string, unknown>
 export declare function createPerformanceTimer(): PerformanceTimer;
 export declare function createEnhancedLogEntry(level: string, message: string, context?: object): EnhancedLogEntry;
 export declare const LOG_LEVELS: LogLevels;
-export declare const simpleLogger: any;
-export declare function createSimpleWinstonLogger(options?: object): any;
+export declare const simpleLogger: WinstonLogger;
+export declare function createSimpleWinstonLogger(options?: object): WinstonLogger;
 
 export declare function sanitizeMessage(message: string): string;
 export declare function sanitizeContext(context: Record<string, unknown>): Record<string, unknown>;
