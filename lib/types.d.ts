@@ -462,9 +462,15 @@ export interface ModelConfig {
 
 export declare class AIModelManager {
   constructor();
-  getCurrentModelInfo(): ModelInfo;
+  initializeModel(): void;
   switchModel(provider: string, modelName?: string | null): void;
+  getCurrentModelInfo(): ModelInfo;
+  getAvailableModels(provider?: string): string[];
   analyzeError(errorPrompt: string): Promise<Record<string, unknown> | null>;
+  createAnalysisModel(): object;
+  initializeCacheTracking(): void;
+  getCacheStats(): Record<string, unknown>;
+  cleanup(): Promise<void>;
 }
 
 export interface AIModelManagerModule {
@@ -533,17 +539,28 @@ export interface DefaultMessages {
 
 export declare class ResponseBuilder {
   constructor(res: any);
-  setStatus(code: number): this;
+  setStatus(status: number): this;
+  setSuccess(success: boolean): this;
   setData(data: any): this;
-  setError(status: number, message: string): this;
+  setError(status: number, message?: string | null): this;
+  setMessage(message: string): this;
+  addMetadata(key: string, value: unknown): this;
+  addHeader(key: string, value: string): this;
+  addHeaders(headers: Record<string, string>): this;
+  setRequestId(requestId: string): this;
+  setProcessingTime(startTime: number): this;
+  setPagination(page: number, limit: number, total: number): this;
+  setValidationErrors(errors: any[]): this;
+  build(): object;
+  send(): any;
   success(data: any, options?: ResponseOptions): any;
-  created(data: any): any;
+  created(data: any, options?: ResponseOptions): any;
   notFound(message?: string): any;
   unauthorized(message?: string): any;
   forbidden(message?: string): any;
+  validation(errors: any[]): any;
   serverError(message?: string): any;
   badRequest(message?: string): any;
-  send(): any;
 }
 
 export interface ResponseHelpersModule {

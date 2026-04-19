@@ -184,4 +184,36 @@ void _rejectCount;
 const _aiMgr = aiModelManager.getAIModelManager();
 void _aiMgr;
 
+// AIModelManager class method coverage
+type _AIMgrGetAvailable = ReturnType<typeof _aiMgr.getAvailableModels>;
+const _getAvailRes: string[] = null as unknown as _AIMgrGetAvailable;
+void _getAvailRes;
+type _AIMgrCacheStats = ReturnType<typeof _aiMgr.getCacheStats>;
+const _cacheStats: Record<string, unknown> = null as unknown as _AIMgrCacheStats;
+void _cacheStats;
+type _AIMgrCleanup = ReturnType<typeof _aiMgr.cleanup>;
+const _cleanupRes: Promise<void> = null as unknown as _AIMgrCleanup;
+void _cleanupRes;
+
+// ResponseBuilder class method coverage
+import type { ResponseBuilder as RB } from '../lib/types';
+type _RBSetSuccess = ReturnType<RB['setSuccess']>;
+const _setSuccessRes: RB = null as unknown as _RBSetSuccess;
+void _setSuccessRes;
+type _RBSetMessage = ReturnType<RB['setMessage']>;
+const _setMsgRes: RB = null as unknown as _RBSetMessage;
+void _setMsgRes;
+type _RBAddMeta = ReturnType<RB['addMetadata']>;
+const _addMetaRes: RB = null as unknown as _RBAddMeta;
+void _addMetaRes;
+type _RBAddHeader = ReturnType<RB['addHeader']>;
+const _addHdrRes: RB = null as unknown as _RBAddHeader;
+void _addHdrRes;
+type _RBSetPagination = ReturnType<RB['setPagination']>;
+const _setPagRes: RB = null as unknown as _RBSetPagination;
+void _setPagRes;
+type _RBBuild = ReturnType<RB['build']>;
+const _buildRes: object = null as unknown as _RBBuild;
+void _buildRes;
+
 export {};
