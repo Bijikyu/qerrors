@@ -305,22 +305,253 @@ export interface MockRequest {
   ip: string;
 }
 
+/* ---- errorTypes namespace ---- */
+
+export interface ErrorTypesModule {
+  ServiceError: typeof ServiceError;
+  errorUtils: ErrorUtils;
+  safeUtils: SafeUtils;
+  createTypedError(type: string, message: string, code?: string, context?: object): StandardError;
+  createStandardError(message: string, code?: string, details?: object): StandardError;
+  ErrorTypes: ErrorTypeConstants;
+  ErrorSeverity: ErrorSeverityConstants;
+  ERROR_STATUS_MAP: Record<string, number>;
+  ERROR_SEVERITY_MAP: Record<string, string>;
+  ErrorFactory: ErrorFactoryInterface;
+  handleSimpleError(error: unknown, context: string): void;
+  errorMiddleware(err: Error, req: any, res: any, next: Function): void;
+  attempt<T>(fn: () => T | Promise<T>): Promise<{ ok: true; value: T } | { ok: false; error: unknown }>;
+  executeWithQerrors<T>(options: ExecuteWithQerrorsOptions<T>): Promise<T>;
+}
+
+/* ---- sanitization namespace ---- */
+
+export interface SanitizationModule {
+  sanitizeMessage(message: string): string;
+  sanitizeContext(context: Record<string, unknown>): Record<string, unknown>;
+  maskKey(key: string): string;
+}
+
+/* ---- queueManager namespace ---- */
+
+export interface QueueMetrics {
+  queueLength: number;
+  rejectCount: number;
+  concurrency: number;
+  pendingCount: number;
+}
+
+export interface QueueManagerModule {
+  createLimiter(concurrency?: number): Function;
+  getQueueRejectCount(): number;
+  getQueueMetrics(): QueueMetrics;
+  logQueueMetrics(): void;
+  startQueueMetrics(intervalMs?: number): void;
+  stopQueueMetrics(): void;
+  startAdviceCleanup(purgeFunction: () => void, intervalMs?: number): void;
+  stopAdviceCleanup(): void;
+  enforceQueueLimit(currentLength: number, maxLength: number): boolean;
+  _getStateManager(): object;
+}
+
+/* ---- utils namespace ---- */
+
+export interface UtilsModule {
+  createEnhancedLogEntry(level: string, message: string, context?: object): EnhancedLogEntry;
+  stringifyContext(context: unknown): string;
+  safeErrorMessage(error: unknown): string;
+  verboseLog(message: string, meta?: Record<string, unknown>): void;
+  createPerformanceTimer(): PerformanceTimer;
+  safeLogError(message: string, details?: Record<string, unknown>): Promise<void>;
+  safeLogInfo(message: string, details?: Record<string, unknown>): Promise<void>;
+  safeLogWarn(message: string, details?: Record<string, unknown>): Promise<void>;
+  safeLogDebug(message: string, details?: Record<string, unknown>): Promise<void>;
+  safeRun<T>(fn: () => T | Promise<T>): Promise<T | undefined>;
+  deepClone<T>(obj: T): T;
+  createTimer(): { elapsed(): number; elapsedMs(): number };
+  attempt<T>(fn: () => T | Promise<T>): Promise<{ ok: true; value: T } | { ok: false; error: unknown }>;
+  executeWithQerrors<T>(options: ExecuteWithQerrorsOptions<T>): Promise<T>;
+  formatErrorMessage(error: unknown, context: string): string;
+  createSafeAsyncWrapper<T extends any[], R>(options: SafeAsyncWrapperOptions<T, R>): (...args: T) => Promise<R | void>;
+  createSafeLogger(functionName: string, fallbackLevel?: 'error' | 'warn' | 'log' | 'info'): (message: string, details?: Record<string, unknown>) => Promise<void>;
+  createSafeOperation<T extends any[], R>(asyncFn: (...args: T) => Promise<R>, fallbackValue?: R, onError?: (error: unknown, ...args: T) => void): (...args: T) => Promise<R | undefined>;
+  safeQerrors(error: unknown, context: string, meta?: Record<string, unknown>): Promise<void>;
+  logError(message: string, meta?: Record<string, unknown>): void;
+  logInfo(message: string, meta?: Record<string, unknown>): void;
+  logWarn(message: string, meta?: Record<string, unknown>): void;
+}
+
+/* ---- envUtils namespace ---- */
+
+export interface EnvHealthReport {
+  isHealthy: boolean;
+  hasEnvFile: boolean;
+  missingRequired: string[];
+  missingOptional: string[];
+  present: string[];
+}
+
+export interface ValidateEnvironmentOptions {
+  required?: string[];
+  optional?: string[];
+  throwOnMissing?: boolean;
+}
+
+export interface EnvUtilsModule {
+  getMissingEnvVars(vars: string[]): string[];
+  throwIfMissingEnvVars(vars: string[]): string[];
+  warnIfMissingEnvVars(vars: string[], customMessage?: string): boolean;
+  validateRequiredEnvVars(vars: string[]): string[];
+  warnMissingEnvVars(vars: string[]): boolean;
+  hasEnvFile(): Promise<boolean>;
+  hasEnvFileSync(): boolean;
+  getEnvHealth(requiredVars?: string[], optionalVars?: string[]): Promise<EnvHealthReport>;
+  getEnvHealthSync(requiredVars?: string[], optionalVars?: string[]): EnvHealthReport;
+  validateEnvironment(options?: ValidateEnvironmentOptions): Promise<EnvHealthReport>;
+  validateEnvironmentSync(options?: ValidateEnvironmentOptions): EnvHealthReport;
+  NODE_ENV: string | undefined;
+  DEFAULT_ERROR_MESSAGE: string;
+  loadDotenv(): Promise<void>;
+}
+
+/* ---- aiModelManager namespace ---- */
+
+export interface ModelInfo {
+  provider: string;
+  model: string;
+  available: boolean;
+}
+
+export interface ModelConfig {
+  defaultModel: string;
+  models: string[];
+}
+
+export declare class AIModelManager {
+  constructor();
+  getCurrentModelInfo(): ModelInfo;
+  switchProvider(provider: string, modelName?: string): void;
+  analyzeError(errorPrompt: string): Promise<Record<string, unknown> | null>;
+}
+
+export interface AIModelManagerModule {
+  getAIModelManager(): AIModelManager;
+  resetAIModelManager(): void;
+  AIModelManager: typeof AIModelManager;
+  MODEL_PROVIDERS: Record<string, string>;
+  MODEL_CONFIGS: Record<string, ModelConfig>;
+}
+
+/* ---- moduleInitializer namespace ---- */
+
+export interface ModuleInitializerModule {
+  initializeModule(options?: ModuleInitOptions): Promise<null>;
+  initializeModuleESM(options?: ModuleInitOptions): Promise<null>;
+  shouldInitialize(): boolean;
+  logModuleInit(moduleName: string, metadata?: object): void;
+}
+
+/* ---- dependencyInterfaces namespace ---- */
+
+export interface DependencyInterfacesModule {
+  createQerrorsCoreDeps(qerrorsModule: object): QerrorsCoreDeps;
+  createDefaultErrorHandlingDeps(): QerrorsCoreDeps;
+  getDefaultQerrorsCoreDeps(): QerrorsCoreDeps;
+  qerr(e: unknown, context: string, meta?: Record<string, unknown>, deps?: QerrorsCoreDeps): Promise<void>;
+  getErrorSeverity(deps?: QerrorsCoreDeps): Record<string, string>;
+  logErrorWithSeverityDI(options: LogErrorWithSeverityDIOptions): Promise<void>;
+  withErrorHandlingDI(deps?: QerrorsCoreDeps): Function;
+  resetDefaultQerrorsCoreDeps(): void;
+}
+
+/* ---- entityGuards namespace ---- */
+
+export interface EntityGuardsModule {
+  throwIfNotFound<T>(entity: T | null | undefined, entityName: string): T;
+  throwIfNotFoundObj<T>(input: ThrowIfNotFoundInput<T>): ThrowIfNotFoundOutput<T>;
+  throwIfNotFoundMany(entities: Array<{ entity: any; entityName: string }>): any[];
+  throwIfNotFoundWithMessage<T>(entity: T | null | undefined, errorMessage: string): T;
+  entityExists<T>(entity: T | null | undefined): boolean;
+  assertEntityExists<T>(entity: T | null | undefined, entityName: string, errorType?: string): T;
+}
+
+/* ---- responseHelpers namespace ---- */
+
+export interface HttpStatusMap {
+  OK: 200;
+  CREATED: 201;
+  NO_CONTENT: 204;
+  BAD_REQUEST: 400;
+  UNAUTHORIZED: 401;
+  FORBIDDEN: 403;
+  NOT_FOUND: 404;
+  INTERNAL_SERVER_ERROR: 500;
+  [key: string]: number;
+}
+
+export interface DefaultMessages {
+  NOT_FOUND: string;
+  UNAUTHORIZED: string;
+  FORBIDDEN: string;
+  INTERNAL_ERROR: string;
+  VALIDATION_FAILED: string;
+  [key: string]: string;
+}
+
+export declare class ResponseBuilder {
+  constructor(res: any);
+  setStatus(code: number): this;
+  setData(data: any): this;
+  setError(status: number, message: string): this;
+  success(data: any, options?: ResponseOptions): any;
+  created(data: any): any;
+  notFound(message?: string): any;
+  unauthorized(message?: string): any;
+  forbidden(message?: string): any;
+  serverError(message?: string): any;
+  badRequest(message?: string): any;
+  send(): any;
+}
+
+export interface ResponseHelpersModule {
+  ResponseBuilder: typeof ResponseBuilder;
+  createResponseBuilder(res: any): ResponseBuilder;
+  responseBuilderMiddleware(req: any, res: any, next: Function): void;
+  sendJsonResponse(res: any, status: number, data: any): any;
+  createResponseData(success: boolean, data: any, options?: ResponseOptions): object;
+  addResponseMetadata(data: object, options?: ResponseOptions): object;
+  sendSuccessResponse(res: any, data: any, options?: ResponseOptions): any;
+  sendCreatedResponse(res: any, data: any): any;
+  sendErrorResponse(res: any, status: number, message: string, details?: any, options?: ResponseOptions): any;
+  sendValidationErrorResponse(res: any, errors: any[], options?: ResponseOptions): any;
+  sendNotFoundResponse(res: any, message?: string): any;
+  sendUnauthorizedResponse(res: any, message?: string): any;
+  sendForbiddenResponse(res: any, message?: string): any;
+  sendServerErrorResponse(res: any, message?: string): any;
+  createResponseHelper(res: any, startTime?: number | null): ResponseHelper;
+  createStatusResponseHelper(res: any, startTime?: number | null): ResponseHelper;
+  globalErrorHandler(err: Error, req: any, res: any, next: Function): void;
+  handleError(res: any, error: unknown, context?: string): any;
+  HTTP_STATUS: HttpStatusMap;
+  DEFAULT_MESSAGES: DefaultMessages;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Named exports (mirror of index.mjs named exports)                  */
 /* ------------------------------------------------------------------ */
 
 export declare const logger: LoggerModule;
-export declare const errorTypes: any;
-export declare const sanitization: any;
-export declare const queueManager: any;
-export declare const utils: any;
+export declare const errorTypes: ErrorTypesModule;
+export declare const sanitization: SanitizationModule;
+export declare const queueManager: QueueManagerModule;
+export declare const utils: UtilsModule;
 export declare const config: ConfigModule;
-export declare const envUtils: any;
-export declare const aiModelManager: any;
-export declare const moduleInitializer: any;
-export declare const dependencyInterfaces: any;
-export declare const entityGuards: any;
-export declare const responseHelpers: any;
+export declare const envUtils: EnvUtilsModule;
+export declare const aiModelManager: AIModelManagerModule;
+export declare const moduleInitializer: ModuleInitializerModule;
+export declare const dependencyInterfaces: DependencyInterfacesModule;
+export declare const entityGuards: EntityGuardsModule;
+export declare const responseHelpers: ResponseHelpersModule;
 export declare const circuitBreaker: CircuitBreakerModule;
 
 export declare function logErrorWithSeverity(options: LogErrorWithSeverityDIOptions): Promise<void>;

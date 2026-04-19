@@ -71,6 +71,19 @@ import qerrors, {
   resetAIModelManager,
   createLangChainModel,
   logModuleInit,
+  // namespace exports
+  errorTypes,
+  sanitization,
+  queueManager,
+  utils,
+  config,
+  envUtils,
+  aiModelManager,
+  moduleInitializer,
+  dependencyInterfaces,
+  entityGuards,
+  responseHelpers,
+  circuitBreaker,
 } from '@bijikyu/qerrors';
 
 void qerrors;
@@ -146,5 +159,29 @@ void getAIModelManager;
 void resetAIModelManager;
 void createLangChainModel;
 void logModuleInit;
+void errorTypes;
+void sanitization;
+void queueManager;
+void utils;
+void config;
+void envUtils;
+void aiModelManager;
+void moduleInitializer;
+void dependencyInterfaces;
+void entityGuards;
+void responseHelpers;
+void circuitBreaker;
+
+// Verify members of namespace exports are typed (not any)
+const _sanitized: string = sanitization.sanitizeMessage('test');
+void _sanitized;
+const _masked: string = sanitization.maskKey('password');
+void _masked;
+const _missing: string[] = envUtils.getMissingEnvVars(['NODE_ENV']);
+void _missing;
+const _rejectCount: number = queueManager.getQueueRejectCount();
+void _rejectCount;
+const _aiMgr = aiModelManager.getAIModelManager();
+void _aiMgr;
 
 export {};
