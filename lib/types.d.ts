@@ -1,253 +1,141 @@
 /**
- * @qtools/qerrors-types
- * Purpose: TypeScript type definitions for qerrors module.
- * Explanation: This module provides comprehensive TypeScript type definitions for the qerrors error
- * handling library. It solves the problem of missing type definitions when using qerrors in TypeScript
- * projects, enabling proper IntelliSense and compile-time type checking. The module is reusable across
- * any TypeScript project using qerrors, providing complete type coverage for all qerrors functionality
- * including error handling, logging, performance timing, and sanitization utilities.
+ * @bijikyu/qerrors – TypeScript type definitions
+ *
+ * Supports both ESM named imports and CommonJS default import patterns.
+ * TypeScript consumers using moduleResolution "node16" or "bundler" will
+ * resolve these types via the "types" condition in package.json exports.
  */
 
-declare module '@bijikyu/qerrors' {
-  interface QErrorsModule {
-    qerrors(error: any, context: string, ...args: any[]): void;
-    logger: any;
-    errorTypes: any;
-    logErrorWithSeverity: any;
-    handleControllerError: any;
-    withErrorHandling: any;
-    createTypedError: any;
-    createStandardError: any;
-    ErrorTypes: any;
-    ErrorSeverity: any;
-    ErrorFactory: any;
-    errorMiddleware: any;
-    handleSimpleError: any;
-    logDebug: any;
-    logInfo: any;
-    logWarn: any;
-    logError: any;
-    logFatal: any;
-    logAudit: any;
-    createPerformanceTimer: any;
-    createEnhancedLogEntry: any;
-    LOG_LEVELS: any;
-    simpleLogger: any;
-    createSimpleWinstonLogger: any;
-    sanitizeMessage: any;
-    sanitizeContext: any;
-    addCustomSanitizationPattern: any;
-    clearCustomSanitizationPatterns: any;
-    sanitizeWithCustomPatterns: any;
-    createLimiter: any;
-    getQueueLength: any;
-    getQueueRejectCount: any;
-    startQueueMetrics: any;
-    stopQueueMetrics: any;
-    generateUniqueId: any;
-    createTimer: any;
-    deepClone: any;
-    safeRun: any;
-    verboseLog: any;
-    getEnv: (key: string, defaultVal?: any) => any;
-    getInt: {
-      (name: string): number;
-      (name: string, min: number): number;
-      (name: string, defaultVal: number, min: number): number;
-    };
-    getMissingEnvVars: (vars: string[]) => string[];
-    throwIfMissingEnvVars: (vars: string[]) => string[];
-    warnIfMissingEnvVars: (vars: string[], customMessage?: string) => boolean;
-    validateRequiredEnvVars: (vars: string[]) => string[];
-    warnMissingEnvVars: (vars: string[]) => boolean;
-    NODE_ENV: string | undefined;
-    DEFAULT_ERROR_MESSAGE: string;
-    TEST_SUCCESS_MESSAGE: string;
-    TEST_FAILURE_MESSAGE: string;
-    getAIModelManager: any;
-    resetAIModelManager: any;
-    MODEL_PROVIDERS: any;
-    createLangChainModel: any;
-    initializeModule: (options?: ModuleInitOptions) => Promise<null>;
-    initializeModuleESM: (options?: ModuleInitOptions) => Promise<null>;
-    shouldInitialize: () => boolean;
-    logModuleInit: (moduleName: string, metadata?: object) => void;
-    createQerrorsCoreDeps: (qerrorsModule: object) => QerrorsCoreDeps;
-    getDefaultQerrorsCoreDeps: () => QerrorsCoreDeps;
-    createDefaultErrorHandlingDeps: () => QerrorsCoreDeps;
-    qerr: (e: unknown, context: string, meta?: Record<string, unknown>, deps?: QerrorsCoreDeps) => Promise<void>;
-    getErrorSeverity: (deps?: QerrorsCoreDeps) => Record<string, string>;
-    logErrorWithSeverityDI: (options: LogErrorWithSeverityDIOptions) => Promise<void>;
-    withErrorHandlingDI: (deps?: QerrorsCoreDeps) => Function;
-    resetDefaultQerrorsCoreDeps: () => void;
-    throwIfNotFound: <T>(entity: T | null | undefined, entityName: string) => T;
-    throwIfNotFoundObj: <T>(input: ThrowIfNotFoundInput<T>) => ThrowIfNotFoundOutput<T>;
-    throwIfNotFoundMany: (entities: Array<{ entity: any; entityName: string }>) => any[];
-    throwIfNotFoundWithMessage: <T>(entity: T | null | undefined, errorMessage: string) => T;
-    entityExists: <T>(entity: T | null | undefined) => boolean;
-    assertEntityExists: <T>(entity: T | null | undefined, entityName: string, errorType?: string) => T;
-    safeErrorMessage: (error: unknown, fallback: string) => string;
-    safeLogError: (error: unknown, context: string, metadata?: Record<string, unknown>) => void;
-    safeLogInfo: (message: string, metadata?: Record<string, unknown>) => void;
-    safeLogWarn: (message: string, metadata?: Record<string, unknown>) => void;
-    attempt: <T>(fn: () => T | Promise<T>) => Promise<{ ok: true; value: T } | { ok: false; error: unknown }>;
-    executeWithQerrors: <T>(options: ExecuteWithQerrorsOptions<T>) => Promise<T>;
-    formatErrorMessage: (error: unknown, context: string) => string;
-    sendJsonResponse: (res: any, status: number, data: any) => any;
-    sendSuccessResponse: (res: any, data: any, options?: ResponseOptions) => any;
-    sendCreatedResponse: (res: any, data: any) => any;
-    sendErrorResponse: (res: any, status: number, message: string, details?: any, options?: ResponseOptions) => any;
-    sendValidationErrorResponse: (res: any, errors: any[], options?: ResponseOptions) => any;
-    sendNotFoundResponse: (res: any, message?: string) => any;
-    sendUnauthorizedResponse: (res: any, message?: string) => any;
-    sendForbiddenResponse: (res: any, message?: string) => any;
-    sendServerErrorResponse: (res: any, message?: string) => any;
-    createResponseHelper: (res: any, startTime?: number | null) => ResponseHelper;
-    globalErrorHandler: (err: Error, req: any, res: any, next: Function) => void;
-    safeQerrors: (error: unknown, context: string, extra?: Record<string, any>) => Promise<void>;
-    CircuitBreaker: typeof CircuitBreaker;
-    CircuitState: { CLOSED: 'CLOSED'; OPEN: 'OPEN'; HALF_OPEN: 'HALF_OPEN' };
-    createCircuitBreaker: <T extends (...args: any[]) => Promise<any>>(operation: T, serviceName: string, overrides?: Partial<CircuitBreakerOptions>) => CircuitBreaker<T>;
-    ServiceError: typeof ServiceError;
-    errorUtils: ErrorUtils;
-    safeUtils: SafeUtils;
-    createSafeAsyncWrapper: <T extends any[], R>(options: SafeAsyncWrapperOptions<T, R>) => (...args: T) => Promise<R | void>;
-    createSafeLogger: (functionName: string, fallbackLevel?: 'error' | 'warn' | 'log' | 'info') => (message: string, details?: Record<string, unknown>) => Promise<void>;
-    createSafeOperation: <T extends any[], R>(asyncFn: (...args: T) => Promise<R>, fallbackValue?: R, onError?: (error: unknown, ...args: T) => void) => (...args: T) => Promise<R | undefined>;
-    safeJsonParse: <T = any>(text: string, fallback?: T | null) => T | null;
-    safeJsonStringify: (value: any, fallback?: string) => string;
-  }
+/* ------------------------------------------------------------------ */
+/*  Supporting interfaces                                               */
+/* ------------------------------------------------------------------ */
 
-  interface SafeAsyncWrapperOptions<T extends any[], R> {
-    modulePath?: string;
-    functionName?: string;
-    fallbackFn?: (...args: T) => R | Promise<R>;
-    silent?: boolean;
-    errorMessage?: string;
-  }
+export interface ModuleInitOptions {
+  module?: string;
+  version?: string;
+  environment?: string;
+}
 
-  interface ExecuteWithQerrorsOptions<T> {
-    opName: string;
-    operation: () => Promise<T>;
-    context?: Record<string, unknown>;
-    failureMessage: string;
-    errorCode?: string;
-    errorType?: string;
-    logMessage?: string;
-    rethrow?: boolean;
-    fallbackValue?: T;
-  }
+export interface QerrorsCoreDeps {
+  qerrors: Function;
+  logErrorWithSeverity: Function;
+  withErrorHandling: Function;
+  ErrorSeverity: Record<string, string>;
+}
 
-  interface ResponseOptions {
-    includeProcessingTime?: boolean;
-    startTime?: number | null;
-    requestId?: string | null;
-    processingTime?: number | null;
-  }
+export interface LogErrorWithSeverityDIOptions {
+  error: unknown;
+  functionName: string;
+  context?: Record<string, unknown>;
+  severity?: string;
+  deps?: QerrorsCoreDeps;
+}
 
-  interface ResponseHelper {
-    success: (data: any, options?: ResponseOptions) => any;
-    created: (data: any) => any;
-    error: (status: number, message: string, details?: any, options?: ResponseOptions) => any;
-    validation: (errors: any[], options?: ResponseOptions) => any;
-    notFound: (message?: string) => any;
-    unauthorized: (message?: string) => any;
-    forbidden: (message?: string) => any;
-    serverError: (message?: string) => any;
-  }
+export interface ThrowIfNotFoundInput<T> {
+  entity: T | null | undefined;
+  entityName: string;
+}
 
-  interface CircuitBreakerOptions {
-    failureThreshold: number;
-    recoveryTimeoutMs: number;
-    monitoringPeriodMs: number;
-    timeoutMs?: number;
-  }
+export interface ThrowIfNotFoundOutput<T> {
+  entity: T | null;
+  found: boolean;
+}
 
-  interface ServiceMetrics {
-    totalRequests: number;
-    successfulRequests: number;
-    failedRequests: number;
-    averageResponseTime: number;
-    lastFailureTime?: number;
-  }
+export interface ExecuteWithQerrorsOptions<T> {
+  opName: string;
+  operation: () => Promise<T>;
+  context?: Record<string, unknown>;
+  failureMessage: string;
+  errorCode?: string;
+  errorType?: string;
+  logMessage?: string;
+  rethrow?: boolean;
+  fallbackValue?: T;
+}
 
-  type CircuitStateType = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+export interface ResponseOptions {
+  includeProcessingTime?: boolean;
+  startTime?: number | null;
+  requestId?: string | null;
+  processingTime?: number | null;
+}
 
-  class CircuitBreaker<T extends (...args: any[]) => Promise<any>> {
-    constructor(operation: T, serviceName: string, options: CircuitBreakerOptions);
-    execute(...args: Parameters<T>): Promise<ReturnType<T>>;
-    getState(): CircuitStateType;
-    getMetrics(): ServiceMetrics;
-    getSuccessRate(): number;
-    getFailureRate(): number;
-    reset(): void;
-    forceOpen(): void;
-    isRequestAllowed(): boolean;
-  }
+export interface ResponseHelper {
+  success: (data: any, options?: ResponseOptions) => any;
+  created: (data: any) => any;
+  error: (status: number, message: string, details?: any, options?: ResponseOptions) => any;
+  validation: (errors: any[], options?: ResponseOptions) => any;
+  notFound: (message?: string) => any;
+  unauthorized: (message?: string) => any;
+  forbidden: (message?: string) => any;
+  serverError: (message?: string) => any;
+}
 
-  class ServiceError extends Error {
-    constructor(message: string, type: string, context?: Record<string, unknown>, cause?: Error | null);
-    type: string;
-    context: Record<string, unknown>;
-    cause: Error | null;
-    statusCode: number;
-    severity: string;
-    timestamp: string;
-    toJSON(): Record<string, unknown>;
-  }
+export interface CircuitBreakerOptions {
+  failureThreshold: number;
+  recoveryTimeoutMs: number;
+  monitoringPeriodMs: number;
+  timeoutMs?: number;
+}
 
-  type Result<T, E = ServiceError> = 
-    | { success: true; data: T }
-    | { success: false; error: E };
+export interface ServiceMetrics {
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  averageResponseTime: number;
+  lastFailureTime?: number;
+}
 
-  interface ErrorUtils {
-    validation: (field: string, value?: unknown) => ServiceError;
-    authentication: (serviceName: string) => ServiceError;
-    authorization: (action: string) => ServiceError;
-    externalApi: (serviceName: string, originalError: Error) => ServiceError;
-    internal: (message: string, context?: Record<string, unknown>) => ServiceError;
-    wrap: (error: unknown, defaultMessage: string) => ServiceError;
-    asyncHandler: <T>(operation: () => Promise<T>, errorMessage: string) => Promise<T>;
-  }
+export type CircuitStateType = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
 
-  interface SafeUtils {
-    execute: <T>(operation: () => Promise<T>) => Promise<Result<T>>;
-    validate: <T>(value: unknown, validator: (v: unknown) => T, field: string) => Result<T>;
-  }
+export declare class CircuitBreaker<T extends (...args: any[]) => Promise<any>> {
+  constructor(operation: T, serviceName: string, options: CircuitBreakerOptions);
+  execute(...args: Parameters<T>): Promise<ReturnType<T>>;
+  getState(): CircuitStateType;
+  getMetrics(): ServiceMetrics;
+  getSuccessRate(): number;
+  getFailureRate(): number;
+  reset(): void;
+  forceOpen(): void;
+  isRequestAllowed(): boolean;
+}
 
-  interface ModuleInitOptions {
-    module?: string;
-    version?: string;
-    environment?: string;
-  }
+export declare class ServiceError extends Error {
+  constructor(message: string, type: string, context?: Record<string, unknown>, cause?: Error | null);
+  type: string;
+  context: Record<string, unknown>;
+  cause: Error | null;
+  statusCode: number;
+  severity: string;
+  timestamp: string;
+  toJSON(): Record<string, unknown>;
+}
 
-  interface QerrorsCoreDeps {
-    qerrors: Function;
-    logErrorWithSeverity: Function;
-    withErrorHandling: Function;
-    ErrorSeverity: Record<string, string>;
-  }
+export type Result<T, E = ServiceError> =
+  | { success: true; data: T }
+  | { success: false; error: E };
 
-  interface LogErrorWithSeverityDIOptions {
-    error: unknown;
-    functionName: string;
-    context?: Record<string, unknown>;
-    severity?: string;
-    deps?: QerrorsCoreDeps;
-  }
+export interface ErrorUtils {
+  validation: (field: string, value?: unknown) => ServiceError;
+  authentication: (serviceName: string) => ServiceError;
+  authorization: (action: string) => ServiceError;
+  externalApi: (serviceName: string, originalError: Error) => ServiceError;
+  internal: (message: string, context?: Record<string, unknown>) => ServiceError;
+  wrap: (error: unknown, defaultMessage: string) => ServiceError;
+  asyncHandler: <T>(operation: () => Promise<T>, errorMessage: string) => Promise<T>;
+}
 
-  interface ThrowIfNotFoundInput<T> {
-    entity: T | null | undefined;
-    entityName: string;
-  }
+export interface SafeUtils {
+  execute: <T>(operation: () => Promise<T>) => Promise<Result<T>>;
+  validate: <T>(value: unknown, validator: (v: unknown) => T, field: string) => Result<T>;
+}
 
-  interface ThrowIfNotFoundOutput<T> {
-    entity: T | null;
-    found: boolean;
-  }
-
-  const qerrorsModule: QErrorsModule;
-  export = qerrorsModule;
+export interface SafeAsyncWrapperOptions<T extends any[], R> {
+  modulePath?: string;
+  functionName?: string;
+  fallbackFn?: (...args: T) => R | Promise<R>;
+  silent?: boolean;
+  errorMessage?: string;
 }
 
 export interface ErrorTypeConstants {
@@ -340,28 +228,145 @@ export interface MockRequest {
   ip: string;
 }
 
-export interface MockErrorFactoryInterface {
-  validation(message?: string, field?: string): Error;
-  notFound(entity?: string): Error;
-  authentication(message?: string): Error;
-  authorization(message?: string): Error;
-  from(error: unknown, meta?: object): Error;
+/* ------------------------------------------------------------------ */
+/*  Named exports (mirror of index.mjs named exports)                  */
+/* ------------------------------------------------------------------ */
+
+export declare const logger: any;
+export declare const errorTypes: any;
+export declare const sanitization: any;
+export declare const queueManager: any;
+export declare const utils: any;
+export declare const config: any;
+export declare const envUtils: any;
+export declare const aiModelManager: any;
+export declare const moduleInitializer: any;
+export declare const dependencyInterfaces: any;
+export declare const entityGuards: any;
+export declare const responseHelpers: any;
+export declare const circuitBreaker: any;
+
+export declare function logErrorWithSeverity(options: LogErrorWithSeverityDIOptions): Promise<void>;
+export declare function handleControllerError(res: any, error: Error, context?: string, meta?: object): any;
+export declare function withErrorHandling(fn: Function, context?: string): Function;
+export declare function generateErrorId(): string;
+export declare function extractContext(req: any): Record<string, unknown>;
+export declare function cleanup(): Promise<void>;
+export declare function getQueueStats(): Record<string, unknown>;
+export declare function getAnalysisCache(): any;
+
+export declare function createTypedError(type: string, message: string, context?: object): StandardError;
+export declare function createStandardError(message: string, type?: string, context?: object): StandardError;
+export declare const ErrorTypes: ErrorTypeConstants;
+export declare const ErrorSeverity: ErrorSeverityConstants;
+export declare const ErrorFactory: ErrorFactoryInterface;
+export declare function errorMiddleware(err: Error, req: any, res: any, next: Function): void;
+export declare function handleSimpleError(error: unknown, context: string): void;
+export declare const errorUtils: ErrorUtils;
+export declare const safeUtils: SafeUtils;
+
+export declare function logDebug(message: string, meta?: Record<string, unknown>): void;
+export declare function logInfo(message: string, meta?: Record<string, unknown>): void;
+export declare function logWarn(message: string, meta?: Record<string, unknown>): void;
+export declare function logError(message: string, meta?: Record<string, unknown>): void;
+export declare function logFatal(message: string, meta?: Record<string, unknown>): void;
+export declare function logAudit(message: string, meta?: Record<string, unknown>): void;
+export declare function createPerformanceTimer(): PerformanceTimer;
+export declare function createEnhancedLogEntry(level: string, message: string, context?: object): EnhancedLogEntry;
+export declare const LOG_LEVELS: LogLevels;
+export declare const simpleLogger: any;
+export declare function createSimpleWinstonLogger(options?: object): any;
+
+export declare function sanitizeMessage(message: string): string;
+export declare function sanitizeContext(context: Record<string, unknown>): Record<string, unknown>;
+export declare function addCustomSanitizationPattern(pattern: RegExp | string): void;
+export declare function clearCustomSanitizationPatterns(): void;
+export declare function sanitizeWithCustomPatterns(message: string): string;
+
+export declare function createLimiter(options?: object): any;
+export declare function getQueueRejectCount(): number;
+export declare function startQueueMetrics(): void;
+export declare function stopQueueMetrics(): void;
+export declare function safeRun<T>(fn: () => T | Promise<T>): Promise<T | undefined>;
+export declare function deepClone<T>(obj: T): T;
+export declare function createTimer(): { elapsed(): number; elapsedMs(): number };
+export declare function attempt<T>(fn: () => T | Promise<T>): Promise<{ ok: true; value: T } | { ok: false; error: unknown }>;
+export declare function executeWithQerrors<T>(options: ExecuteWithQerrorsOptions<T>): Promise<T>;
+export declare function formatErrorMessage(error: unknown, context: string): string;
+
+export declare function getEnv(key: string, defaultVal?: any): any;
+export declare function getInt(name: string, defaultValOrMin?: number, min?: number): number;
+export declare function getMissingEnvVars(vars: string[]): string[];
+export declare function throwIfMissingEnvVars(vars: string[]): string[];
+export declare function warnIfMissingEnvVars(vars: string[], customMessage?: string): boolean;
+export declare function validateRequiredEnvVars(vars: string[]): string[];
+export declare function warnMissingEnvVars(vars: string[]): boolean;
+export declare const NODE_ENV: string | undefined;
+export declare const DEFAULT_ERROR_MESSAGE: string;
+
+export declare function getAIModelManager(): any;
+export declare function resetAIModelManager(): void;
+export declare const MODEL_PROVIDERS: Record<string, string>;
+export declare function createLangChainModel(options?: object): any;
+
+export declare function initializeModule(options?: ModuleInitOptions): Promise<null>;
+export declare function initializeModuleESM(options?: ModuleInitOptions): Promise<null>;
+export declare function shouldInitialize(): boolean;
+export declare function logModuleInit(moduleName: string, metadata?: object): void;
+
+export declare function createQerrorsCoreDeps(qerrorsModule: object): QerrorsCoreDeps;
+export declare function getDefaultQerrorsCoreDeps(): QerrorsCoreDeps;
+export declare function createDefaultErrorHandlingDeps(): QerrorsCoreDeps;
+export declare function qerr(e: unknown, context: string, meta?: Record<string, unknown>, deps?: QerrorsCoreDeps): Promise<void>;
+export declare function getErrorSeverity(deps?: QerrorsCoreDeps): Record<string, string>;
+export declare function logErrorWithSeverityDI(options: LogErrorWithSeverityDIOptions): Promise<void>;
+export declare function withErrorHandlingDI(deps?: QerrorsCoreDeps): Function;
+export declare function resetDefaultQerrorsCoreDeps(): void;
+
+export declare function throwIfNotFound<T>(entity: T | null | undefined, entityName: string): T;
+export declare function throwIfNotFoundObj<T>(input: ThrowIfNotFoundInput<T>): ThrowIfNotFoundOutput<T>;
+export declare function throwIfNotFoundMany(entities: Array<{ entity: any; entityName: string }>): any[];
+export declare function throwIfNotFoundWithMessage<T>(entity: T | null | undefined, errorMessage: string): T;
+export declare function entityExists<T>(entity: T | null | undefined): boolean;
+export declare function assertEntityExists<T>(entity: T | null | undefined, entityName: string, errorType?: string): T;
+
+export declare function sendJsonResponse(res: any, status: number, data: any): any;
+export declare function sendSuccessResponse(res: any, data: any, options?: ResponseOptions): any;
+export declare function sendCreatedResponse(res: any, data: any): any;
+export declare function sendErrorResponse(res: any, status: number, message: string, details?: any, options?: ResponseOptions): any;
+export declare function sendValidationErrorResponse(res: any, errors: any[], options?: ResponseOptions): any;
+export declare function sendNotFoundResponse(res: any, message?: string): any;
+export declare function sendUnauthorizedResponse(res: any, message?: string): any;
+export declare function sendForbiddenResponse(res: any, message?: string): any;
+export declare function sendServerErrorResponse(res: any, message?: string): any;
+export declare function createResponseHelper(res: any, startTime?: number | null): ResponseHelper;
+
+export declare function globalErrorHandler(err: Error, req: any, res: any, next: Function): void;
+export declare function generateUniqueId(): string;
+export declare function verboseLog(message: string, meta?: Record<string, unknown>): void;
+
+export declare function createSafeAsyncWrapper<T extends any[], R>(
+  options: SafeAsyncWrapperOptions<T, R>
+): (...args: T) => Promise<R | void>;
+export declare function createSafeLogger(
+  functionName: string,
+  fallbackLevel?: 'error' | 'warn' | 'log' | 'info'
+): (message: string, details?: Record<string, unknown>) => Promise<void>;
+export declare function createSafeOperation<T extends any[], R>(
+  asyncFn: (...args: T) => Promise<R>,
+  fallbackValue?: R,
+  onError?: (error: unknown, ...args: T) => void
+): (...args: T) => Promise<R | undefined>;
+export declare function safeJsonParse<T = any>(text: string, fallback?: T | null): T | null;
+export declare function safeJsonStringify(value: any, fallback?: string): string;
+
+/* ------------------------------------------------------------------ */
+/*  Default export – the callable qerrors function                     */
+/* ------------------------------------------------------------------ */
+
+export interface QerrorsCallable {
+  (error: any, context: string, ...args: any[]): void;
 }
 
-export interface TestingModule {
-  qerrors(): undefined;
-  handleControllerError(res: any, error: Error, context?: string, meta?: object): any;
-  ErrorFactory: MockErrorFactoryInterface;
-  MockErrorFactory: MockErrorFactoryInterface;
-  errorMiddleware(err: Error, req: any, res: any, next: Function): any;
-  mockErrorMiddleware(err: Error, req: any, res: any, next: Function): any;
-  createMockResponse(): MockResponse;
-  createMockRequest(overrides?: Partial<MockRequest>): MockRequest;
-}
-
-export function handleError(
-  error: unknown,
-  context: string,
-  res: any,
-  next?: Function
-): Promise<void>;
+declare const qerrorsDefault: QerrorsCallable;
+export default qerrorsDefault;

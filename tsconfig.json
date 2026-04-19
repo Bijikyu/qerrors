@@ -49,7 +49,8 @@
     "*.test.ts",
     "attached_assets",
     "agentRecords",
-    "lib/shared/**/*.js"
+    "lib/shared/**/*.js",
+    "smoke-test"
   ],
   "ts-node": {
     "esm": true,
