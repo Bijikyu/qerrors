@@ -235,6 +235,15 @@ void _cbStats;
 // @ts-expect-error - sync function does not satisfy the constraint (...) => Promise<any>
 circuitBreaker.createCircuitBreaker((_x: number) => _x + 1, 'sync-service');
 
+// forceState accepts only 'open' | 'close' | 'halfOpen'
+_cbInstance.forceState('open');
+_cbInstance.forceState('close');
+_cbInstance.forceState('halfOpen');
+
+// ---- @ts-expect-error: forceState rejects an invalid state string ----
+// @ts-expect-error - 'broken' is not assignable to 'open' | 'close' | 'halfOpen'
+_cbInstance.forceState('broken');
+
 // Verify members of namespace exports are typed (not any)
 const _sanitized: string = sanitization.sanitizeMessage('test');
 void _sanitized;
@@ -265,6 +274,29 @@ void _switchModelRes;
 type _ResetRes = ReturnType<typeof aiModelManager.resetAIModelManager>;
 const _resetRes: Promise<void> | undefined = null as unknown as _ResetRes;
 void _resetRes;
+
+// MODEL_PROVIDERS is Record<string, string>
+const _providerKey: string = Object.values(aiModelManager.MODEL_PROVIDERS)[0] as string;
+void _providerKey;
+
+// MODEL_CONFIGS nested shape: models[key].maxTokens is number
+const _firstConfig = Object.values(aiModelManager.MODEL_CONFIGS)[0];
+const _aiMgrMaxTok: number = (_firstConfig as import('../lib/types').ModelConfig).models[
+  (_firstConfig as import('../lib/types').ModelConfig).defaultModel
+].maxTokens;
+void _aiMgrMaxTok;
+
+// switchModel returns boolean
+const _switchResult: boolean = _aiMgr.switchModel('openai');
+void _switchResult;
+
+// createLangChainModel is a named export (returns any, so we verify it's callable)
+const _langChain = createLangChainModel({});
+void _langChain;
+
+// ---- @ts-expect-error: aiModelManager.switchModel rejects a number as provider ----
+// @ts-expect-error - number is not assignable to string for provider parameter
+_aiMgr.switchModel(42);
 
 // ResponseBuilder class method coverage — including addMetadata object-merge overload
 import type { ResponseBuilder as RB } from '../lib/types';
