@@ -258,16 +258,15 @@ export interface StandardError extends Error {
 }
 
 export interface ErrorFactoryInterface {
-  validation(message: string, field?: string | null, context?: object): StandardError;
-  authentication(message?: string, context?: object): StandardError;
-  authorization(message?: string, context?: object): StandardError;
-  notFound(resource: string, id?: string, context?: object): StandardError;
-  rateLimit(message?: string, context?: object): StandardError;
-  network(service: string, message?: string, context?: object): StandardError;
-  database(operation?: string, context?: object): StandardError;
-  system(message?: string, component?: string, context?: object): StandardError;
-  configuration(message?: string, context?: object): StandardError;
-  from(error: unknown, meta?: object): Error;
+  validation(message: string, field?: string | null): StandardError;
+  authentication(message?: string): StandardError;
+  authorization(message?: string): StandardError;
+  notFound(resource?: string): StandardError;
+  rateLimit(message?: string): StandardError;
+  network(message: string, service?: string | null, context?: object): StandardError;
+  database(message: string, operation?: string | null): StandardError;
+  system(message: string, context?: object): StandardError;
+  configuration(message: string, field?: string | null): StandardError;
 }
 
 export interface PerformanceTimer {
@@ -390,7 +389,7 @@ export interface UtilsModule {
   createSafeLogger(functionName: string, fallbackLevel?: 'error' | 'warn' | 'log' | 'info'): (message: string, details?: Record<string, unknown>) => Promise<void>;
   createSafeOperation<T extends any[], R>(asyncFn: (...args: T) => Promise<R>, fallbackValue?: R, onError?: (error: unknown, ...args: T) => void): (...args: T) => Promise<R | undefined>;
   safeQerrors(error: unknown, context: string, meta?: Record<string, unknown>): Promise<void>;
-  logError(message: string, meta?: Record<string, unknown>): void;
+  logError(error: unknown, context?: string | object, metadata?: Record<string, unknown>): void;
   logInfo(message: string, meta?: Record<string, unknown>): void;
   logWarn(message: string, meta?: Record<string, unknown>): void;
 }
@@ -614,8 +613,8 @@ export declare function cleanup(): Promise<void>;
 export declare function getQueueStats(): Record<string, unknown>;
 export declare function getAnalysisCache(): any;
 
-export declare function createTypedError(type: string, message: string, context?: object): StandardError;
-export declare function createStandardError(message: string, type?: string, context?: object): StandardError;
+export declare function createTypedError(message: string, type: string, code?: string | null, context?: object): StandardError;
+export declare function createStandardError(code: string, message: string, type: string, context?: object): StandardError;
 export declare const ErrorTypes: ErrorTypeConstants;
 export declare const ErrorSeverity: ErrorSeverityConstants;
 export declare const ErrorFactory: ErrorFactoryInterface;
